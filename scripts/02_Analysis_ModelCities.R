@@ -111,7 +111,7 @@ fLST7 <- dir(path.EEout, "Landsat7_LST")
 fLST5 <- dir(path.EEout, "Landsat5_LST")
 
 # The length statements will grab the newest file if there's more than one
-maskCity <- raster(file.path(path.EEout, fMASK[length(fMASK)]))
+maskCity <- brick(file.path(path.EEout, fMASK[length(fMASK)]))
 elevCity <- raster(file.path(path.EEout, fELEV[length(fELEV)]))
 treeCity <- brick(file.path(path.EEout, fTREE[length(fTREE)]))
 vegCity <- brick(file.path(path.EEout, fVEG[length(fVEG)]))
@@ -137,11 +137,12 @@ lst8City; lst7City; lst5City
 coordsCity <- data.frame(coordinates(elevCity)) 
 coordsCity$location <- paste0("x", coordsCity$x, "y", coordsCity$y)
 coordsCity$elevation <- getValues(elevCity)
-coordsCity$cityBounds <- getValues(maskCity)
+# coordsCity$cityBounds <- getValues(maskCity)
 coordsCity$cityBounds <- !is.na(coordsCity$cityBounds) # NA = buffer = FALSE citybounds
 
 # In case we're missing some years of LST (likely in the tropics); only pull certain layers
-layers.use <- names(treeCity)[names(treeCity) %in% names(lstCity)]
+tempNames <- unique(c(names(lst8City), names(lst7City), names(lst5City)))
+layers.use <- names(treeCity)[names(treeCity) %in% tempNames]
 
 coordsVeg <- data.frame(coordinates(treeCity))
 coordsVeg$location <- paste0("x", coordsVeg$x, "y", coordsVeg$y)
@@ -157,64 +158,115 @@ valsCityVeg$location <- coordsVeg$location
 if(all(coordsVeg$location == coordsCity$location)){
   valsCity <- valsCityVeg[,]
   valsCity$elevation <- coordsCity$elevation
-  valsCity$cityBounds <- coordsCity$cityBounds
+  # valsCity$cityBounds <- coordsCity$cityBounds
   # valsCity <- merge(coordsCity, valsCityVeg, all.x=T, all.y=T)
 } else {
   stop("Veg and Elev Layer doesn't match. :-( gotta figure it out")
 }
 
-# Land Surface Temperature is mismatched with 
-coordsLST <- data.frame(coordinates(lstCity))
-coordsLST$location <- paste0("x", coordsLST$x, "y", coordsLST$y)
 
-valsLST <- stack(data.frame(getValues(lstCity[[layers.use]])))
-names(valsLST) <- c("LST_Day", "year")
-valsLST$x <- coordsLST$x
-valsLST$y <- coordsLST$y
-valsLST$location <- coordsLST$location
-summary(valsLST)
+valsCity <- valsCity[!is.na(valsCity$elevation),]
+summary(valsCity)
+dim(valsCity)
 
-# locLSTAll <- unique(valsLST$location[!is.na(valsLST$LST_Day)])
+
+# -------
+# Landsat 8 LST ----
+# -------
+coordsLST8 <- data.frame(coordinates(lst8City))
+coordsLST8$location <- paste0("x", coordsLST8$x, "y", coordsLST8$y)
+dim(coordsLST8)
+
+# Landsat 8
+valsLST8 <- stack(data.frame(getValues(lst8City[[layers.use]])))
+names(valsLST8) <- c("LST_Day", "year")
+valsLST8$x <- coordsLST8$x
+valsLST8$y <- coordsLST8$y
+valsLST8$location <- coordsLST8$location
+valsLST8$satellite <- "landsat8"
+valsLST8 <- valsLST8[!is.na(valsLST8$LST_Day),]
+summary(valsLST8)
+
+dim(valsLST8); dim(valsCity)
+
+# Landsat 7
+coordsLST7 <- data.frame(coordinates(lst7City))
+coordsLST7$location <- paste0("x", coordsLST7$x, "y", coordsLST7$y)
+
+valsLST7 <- stack(data.frame(getValues(lst7City[[layers.use]])))
+names(valsLST7) <- c("LST_Day", "year")
+valsLST7$x <- coordsLST7$x
+valsLST7$y <- coordsLST7$y
+valsLST7$location <- coordsLST7$location
+valsLST7$satellite <- "landsat7"
+valsLST7 <- valsLST7[!is.na(valsLST7$LST_Day),]
+summary(valsLST7)
+
+
+# Landsat 5
+coordsLST5 <- data.frame(coordinates(lst5City))
+coordsLST5$location <- paste0("x", coordsLST5$x, "y", coordsLST5$y)
+
+# valsLST5 <- stack(data.frame(getValues(lst5City[[layers.use]])))
+# names(valsLST5) <- c("LST_Day", "year")
+# valsLST5$x <- coordsLST7$x
+# valsLST5$y <- coordsLST7$y
+# valsLST5$location <- coordsLST7$location
+# valsLST5$satellite <- "landsat5"
+# valsLST5 <- valsLST5[!is.na(valsLST5$LST_Day),]
+# 
+# summary(valsLST5)
+# dim(valsLST8); dim(valsLST7); dim(valsLST5); 
+
 
 # nrow(coordsCity); nrow(coordsLST)
-if(all(coordsLST$location == coordsCity$location)){
-  valsCity$LST_Day <- valsLST$LST_Day
-  # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
-} else if( any(coordsLST$location %in% valsCity$location)) {  
-  valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
-} else {
-  print(warning("LST coords do not match elev.  Doing nearest neighbor"))
+# Try merging just the temperature data together for the moment
+tempAll <- rbind(valsLST8, valsLST7, all.x=T, all.y=T)
+tempAll <- tempAll[!is.na(tempAll$year),]
+summary(tempAll)
+
+# Iteratively Remove 6-sigma outliers for LST
+lst.mean <- mean(tempAll$LST_Day, na.rm=T)
+lst.sd <- sd(tempAll$LST_Day, na.rm=T)
+
+sussLST <- which(tempAll$LST_Day>(lst.mean+6*lst.sd) | tempAll$LST_Day<(lst.mean-6*lst.sd))
+
+while(length(sussLST)>0){
+  tempAll$LST_Day[sussLST] <- NA 
   
-  valsCity$LST_Day <- NA
-  valsCity$LST_Offset <- NA
-  
-  for(i in 1:nrow(coordsLST)){
-    locLST <- coordsLST$location[i]
-    xLST <- coordsLST$x[i]
-    yLST <- coordsLST$y[i]
-    lstNow <- which(valsLST$location==locLST)
-    
-    # Check to see if this is a blank spot; if so, move on
-    if(all(is.na(valsLST$LST_Day[lstNow]))) next 
-    
-    # Find the nearest pixel from the cityCoords
-    distLocX <- coordsCity$x - xLST
-    distLocY <- coordsCity$y - yLST
-    distLocCity <- sqrt(distLocX^2 + distLocY^2)
-    # summary(distLocCity)
-    
-    minDist <- min(distLocCity)
-    locCity <- coordsCity$location[which(distLocCity==minDist)]
-    valsCity$LST_Offset[valsCity$location==locCity] <- minDist
-    
-    # If the closest cell is more than half a pixel away, skip it
-    if(minDist > 927/2) next
-    # if(minDist > 1000/2) next  # Adjusting to our nominal scale
-    
-    valsCity$LST_Day[valsCity$location==locCity] <- valsLST$LST_Day[lstNow]
-  }
-  
+  # Update our outlier threshold
+  lst.mean <- mean(tempAll$LST_Day, na.rm=T)
+  lst.sd <- sd(tempAll$LST_Day, na.rm=T)
+  sussLST <- which(tempAll$LST_Day>(lst.mean+6*lst.sd) | tempAll$LST_Day<(lst.mean-6*lst.sd))
 }
+
+summary(tempAll)
+
+# if( any(coordsLST8$location %in% valsCity$location)) {  
+#   valsCity <- merge(valsCity, valsLST8, all.x=T, all.y=T)
+# } else {
+#   print(warning("LST coords do not match elev. Reprocess your data."))
+# }
+
+png(file.path(path.cities, "Chicago_LST_Comparison"), height=12, width=14, units="in", res=220)
+ggplot(data=tempAll) +
+  facet_grid(satellite ~ year) +
+  geom_tile(aes(x=x, y=y, fill=LST_Day))
+dev.off()
+
+# -------
+
+
+
+# -------
+
+
+
+
+
+
+
+
 
 valsCity$year <- as.numeric(substr(valsCity$year, 3, 6))
 valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree),]
