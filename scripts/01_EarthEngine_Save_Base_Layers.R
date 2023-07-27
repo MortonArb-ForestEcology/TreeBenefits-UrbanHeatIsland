@@ -106,7 +106,7 @@ vizBit2 <- list(
   palette=tempColors
 );
 
-mod44b <- ee$ImageCollection('MODIS/006/MOD44B')$filter(ee$Filter$date("2013-04-01", "2020-12-31")) #MODIS doesn't have 2022 data yet. Subsetting to a shared time period
+mod44b <- ee$ImageCollection('MODIS/006/MOD44B')$filter(ee$Filter$date("2001-01-01", "2020-12-31")) #MODIS doesn't have 2022 data yet. Subsetting to a shared time period
 mod44b <- mod44b$map(setYear)$map(addTime)
 # ee_print(mod44b)
 # Map$addLayer(mod44b$select('Percent_Tree_Cover')$first(), vizTree, 'Percent Tree Cover')
@@ -135,7 +135,7 @@ projTransform #should produce NUMBERS!
 
 
 # proj4string: "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
-saveVegMask <- ee_image_to_asset(vegMask, description="Save_VegetationMask", assetId=file.path(assetHome, "MOD44b_250m_Reproj_VegMask"), maxPixels = 10e12, scale=231.6564, region = maskBBox, crs="SR-ORG:6974", crsTransform=projTransform, overwrite=T)
+saveVegMask <- ee_image_to_asset(vegMask, description="Save_VegetationMask", assetId=file.path(assetHome, "MOD44b_250m_native_VegMask"), maxPixels = 10e12, scale=231.6564, region = maskBBox, crs="SR-ORG:6974", crsTransform=projTransform, overwrite=T)
 saveVegMask$start()
 
 
