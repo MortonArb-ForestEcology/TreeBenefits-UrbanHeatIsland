@@ -94,7 +94,7 @@ addNDVI <- function(img){
 }
 
 # This funciton will extract the year-averaged LST & NDVI for landsat image collection
-processLandsatData <- function(imcol, LandsatLabel, GoogleFolderSave=GoogleFolderSave, cityID=cityID, cityNow=cityNow, projCRS=projCRS, projTransform=projTransform, ...){
+processLandsatData <- function(imcol, LandsatLabel, ...){
   yrList <- ee$List(imcol$aggregate_array("year"))$distinct()$sort()
   yrString <- yrList$map(ee_utils_pyfunc(function(j){
     return(ee$String("YR")$cat(ee$String(ee$Number(j)$format())))
