@@ -92,7 +92,7 @@ extractElevEE <- function(CitySP, CityNames, ELEV, GoogleFolderSave, overwrite=F
     # Map$addLayer(elevCity, elevVis, "City Elevation")
 
     # Save elevation only if it's worth our while -- Note: Still doing the extraction & computation first since we use it as our base
-    export.elev <- ee_image_to_drive(image=elevCity, description=paste0(cityID, "_elevation"), fileNamePrefix=paste0(cityID, "_elevation"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e6, crs=projCRS, crsTransform=projTransform)
+    export.elev <- ee_image_to_drive(image=elevCity, description=paste0(cityID, "_elevation"), fileNamePrefix=paste0(cityID, "_elevation"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=10e9, crs=projCRS, crsTransform=projTransform)
     export.elev$start()
       # ee_monitoring(export.elev)
     #-------
