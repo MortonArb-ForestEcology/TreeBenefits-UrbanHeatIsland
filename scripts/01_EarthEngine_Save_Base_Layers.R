@@ -106,7 +106,7 @@ vizBit2 <- list(
   palette=tempColors
 );
 
-mod44b <- ee$ImageCollection('MODIS/006/MOD44B')$filter(ee$Filter$date("2013-04-01", "2020-12-31")) #MODIS doesn't have 2022 data yet. Subsetting to a shared time period
+mod44b <- ee$ImageCollection('MODIS/006/MOD44B')$filter(ee$Filter$date("2001-04-01", "2020-12-31")) #MODIS doesn't have 2022 data yet. Subsetting to a shared time period
 mod44b <- mod44b$map(setYear)$map(addTime)
 # ee_print(mod44b)
 # Map$addLayer(mod44b$select('Percent_Tree_Cover')$first(), vizTree, 'Percent Tree Cover')
