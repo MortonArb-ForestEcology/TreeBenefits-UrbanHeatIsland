@@ -7,7 +7,7 @@ library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
 path.google <- "~/Google Drive/My Drive/"
-GoogleFolderSave <- "UHI_Analysis_Output_v3"
+GoogleFolderSave <- "UHI_Analysis_Output_Final_v3"
 assetHome <- ee_get_assethome()
 
 ##################### 
@@ -102,7 +102,7 @@ addNDVI <- function(img){
 #####################
 sdei.df <- data.frame(vect("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp"))
 sdei.df <- sdei.df[sdei.df$ES00POP>=100e3 & sdei.df$SQKM_FINAL>=1e2,]
-cityIdAll <- sdei.df$ISOURBID
+cityIDsAll <- sdei.df$ISOURBID
 
 sdei <- ee$FeatureCollection('users/crollinson/sdei-global-uhi-2013');
 # print(sdei.first())
@@ -113,12 +113,7 @@ citiesUse <- sdei$filter(ee$Filter$gte('ES00POP', 100e3))$filter(ee$Filter$gte('
 
 # Use map to go ahead and create the buffer around everything
 citiesUse <- citiesUse$map(function(f){f$buffer(10e3)})
-
-## Just testing to make sure it works
-# popLarge <- citiesBuff$filter(ee$Filter$gte('ES00POP', 1e6))$filter(ee$Filter$gte('SQKM_FINAL', 1e2))
-# ee_print(popLarge) # 389 cities
-# Map$addLayer(popLarge)
-# citiesBuff <- popLarge
+# ee_print(citiesUse)
 
 ##################### 
 
@@ -319,8 +314,27 @@ extractTempEE <- function(CitySP, CityNames,  GoogleFolderSave, overwrite=F, ...
 print(citiesUse$first()$propertyNames()$getInfo())
 
 cityIdS <-sdei.df$ISOURBID[sdei.df$LATITUDE<0]
-cityIdN <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0]
-length(cityIdS); length(cityIdN)
+cityIdNW <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0 & sdei.df$LONGITUDE<=0]
+cityIdNE1 <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0 & sdei.df$LONGITUDE>0 & sdei.df$LONGITUDE<=75]
+cityIdNE2 <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0 & sdei.df$LONGITUDE>75]
+length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
+
+# If we're not trying to overwrite our files, remove files that were already done
+cityRemove <- vector()
+if(!overwrite){
+  ### Filter out sites that have been done!
+  tmean.done <- dir(file.path(path.google, GoogleFolderSave), "LST")
+  
+  # Check to make sure a city has all three layers; if it doesn't do it again
+  cityRemove <- unlist(lapply(strsplit(tmean.done, "_"), function(x){x[1]}))
+
+  cityIdS <- cityIdS[!cityIdS %in% cityRemove]
+  cityIdNW <- cityIdNW[!cityIdNW %in% cityRemove]
+  cityIdNE1 <- cityIdNE1[!cityIdNE1 %in% cityRemove]
+  cityIdNE2 <- cityIdNE2[!cityIdNE2 %in% cityRemove]
+  
+} # End remove cities loop
+length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
 
 # If we're not trying to overwrite our files, remove files that were already done
 # cityRemove <- vector()
