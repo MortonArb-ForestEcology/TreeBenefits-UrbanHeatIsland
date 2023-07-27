@@ -27,7 +27,7 @@ addTime <- function(image){
   return(image$addBands(image$metadata('system:time_start')$divide(1000 * 60 * 60 * 24 * 365)))
 }
 
-setYear <- function(img){
+addYear <- function(img){
   return(img$set("year", img$date()$get("year")))
 }
 
@@ -92,6 +92,79 @@ mosaicByDate <- function(imcol, dayWindow){
 addNDVI <- function(img){
   return( img$addBands(img$normalizedDifference(c('nir','red'))$rename('NDVI')));
 }
+
+# This funciton will extract the year-averaged LST & NDVI for landsat image collection
+processLandsatData <- function(imcol, LandsatLabel, GoogleFolderSave=GoogleFolderSave, cityID=cityID, cityNow=cityNow, projCRS=projCRS, projTransform=projTransform, ...){
+  yrList <- ee$List(imcol$aggregate_array("year"))$distinct()$sort()
+  yrString <- yrList$map(ee_utils_pyfunc(function(j){
+    return(ee$String("YR")$cat(ee$String(ee$Number(j)$format())))
+  }))
+  # yrString$getInfo()
+  
+  
+  TempYrAvg <- yrList$map(ee_utils_pyfunc(function(j){
+    YR <- ee$Number(j);
+    START <- ee$Date$fromYMD(YR,1,1);
+    END <- ee$Date$fromYMD(YR,12,31);
+    lstYR <- imcol$filter(ee$Filter$date(START, END))
+    
+    # tempMedian <- lstYR$select('LST_K')$reduce(ee$Reducer$median())
+    tempMedian <- lstYR$select('LST_K')$reduce(ee$Reducer$mean())
+    
+    tempAgg <- ee$Image(tempMedian)
+    
+    ## ADD YEAR AS A PROPERTY!!
+    tempAgg <- tempAgg$set(ee$Dictionary(list(year=YR)))
+    tempAgg <- tempAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
+    # ee_print(tempAgg)
+    # Map$addLayer(tempAgg$select('LST_Day_1km_mean'), vizTempK, 'Mean Surface Temperature (K)');
+    # Map$addLayer(tempAgg$select('LST_Day_Dev_mean'), vizTempAnom, 'Median Surface Temperature - Anomaly');
+    
+    return (tempAgg); # update to standardized once read
+  }))
+  
+  TempYrAvg <- ee$ImageCollection$fromImages(TempYrAvg) # go ahead and overwrite it since we're just changing form
+  # ee_print(TempYrAvg)
+  # Map$addLayer(TempYrAvg$first()$select('LST_K_mean'), vizTempK, "Mean Surface Temperature")
+  
+  tempYrAvg <- ee$ImageCollection$toBands(TempYrAvg)$rename(yrString)
+  
+  
+  export.TempMean <- ee_image_to_drive(image=tempYrAvg, description=paste(cityID, LandsatLabel, "LST", sep="_"), fileNamePrefix=paste(cityID, LandsatLabel, "LST", sep="_"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=10e12, crs=projCRS, crsTransform=projTransform)
+  export.TempMean$start()
+  
+  
+  # Extract & Save NDVI
+  NDVIYrAvg <- yrList$map(ee_utils_pyfunc(function(j){
+    YR <- ee$Number(j);
+    START <- ee$Date$fromYMD(YR,1,1);
+    END <- ee$Date$fromYMD(YR,12,31);
+    ndviYR <- imcol$filter(ee$Filter$date(START, END))
+    
+    # NDVIMedian <- lstYR$select('LST_K')$reduce(ee$Reducer$median())
+    NDVIMedian <- ndviYR$select('NDVI')$reduce(ee$Reducer$mean())
+    
+    NDVIAgg <- ee$Image(NDVIMedian)
+    
+    ## ADD YEAR AS A PROPERTY!!
+    NDVIAgg <- NDVIAgg$set(ee$Dictionary(list(year=YR)))
+    NDVIAgg <- NDVIAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
+    # ee_print(NDVIAgg)
+    
+    return (NDVIAgg); # update to standardized once read
+  }))
+  
+  NDVIYrAvg <- ee$ImageCollection$fromImages(NDVIYrAvg) # go ahead and overwrite it since we're just changing form
+  # ee_print(NDVIYrAvg)
+  # Map$addLayer(NDVIYrAvg$first()$select('NDVI_mean'), ndviVis, "NDVI")
+  
+  NDVIYrAvg <- ee$ImageCollection$toBands(NDVIYrAvg)$rename(yrString)
+  
+  
+  export.NDVIMean <- ee_image_to_drive(image=NDVIYrAvg, description=paste(cityID, LandsatLabel, "NDVI", sep="_"), fileNamePrefix=paste(cityID, LandsatLabel, "NDVI", sep="_"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=10e12, crs=projCRS, crsTransform=projTransform)
+  export.NDVIMean$start()
+}
+
 
 
 ##################### 
@@ -183,8 +256,9 @@ extractTempEE <- function(CitySP, CityNames,  GoogleFolderSave, overwrite=F, ...
   for(i in 1:length(CityNames)){
     setTxtProgressBar(pb, i)
     cityID <- CityNames[i]
-    # cityNow <- citiesUse$filter('NAME=="Chicago"')
     cityNow <- CitySP$filter(ee$Filter$eq('ISOURBID', cityID))
+    # cityID = "Chicago"
+    # cityNow <- citiesUse$filter('NAME=="Chicago"')
     
     # Figure out if we need N or S hemisphere; 
     # NOTE: if this is slow, then just have it as a specified thing from the function since we have fed N/S separately anyways
@@ -199,12 +273,16 @@ extractTempEE <- function(CitySP, CityNames,  GoogleFolderSave, overwrite=F, ...
     # Map$centerObject(cityNow) 
     # Map$addLayer(cityNow)
 
-    #-------
+    #-------------------
     # Now doing Land Surface Temperature
-    #-------
+    #-------------------
     # Read in the appropriate landsat data using the filter bounds function & appropriate time for N/S hemisphere
     # # # NOTE: Working with just 1 year to try and get this working!!
-    landsat8 <- ee$ImageCollection('LANDSAT/LC08/C02/T1_L2')$filterBounds(cityNow)$filter(ee$Filter$dayOfYear(dayStart, dayEnd))$filter(ee$Filter$date("2014-01-01", "2020-12-31"))$map(addTime)$map(function(img){
+    
+    # ----------
+    # Landsat 8 -----
+    # ----------
+    landsat8 <- ee$ImageCollection('LANDSAT/LC08/C02/T1_L2')$filterBounds(cityNow)$filter(ee$Filter$dayOfYear(dayStart, dayEnd))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$map(function(img){
       # Add date info
       d= ee$Date(img$get('system:time_start'));
       dy= d$get('day');    
@@ -224,11 +302,6 @@ extractTempEE <- function(CitySP, CityNames,  GoogleFolderSave, overwrite=F, ...
     # ee_print(landsat8)
     # Map$addLayer(landsat8$first()$select('LST_K'), vizTempK, "Raw Surface Temperature")
     
-    yrList <- ee$List(landsat8$aggregate_array("year"))$distinct()$sort()
-    yrString <- yrList$map(ee_utils_pyfunc(function(j){
-      return(ee$String("YR")$cat(ee$String(ee$Number(j)$format())))
-    }))
-
     l8Reproj = landsat8$map(function(img){
       return(img$reproject(projveg)$reduceResolution(reducer=ee$Reducer$mean()))
              })$map(addYear) # flipping teh order here to specify the reproject first seems to have helped.
@@ -239,67 +312,91 @@ extractTempEE <- function(CitySP, CityNames,  GoogleFolderSave, overwrite=F, ...
     l8Here <- l8Reproj$map(function(img){ return(img$clip(cityNow))})
     # Map$addLayer(l8Here$first()$select('LST_K'), vizTempK, "Raw Surface Temperature")
     
+    processLandsatData(imcol=l8Here, LandsatLabel = "Landsat8", GoogleFolderSave = GoogleFolderSave )
+    # ----------
     
-    l8TempYrAvg <- yrList$map(ee_utils_pyfunc(function(j){
-      YR <- ee$Number(j);
-      START <- ee$Date$fromYMD(YR,1,1);
-      END <- ee$Date$fromYMD(YR,12,31);
-      lstYR <- l8Here$filter(ee$Filter$date(START, END))
-
-      # tempMedian <- lstYR$select('LST_K')$reduce(ee$Reducer$median())
-      tempMedian <- lstYR$select('LST_K')$reduce(ee$Reducer$mean())
+    
+    # ----------
+    # Landsat 7 -----
+    # ----------
+    landsat7 <- ee$ImageCollection('LANDSAT/LE07/C02/T1_L2')$filterBounds(cityNow)$filter(ee$Filter$dayOfYear(dayStart, dayEnd))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$map(function(img){
+      # Add date info
+      d= ee$Date(img$get('system:time_start'));
+      dy= d$get('day');    
+      m= d$get('month');
+      y= d$get('year');
       
-      tempAgg <- ee$Image(tempMedian)
-
-      ## ADD YEAR AS A PROPERTY!!
-      tempAgg <- tempAgg$set(ee$Dictionary(list(year=YR)))
-      tempAgg <- tempAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
-      # ee_print(tempAgg)
-      # Map$addLayer(tempAgg$select('LST_Day_1km_mean'), vizTempK, 'Mean Surface Temperature (K)');
-      # Map$addLayer(tempAgg$select('LST_Day_Dev_mean'), vizTempAnom, 'Median Surface Temperature - Anomaly');
-
-      return (tempAgg); # update to standardized once read
-    }))
-
-    l8TempYrAvg <- ee$ImageCollection$fromImages(l8TempYrAvg) # go ahead and overwrite it since we're just changing form
-    # ee_print(l8TempYrAvg)
-    # Map$addLayer(l8TempYrAvg$first()$select('LST_K_mean'), vizTempK, "Mean Surface Temperature")
-    
-    l8tempYrAvg <- ee$ImageCollection$toBands(l8TempYrAvg)$rename(yrString)
-    
-
-    export.TempMean <- ee_image_to_drive(image=l8tempYrAvg, description=paste0(cityID, "_Landsat8_LST"), fileNamePrefix=paste0(cityID, "_Landsat8_LST"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=10e9, crs=projCRS, crsTransform=projTransform)
-    export.TempMean$start()
-    
-    
-    l8NDVIYrAvg <- yrList$map(ee_utils_pyfunc(function(j){
-      YR <- ee$Number(j);
-      START <- ee$Date$fromYMD(YR,1,1);
-      END <- ee$Date$fromYMD(YR,12,31);
-      ndviYR <- l8Here$filter(ee$Filter$date(START, END))
+      # # Add masks 
+      img <- applyLandsatBitMask(img)
       
-      # NDVIMedian <- lstYR$select('LST_K')$reduce(ee$Reducer$median())
-      NDVIMedian <- ndviYR$select('NDVI')$reduce(ee$Reducer$mean())
+      # #scale correction; doing here & separating form NDVI so it gets saved on the image
+      lAdj = img$select(c('SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B7'))$multiply(0.0000275)$add(-0.2);
+      lst_k = img$select('ST_B6')$multiply(0.00341802)$add(149);
       
-      NDVIAgg <- ee$Image(NDVIMedian)
+      # img3 = img2$addBands(srcImg=lAdj, overwrite=T)$addBands(srcImg=lst_k, overwrite=T)$set('date',d, 'day',dy, 'month',m, 'year',y)
+      return(img$addBands(srcImg=lAdj, overwrite=T)$addBands(srcImg=lst_k, overwrite=T)$set('date',d, 'day',dy, 'month',m, 'year',y))
+    })$select(c('SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B7', 'ST_B6'),c('blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'LST_K'))$map(addNDVI);
+    # ee_print(landsat7)
+    # Map$addLayer(landsat7$first()$select('LST_K'), vizTempK, "Raw Surface Temperature")
+    
+    l7Reproj = landsat7$map(function(img){
+      return(img$reproject(projveg)$reduceResolution(reducer=ee$Reducer$mean()))
+    })$map(addYear) # flipping teh order here to specify the reproject first seems to have helped.
+    # ee_print(l7Reproj)
+    # Map$addLayer(l7Reproj$first()$select('LST_K'), vizTempK, "Raw Surface Temperature")
+    
+    # Now that we've re-projected, lets clip to the region
+    l7Here <- l7Reproj$map(function(img){ return(img$clip(cityNow))})
+    # Map$addLayer(l7Here$first()$select('LST_K'), vizTempK, "Raw Surface Temperature")
+    
+    processLandsatData(imcol=l7Here, LandsatLabel = "Landsat7", GoogleFolderSave = GoogleFolderSave )
+    # ----------
+    
+    # ----------
+    # Landsat 5 -----
+    # ----------
+    landsat5 <- ee$ImageCollection('LANDSAT/LT05/C02/T1_L2')$filterBounds(cityNow)$filter(ee$Filter$dayOfYear(dayStart, dayEnd))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$map(function(img){
+      # Add date info
+      d= ee$Date(img$get('system:time_start'));
+      dy= d$get('day');    
+      m= d$get('month');
+      y= d$get('year');
       
-      ## ADD YEAR AS A PROPERTY!!
-      NDVIAgg <- NDVIAgg$set(ee$Dictionary(list(year=YR)))
-      NDVIAgg <- NDVIAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
-      # ee_print(NDVIAgg)
+      # # Add masks 
+      img <- applyLandsatBitMask(img)
+      
+      # #scale correction; doing here & separating form NDVI so it gets saved on the image
+      lAdj = img$select(c('SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B7'))$multiply(0.0000275)$add(-0.2);
+      lst_k = img$select('ST_B6')$multiply(0.00341802)$add(149);
+      
+      # img3 = img2$addBands(srcImg=lAdj, overwrite=T)$addBands(srcImg=lst_k, overwrite=T)$set('date',d, 'day',dy, 'month',m, 'year',y)
+      return(img$addBands(srcImg=lAdj, overwrite=T)$addBands(srcImg=lst_k, overwrite=T)$set('date',d, 'day',dy, 'month',m, 'year',y))
+    })$select(c('SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B7', 'ST_B6'),c('blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'LST_K'))$map(addNDVI);
+    # ee_print(landsat5)
+    # Map$addLayer(landsat5$first()$select('LST_K'), vizTempK, "Raw Surface Temperature")
+    
+    l5Reproj = landsat5$map(function(img){
+      return(img$reproject(projveg)$reduceResolution(reducer=ee$Reducer$mean()))
+    })$map(addYear) # flipping teh order here to specify the reproject first seems to have helped.
+    # ee_print(l5Reproj)
+    # Map$addLayer(l5Reproj$first()$select('LST_K'), vizTempK, "Raw Surface Temperature")
+    
+    # Now that we've re-projected, lets clip to the region
+    l5Here <- l5Reproj$map(function(img){ return(img$clip(cityNow))})
+    # Map$addLayer(l5Here$first()$select('LST_K'), vizTempK, "Raw Surface Temperature")
+    
+    processLandsatData(imcol=l5Here, LandsatLabel = "Landsat5", GoogleFolderSave = GoogleFolderSave )
+    # ----------
 
-      return (NDVIAgg); # update to standardized once read
-    }))
     
-    l8NDVIYrAvg <- ee$ImageCollection$fromImages(l8NDVIYrAvg) # go ahead and overwrite it since we're just changing form
-    # ee_print(l8NDVIYrAvg)
-    # Map$addLayer(l8NDVIYrAvg$first()$select('NDVI_mean'), ndviVis, "NDVI")
+    # ----------
+    # Combined Landsat data: l8 (2013-2020), l7 (2000-2020), l5 (2000-2012)
+    # ----------
+    landsatAll <- l8Here$merge(l7Here)$merge(l5Here)
+    # ee_print(landsatAll)
     
-    l8NDVIYrAvg <- ee$ImageCollection$toBands(l8NDVIYrAvg)$rename(yrString)
-    
-    
-    export.NDVIMean <- ee_image_to_drive(image=l8NDVIYrAvg, description=paste0(cityID, "_Landsat8_NDVI"), fileNamePrefix=paste0(cityID, "_Landsat8_NDVI"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=10e9, crs=projCRS, crsTransform=projTransform)
-    export.NDVIMean$start()
+    processLandsatData(imcol=landsatAll, LandsatLabel = "Landsat-AllCombined", GoogleFolderSave = GoogleFolderSave )
+    # ----------
     
   }
 }
@@ -335,49 +432,24 @@ if(!overwrite){
   
 } # End remove cities loop
 length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
-
-# If we're not trying to overwrite our files, remove files that were already done
-# cityRemove <- vector()
-# cityRemove <- c("IND58965", "BRA58970", "IDN58965")
-
-if(!overwrite){
-  ### Filter out sites that have been done!
-  tmean.done <- dir(file.path(path.google, GoogleFolderSave), "LST")
-
-  # Check to make sure a city has all three layers; if it doesn't do it again
-  cityRemove <- unlist(lapply(strsplit(tmean.done, "_"), function(x){x[1]}))
-
-  cityIdS <- cityIdS[!cityIdS %in% cityRemove]
-  cityIdN <- cityIdN[!cityIdN %in% cityRemove]
-  
-} # End remove cities loop
-
-# citiesSouth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
-# citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
-
-# citiesSouth$size()$getInfo()
-length(cityIdS)
-
-# citiesNorth$size()$getInfo()
-length(cityIdN)
-
-
 # 
 if(length(cityIdS)>0){
   extractTempEE(CitySP=citiesUse, CityNames = cityIdS, GoogleFolderSave = GoogleFolderSave)
 }
 
 # 
-if(length(cityIdN)>0){
-  extractTempEE(CitySP=citiesUse, CityNames = cityIdN, GoogleFolderSave = GoogleFolderSave)
+if(length(cityIdNW)>0){
+  extractTempEE(CitySP=citiesUse, CityNames = cityIdNW, GoogleFolderSave = GoogleFolderSave)
 }
 
-# # All except 3 were run successfully
-# if(ncitiesNorthW>0){
-#   citiesNorthWList <- citiesNorthW$toList(ncitiesNorthW) 
-#   extractTempEE(CITIES=citiesNorthWList, TEMPERATURE=lstNHFinal, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-# }
+if(length(cityIdNE1)>0){
+  extractTempEE(CitySP=citiesUse, CityNames = cityIdNE1, GoogleFolderSave = GoogleFolderSave)
+}
 
-### FOR LOOP ENDS HERE
+if(length(cityIdNE2)>0){
+  extractTempEE(CitySP=citiesUse, CityNames = cityIdNE2, GoogleFolderSave = GoogleFolderSave)
+}
+
+
 ##################### 
 
