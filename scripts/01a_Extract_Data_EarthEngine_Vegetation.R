@@ -4,7 +4,7 @@ library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
 path.google <- "~/Google Drive/My Drive/"
-GoogleFolderSave <- "UHI_Analysis_Output_v3"
+GoogleFolderSave <- "UHI_Analysis_Output_Final_v3"
 assetHome <- ee_get_assethome()
 
 
@@ -51,9 +51,9 @@ vizTree <- list(
   palette=c('bbe029', '0a9501', '074b03')
 );
 
-modTree <- ee$Image(file.path(assetHome,'MOD44b_native_Percent_Tree_Cover'))
-modVeg <- ee$Image(file.path(assetHome,'MOD44b_native_Percent_NonTree_Vegetation'))
-modBare <- ee$Image(file.path(assetHome,'MOD44b_native_Percent_NonVegetated'))
+modTree <- ee$Image(file.path(assetHome,'MOD44b_250m_native_Percent_Tree_Cover'))
+modVeg <- ee$Image(file.path(assetHome,'MOD44b_250m_native_Percent_NonTree_Vegetation'))
+modBare <- ee$Image(file.path(assetHome,'MOD44b_250m_native_Percent_NonVegetated'))
 
 ee_print(modTree)
 # Map$addLayer(modTree$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
@@ -86,19 +86,19 @@ extractVeg <- function(CitySP, CityNames, TREE, VEG, BARE, GoogleFolderSave, ove
     # ee_print(treeCity)
     # Map$addLayer(treeCity$select('2020_Percent_Tree_Cover'), vizTree, 'Percent Tree Cover')
     
-    exportTree <- ee_image_to_drive(image=treeCity, description=paste0(cityID, "_Vegetation_PercentTree"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentTree"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    exportTree <- ee_image_to_drive(image=treeCity, description=paste0(cityID, "_Vegetation_PercentTree"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentTree"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=10e9, crs=projCRS, crsTransform=projTransform)
     exportTree$start()
 
     # Start Other Veg Cover Layer
     vegCity <- VEG$clip(cityNow)
     # ee_print(vegCity)
-    exportVeg <- ee_image_to_drive(image=vegCity, description=paste0(cityID, "_Vegetation_PercentOtherVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentOtherVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    exportVeg <- ee_image_to_drive(image=vegCity, description=paste0(cityID, "_Vegetation_PercentOtherVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentOtherVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=10e9, crs=projCRS, crsTransform=projTransform)
     exportVeg$start()
 
     # Start No Veg Cover layer
     bareCity <- BARE$clip(cityNow)
     
-    export.bare <- ee_image_to_drive(image=bareCity, description=paste0(cityID, "_Vegetation_PercentNoVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentNoVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    export.bare <- ee_image_to_drive(image=bareCity, description=paste0(cityID, "_Vegetation_PercentNoVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentNoVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=10e9, crs=projCRS, crsTransform=projTransform)
     export.bare$start()
     #-------
     
