@@ -4,7 +4,7 @@ library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
 path.google <- "/Volumes/GoogleDrive/My Drive"
-GoogleFolderSave <- "UHI_Analysis_Output_Final_v2"
+GoogleFolderSave <- "UHI_Analysis_Output_v30"
 assetHome <- ee_get_assethome()
 
 
@@ -336,6 +336,97 @@ for(i in 1:sizeSH-1){
 
 # -----------
 
+# -----------
+# Evapotranspiration ---- 
+# Adding in evapotranspiraiton, which should be similar to LST, but finer in spatial (& temparol??) resolution
+# Two Options:
+# XX1. https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD16A2#bands says 2001-2023, but description notes major gaps; gapfilled project: https://lpdaac.usgs.gov/products/mod16a2gfv061/
+# ---> The data on Earth Engine are no good.  Only >2001 & little urban core coverage  
+# 2. https://developers.google.com/earth-engine/datasets/catalog/MODIS_NTSG_MOD16A2_105 # only runs 2000-2014
+ # --> also missing urban core, but maybe good enough to try
+# -----------
+# NOTE: This product will only run through 2016
+ETConvert <- function(img){
+  ET <- img$select('ET')$multiply(0.1)
+  PET <- img$select('PET')$multiply(0.1)
+  evapoT <- ee$Image(c(ET, PET));
+  img <- img$addBands(srcImg=evapoT, overwrite=TRUE);
+  return(img)
+}
+
+ETColors <- c('#ffffff', '#fcd163', '#99b718', '#66a000', '#3e8601', '#207401', '#056201',
+              '#004c00', '#011301')
+vizET <- list(
+  min=0,
+  max=30,
+  palette=c('ffffff', 'fcd163', '99b718', '66a000', '3e8601', '207401', '056201',
+            '004c00', '011301')
+);
+
+
+ETJulAug <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+ETJulAug <- ETJulAug$map(ETConvert)
+ETJulAug <- ETJulAug$map(setYear)
+
+ETJanFeb <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+ETJanFeb <- ETJanFeb$map(ETConvert)
+ETJanFeb <- ETJanFeb$map(setYear)
+# 
+# ee_print(ETJulAug)
+# ETJulAug$first()$propertyNames()$getInfo()
+# ee_print(ETJulAug$first())
+# Map$addLayer(ETJulAug$first()$select('ET'), vizET, "Jul/Aug Evapotranspiration")
+# Map$addLayer(ETJanFeb$first()$select('ET'), vizET, "Jan/Feb Evapotranspiration")
+
+
+# 
+ETJulAugClean = ETJulAug$map(function(img){
+  return(img$reproject(projLST))
+})
+
+ETJanFeb = ETJanFeb$map(function(img){
+  return(img$reproject(projLST))
+})
+
+# ETJulAugMask <- ETJulAug$select("ET")$map(function(IMG){IMG$updateMask(vegMask)})
+# PETJulAugMask <- ETJulAug$select("ET")$map(function(IMG){IMG$updateMask(vegMask)})
+# ETJanFebMask <- ETJanFeb$select("ET")$map(function(IMG){IMG$updateMask(vegMask)})
+# PETJanFebMask <- ETJanFeb$select("ET")$map(function(IMG){IMG$updateMask(vegMask)})
+
+# ee_print(ETJulAugClean)
+# ETJulAug$first()$propertyNames()$getInfo()
+# ee_print(ETJulAug$first())
+# Map$addLayer(ETJulAug$first()$select('ET'), vizET, "Jul/Aug Evapotranspiration")
+
+# Trying to export each collection as a Collection 
+# Source: https://gis.stackexchange.com/questions/407146/export-imagecollection-to-asset
+sizeETJA <- ETJulAug$size()$getInfo()
+ETJAList <- ETJulAug$toList(sizeETJA)
+
+# Doing a loop for the Northern Hemisphere first
+for(i in 1:sizeETJA-1){
+  img <- ee$Image(ETJAList$get(i))
+  imgID <- img$id()$getInfo()
+  # ee_print(img)
+  # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
+  saveETNH <- ee_image_to_asset(img, description=paste0("Save_ET_JulAug_", imgID), assetId=file.path(assetHome, "ET_JulAug", imgID), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveETNH$start()
+}
+
+sizeETJF <- ETJanFeb$size()$getInfo()
+ETJFList <- ETJulAug$toList(sizeETJF)
+
+# Doing a loop for the Northern Hemisphere first
+for(i in 1:sizeETJF-1){
+  img <- ee$Image(ETJFList$get(i))
+  imgID <- img$id()$getInfo()
+  # ee_print(img)
+  # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
+  saveETSH <- ee_image_to_asset(img, description=paste0("Save_ET_JanFeb_", imgID), assetId=file.path(assetHome, "ET_JanFeb", imgID), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveETSH$start()
+}
+# -----------
+
 
 # -----------
 # Elevation
@@ -354,10 +445,8 @@ elevVis = list(
   max= 5000,
   palette=c ('0000ff', '00ffff', 'ffff00', 'ff0000', 'ffffff')
 );
-Map$addLayer(elevReproj, elevVis, "Elevation - Masked, reproj")
 
+Map$addLayer(elevReproj, elevVis, "Elevation - Masked, reproj")
 
 saveElev <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
 saveElev$start()
-
-
