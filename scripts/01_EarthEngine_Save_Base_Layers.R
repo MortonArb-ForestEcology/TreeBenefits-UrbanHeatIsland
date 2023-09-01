@@ -364,11 +364,11 @@ vizET <- list(
 );
 
 
-ETJulAug <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+ETJulAug <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("ET", "PET"));
 ETJulAug <- ETJulAug$map(ETConvert)
 ETJulAug <- ETJulAug$map(setYear)
 
-ETJanFeb <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+ETJanFeb <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("ET", "PET"));
 ETJanFeb <- ETJanFeb$map(ETConvert)
 ETJanFeb <- ETJanFeb$map(setYear)
 # 
@@ -376,6 +376,7 @@ ETJanFeb <- ETJanFeb$map(setYear)
 # ETJulAug$first()$propertyNames()$getInfo()
 # ee_print(ETJulAug$first())
 # Map$addLayer(ETJulAug$first()$select('ET'), vizET, "Jul/Aug Evapotranspiration")
+# Map$addLayer(ETJulAug$first()$select('PET'), vizET, "Jul/Aug Evapotranspiration")
 # Map$addLayer(ETJanFeb$first()$select('ET'), vizET, "Jan/Feb Evapotranspiration")
 
 
@@ -414,8 +415,7 @@ for(i in 1:sizeETJA-1){
 }
 
 sizeETJF <- ETJanFeb$size()$getInfo()
-ETJFList <- ETJulAug$toList(sizeETJF)
-
+ETJFList <- ETJanFeb$toList(sizeETJF)
 # Doing a loop for the Northern Hemisphere first
 for(i in 1:sizeETJF-1){
   img <- ee$Image(ETJFList$get(i))
