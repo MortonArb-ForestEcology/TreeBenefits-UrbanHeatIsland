@@ -1,4 +1,5 @@
 # Migrating the Trees & Urban Heat Island workflow to using Google Earth Engine
+# NOTE: Some of this may need to get run in batches because of Earth Engine Storage Limtis
 
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
@@ -29,7 +30,10 @@ bitwiseExtract <- function(input, fromBit, toBit) {
 ##################### 
 # 1. Load and select cities
 #####################
-# bBoxS = ee$Geometry$BBox(-180, -90, 180, 0);
+bBoxS = ee$Geometry$BBox(-180, -90, 180, 5);
+bBoxN = ee$Geometry$BBox(-180, -5, 180, 90);
+maskBBox <- ee$Geometry$BBox(-180, -90, 180, 90)
+
 # bBoxNW = ee$Geometry$BBox(-180, 0, 0, 90);
 # bBoxNE1 = ee$Geometry$BBox(0, 0, 75, 90);
 # bBoxNE2 = ee$Geometry$BBox(75, 0, 80, 90);
@@ -197,11 +201,10 @@ vegMask <- mod44bReprojOrig$first()$select("Percent_Tree_Cover", "Percent_NonTre
 # Map$addLayer(vegMask, vizBit)
 
 maskGeom <- vegMask$geometry()$getInfo()
-maskBBox <- ee$Geometry$BBox(-180, -90, 180, 90)
 
 # proj4string: "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
-saveVegMask <- ee_image_to_asset(vegMask, description="Save_VegetationMask", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveVegMask$start()
+# saveVegMask <- ee_image_to_asset(vegMask, description="Save_VegetationMask", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+# saveVegMask$start()
 
 
 
@@ -271,50 +274,64 @@ modVeg <- ee$ImageCollection$toBands(mod44bReproj$select("Percent_NonTree_Vegeta
 modBare <- ee$ImageCollection$toBands(mod44bReproj$select("Percent_NonVegetated"))$rename(yrString)
 
 # ee_print(modTree)
-Map$addLayer(modTree$select("YR2020"), vizTree, "TreeCover")
+# Map$addLayer(modTree$select("YR2020"), vizTree, "TreeCover")
 
-saveTree <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveTree$start()
-
-saveVeg <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveVeg$start()
-
-saveBare <- ee_image_to_asset(modBare, description="Save_Mod44bReproj_NonVeg", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonVegetated"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveBare$start()
+# saveTree <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+# saveTree$start()
+# 
+# saveVeg <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+# saveVeg$start()
+# 
+# # Commenting out because of space limitations
+# # saveBare <- ee_image_to_asset(modBare, description="Save_Mod44bReproj_NonVeg", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonVegetated"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+# # saveBare$start()
 # ----------
 
 # -----------
 # Revisit Temperatures to save
 # -----------
+# Mask out bad veg cells & crop to just N/S hemisphere
 lstNHmask <- lstDayGoodNH$select("LST_Day_1km")$map(function(IMG){IMG$updateMask(vegMask)})
 lstSHmask <- lstDayGoodSH$select("LST_Day_1km")$map(function(IMG){IMG$updateMask(vegMask)})
-ee_print(lstNHmask)
+# ee_print(lstDayGoodNH)
+# ee_print(lstNHmask)
 # Map$addLayer(lstNHmask$first()$select('LST_Day_1km'), vizTempK, "Jul/Aug Temperature")
+
+# Cropping size to save our sanity!
+# lstNHmaskCrop <- lstNHmask$clip(bBoxN)
+# lstSHmaskCrop <- lstSHmask$clip(bBoxS)
+
+# ee_print(lstNHmaskCrop)
+# Map$addLayer(lstNHmaskCrop$first()$select('LST_Day_1km'), vizTempK, "Jul/Aug Temperature")
+
 
 # Trying to export each collection as a Collection 
 # Source: https://gis.stackexchange.com/questions/407146/export-imagecollection-to-asset
 sizeNH <- lstNHmask$size()$getInfo()
 lstNHList <- lstNHmask$toList(sizeNH)
 
-sizeSH <- lstSHmask$size()$getInfo()
-lstSHList <- lstSHmask$toList(sizeSH)
-
 # Doing a loop for the Northern Hemisphere first
+ee_manage_create(file.path(assetHome, "LST_JulAug_Clean"), asset_type="ImageCollection")
 for(i in 1:sizeNH-1){
   img <- ee$Image(lstNHList$get(i))
   imgID <- img$id()$getInfo()
   # ee_print(img)
   # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
-  saveLSTNH <- ee_image_to_asset(img, description=paste0("Save_LST_JulAug_", imgID), assetId=file.path(assetHome, "LST_JulAug_Clean", imgID), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveLSTNH <- ee_image_to_asset(img, description=paste0("Save_LST_JulAug_", imgID), assetId=file.path(assetHome, "LST_JulAug_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveLSTNH$start()
 }
 
+
+sizeSH <- lstSHmask$size()$getInfo()
+lstSHList <- lstSHmask$toList(sizeSH)
+
+ee_manage_create(file.path(assetHome, "LST_JanFeb_Clean"), asset_type="ImageCollection")
 for(i in 1:sizeSH-1){
-  img <- ee$Image(lstSHList$get(i))
+  img <- ee$Image(lstSHList$get(i))$clip(bBoxS)
   imgID <- img$id()$getInfo()
   # ee_print(img)
   # Map$addLayer(img, vizTempK, "JanFeb Temperature")
-  saveLSTSH <- ee_image_to_asset(img, description=paste0("Save_LST_JanFeb_", imgID), assetId=file.path(assetHome, "LST_JanFeb_Clean", imgID), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveLSTSH <- ee_image_to_asset(img, description=paste0("Save_LST_JanFeb_", imgID), assetId=file.path(assetHome, "LST_JanFeb_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveLSTSH$start()
 }
 
@@ -348,9 +365,9 @@ for(i in 1:sizeSH-1){
 # NOTE: This product will only run through 2016
 ETConvert <- function(img){
   ET <- img$select('ET')$multiply(0.1)
-  PET <- img$select('PET')$multiply(0.1)
-  evapoT <- ee$Image(c(ET, PET));
-  img <- img$addBands(srcImg=evapoT, overwrite=TRUE);
+  # PET <- img$select('PET')$multiply(0.1)
+  # evapoT <- ee$Image(c(ET, PET));
+  img <- img$addBands(srcImg=ET, overwrite=TRUE);
   return(img)
 }
 
@@ -364,11 +381,11 @@ vizET <- list(
 );
 
 
-ETJulAug <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+ETJulAug <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$select("ET")$map(addTime);
 ETJulAug <- ETJulAug$map(ETConvert)
 ETJulAug <- ETJulAug$map(setYear)
 
-ETJanFeb <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+ETJanFeb <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$select("ET")$map(addTime);
 ETJanFeb <- ETJanFeb$map(ETConvert)
 ETJanFeb <- ETJanFeb$map(setYear)
 # 
@@ -399,30 +416,33 @@ ETJanFeb = ETJanFeb$map(function(img){
 # Map$addLayer(ETJulAug$first()$select('ET'), vizET, "Jul/Aug Evapotranspiration")
 
 # Trying to export each collection as a Collection 
+# Doing a loop for the Northern Hemisphere first
 # Source: https://gis.stackexchange.com/questions/407146/export-imagecollection-to-asset
 sizeETJA <- ETJulAug$size()$getInfo()
 ETJAList <- ETJulAug$toList(sizeETJA)
 
-# Doing a loop for the Northern Hemisphere first
+ee_manage_create(file.path(assetHome, "ET_JulAug"), asset_type="ImageCollection")
 for(i in 1:sizeETJA-1){
   img <- ee$Image(ETJAList$get(i))
   imgID <- img$id()$getInfo()
   # ee_print(img)
   # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
-  saveETNH <- ee_image_to_asset(img, description=paste0("Save_ET_JulAug_", imgID), assetId=file.path(assetHome, "ET_JulAug", imgID), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveETNH <- ee_image_to_asset(img, description=paste0("Save_ET_JulAug_", imgID), assetId=file.path(assetHome, "ET_JulAug", imgID), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveETNH$start()
 }
 
-sizeETJF <- ETJanFeb$size()$getInfo()
-ETJFList <- ETJulAug$toList(sizeETJF)
 
-# Doing a loop for the Northern Hemisphere first
+# Now Doing a loop for the Southern Hemisphere 
+sizeETJF <- ETJanFeb$size()$getInfo()
+ETJFList <- ETJanFeb$toList(sizeETJF)
+
+ee_manage_create(file.path(assetHome, "ET_JanFeb"), asset_type="ImageCollection")
 for(i in 1:sizeETJF-1){
   img <- ee$Image(ETJFList$get(i))
   imgID <- img$id()$getInfo()
   # ee_print(img)
   # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
-  saveETSH <- ee_image_to_asset(img, description=paste0("Save_ET_JanFeb_", imgID), assetId=file.path(assetHome, "ET_JanFeb", imgID), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveETSH <- ee_image_to_asset(img, description=paste0("Save_ET_JanFeb_", imgID), assetId=file.path(assetHome, "ET_JanFeb", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveETSH$start()
 }
 # -----------
@@ -450,3 +470,4 @@ Map$addLayer(elevReproj, elevVis, "Elevation - Masked, reproj")
 
 saveElev <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
 saveElev$start()
+# -----------
