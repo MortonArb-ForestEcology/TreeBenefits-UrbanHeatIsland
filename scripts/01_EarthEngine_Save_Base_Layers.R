@@ -393,6 +393,7 @@ ETJanFeb <- ETJanFeb$map(setYear)
 # ETJulAug$first()$propertyNames()$getInfo()
 # ee_print(ETJulAug$first())
 # Map$addLayer(ETJulAug$first()$select('ET'), vizET, "Jul/Aug Evapotranspiration")
+# Map$addLayer(ETJulAug$first()$select('PET'), vizET, "Jul/Aug Evapotranspiration")
 # Map$addLayer(ETJanFeb$first()$select('ET'), vizET, "Jan/Feb Evapotranspiration")
 
 
