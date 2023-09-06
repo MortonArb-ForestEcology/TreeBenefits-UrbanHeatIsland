@@ -30,8 +30,8 @@ bitwiseExtract <- function(input, fromBit, toBit) {
 ##################### 
 # 1. Load and select cities
 #####################
-bBoxS = ee$Geometry$BBox(-180, -90, 180, 5);
-bBoxN = ee$Geometry$BBox(-180, -5, 180, 90);
+bBoxS = ee$Geometry$BBox(-180, -60, 180, 5);
+bBoxN = ee$Geometry$BBox(-180, -5, 180, 75);
 maskBBox <- ee$Geometry$BBox(-180, -90, 180, 90)
 
 # bBoxNW = ee$Geometry$BBox(-180, 0, 0, 90);
@@ -136,6 +136,8 @@ tempJanFeb <- tempJanFeb$map(setYear)
 # tempJulAug$first()$propertyNames()$getInfo()
 # ee_print(tempJulAug$first())
 # Map$addLayer(tempJulAug$first()$select('LST_Day_1km'), vizTempK, "Jul/Aug Temperature")
+# Map$addLayer(tempJanFeb$first()$select('LST_Day_1km'), vizTempK, "Jan/Feb Temperature")
+
 
 projLST = tempJulAug$select("LST_Day_1km")$first()$projection()
 projCRS = projLST$crs()
@@ -383,11 +385,11 @@ vizET <- list(
 
 ETJulAug <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$select("ET")$map(addTime);
 ETJulAug <- ETJulAug$map(ETConvert)
-ETJulAug <- ETJulAug$map(setYear)
+# ETJulAug <- ETJulAug$map(setYear)
 
 ETJanFeb <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$select("ET")$map(addTime);
 ETJanFeb <- ETJanFeb$map(ETConvert)
-ETJanFeb <- ETJanFeb$map(setYear)
+# ETJanFeb <- ETJanFeb$map(setYear)
 # 
 # ee_print(ETJulAug)
 # ETJulAug$first()$propertyNames()$getInfo()
@@ -398,11 +400,11 @@ ETJanFeb <- ETJanFeb$map(setYear)
 
 
 # 
-ETJulAugClean = ETJulAug$map(function(img){
+ETJulAugClean = ETJulAug$select('ET')$map(function(img){
   return(img$reproject(projLST))
 })
 
-ETJanFeb = ETJanFeb$map(function(img){
+ETJanFeb = ETJanFeb$select('ET')$map(function(img){
   return(img$reproject(projLST))
 })
 
