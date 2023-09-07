@@ -3,9 +3,9 @@
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google, "My Drive")
-GoogleFolderSave <- "UHI_Analysis_Output_Final_v2"
+path.google <- file.path("~/Google Drive/My Drive")
+GoogleFolderSave <- "UHI_Analysis_Output_Final_v3"
+if(!file.exists(file.path(path.google, GoogleFolderSave))) dir.create(file.path(path.google, GoogleFolderSave), recursive = T)
 
 ##################### 
 # 0. Set up some choices for data quality thresholds
@@ -48,7 +48,7 @@ vizTree <- list(
 
 modTree <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover')
 modVeg <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation')
-modBare <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated')
+# modBare <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated')
 
 ee_print(modTree)
 # Map$addLayer(modTree$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
@@ -90,12 +90,12 @@ extractVeg <- function(CitySP, CityNames, TREE, VEG, BARE, GoogleFolderSave, ove
     exportVeg <- ee_image_to_drive(image=vegCity, description=paste0(cityID, "_Vegetation_PercentOtherVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentOtherVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     exportVeg$start()
 
-    # Start No Veg Cover layer
-    bareCity <- BARE$clip(cityNow)
-    
-    export.bare <- ee_image_to_drive(image=bareCity, description=paste0(cityID, "_Vegetation_PercentNoVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentNoVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
-    export.bare$start()
-    #-------
+    # # Start No Veg Cover layer
+    # bareCity <- BARE$clip(cityNow)
+    # 
+    # export.bare <- ee_image_to_drive(image=bareCity, description=paste0(cityID, "_Vegetation_PercentNoVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentNoVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    # export.bare$start()
+    # #-------
     
   }  
 }

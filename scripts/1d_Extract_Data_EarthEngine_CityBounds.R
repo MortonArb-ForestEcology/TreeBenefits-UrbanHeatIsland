@@ -3,9 +3,9 @@
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google, "My Drive")
-GoogleFolderSave <- "UHI_Analysis_Output_Final_v2"
+path.google <- file.path("~/Google Drive/My Drive")
+GoogleFolderSave <- "UHI_Analysis_Output_Final_v3"
+if(!file.exists(file.path(path.google, GoogleFolderSave))) dir.create(file.path(path.google, GoogleFolderSave), recursive = T)
 
 ##################### 
 # 0. Set up some choices for data quality thresholds

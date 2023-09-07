@@ -32,7 +32,7 @@ bitwiseExtract <- function(input, fromBit, toBit) {
 #####################
 bBoxS = ee$Geometry$BBox(-180, -60, 180, 5);
 bBoxN = ee$Geometry$BBox(-180, -5, 180, 75);
-maskBBox <- ee$Geometry$BBox(-180, -90, 180, 90)
+maskBBox <- ee$Geometry$BBox(-180, -60, 180, 75)
 
 # bBoxNW = ee$Geometry$BBox(-180, 0, 0, 90);
 # bBoxNE1 = ee$Geometry$BBox(0, 0, 75, 90);
@@ -278,11 +278,11 @@ modBare <- ee$ImageCollection$toBands(mod44bReproj$select("Percent_NonVegetated"
 # ee_print(modTree)
 # Map$addLayer(modTree$select("YR2020"), vizTree, "TreeCover")
 
-# saveTree <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-# saveTree$start()
-# 
-# saveVeg <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-# saveVeg$start()
+saveTree <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveTree$start()
+
+saveVeg <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveVeg$start()
 # 
 # # Commenting out because of space limitations
 # # saveBare <- ee_image_to_asset(modBare, description="Save_Mod44bReproj_NonVeg", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonVegetated"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
