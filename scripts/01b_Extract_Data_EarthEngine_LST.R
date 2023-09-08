@@ -108,6 +108,37 @@ projTransform <- unlist(projLST$getInfo()$transform)
 # -----------
 
 # -----------
+# Evapotranspiration
+# -----------
+ETConvert <- function(img){
+  ET <- img$select('ET')$multiply(0.1)
+  # PET <- img$select('PET')$multiply(0.1)
+  # evapoT <- ee$Image(c(ET, PET));
+  img <- img$addBands(srcImg=ET, overwrite=TRUE);
+  return(img)
+}
+
+ETColors <- c('#ffffff', '#fcd163', '#99b718', '#66a000', '#3e8601', '#207401', '#056201',
+              '#004c00', '#011301')
+vizET <- list(
+  min=0,
+  max=30,
+  palette=c('ffffff', 'fcd163', '99b718', '66a000', '3e8601', '207401', '056201',
+            '004c00', '011301')
+);
+
+
+ETJulAug <- ee$ImageCollection("users/crollinson/ET_JulAug")
+ETJulAug <- ETJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+# ETJulAug <- ETJulAug$map(setYear)
+
+ETJanFeb <- ee$ImageCollection("users/crollinson/ET_JanFeb")
+ETJanFeb <- ETJanFeb$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+
+# Map$addLayer(ETJulAug$first()$select('ET'), vizET, "Jul/Aug Evapotranspiration")
+# Map$addLayer(ETJanFeb$first()$select('ET'), vizET, "Jan/Feb Evapotranspiration")
+
+# -----------
 
 ##################### 
 
