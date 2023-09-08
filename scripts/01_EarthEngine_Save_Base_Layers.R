@@ -205,8 +205,8 @@ vegMask <- mod44bReprojOrig$first()$select("Percent_Tree_Cover", "Percent_NonTre
 maskGeom <- vegMask$geometry()$getInfo()
 
 # proj4string: "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
-# saveVegMask <- ee_image_to_asset(vegMask, description="Save_VegetationMask", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-# saveVegMask$start()
+saveVegMask <- ee_image_to_asset(vegMask, description="Save_VegetationMask", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveVegMask$start()
 
 
 
@@ -430,7 +430,7 @@ for(i in 1:sizeETJA-1){
   imgID <- img$id()$getInfo()
   # ee_print(img)
   # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
-  saveETNH <- ee_image_to_asset(img, description=paste0("Save_ET_JulAug_", imgID), assetId=file.path(assetHome, "ET_JulAug", imgID), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveETNH <- ee_image_to_asset(img$select("ET"), description=paste0("Save_ET_JulAug_", imgID), assetId=file.path(assetHome, "ET_JulAug", imgID), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveETNH$start()
 }
 
@@ -445,7 +445,7 @@ for(i in 1:sizeETJF-1){
   imgID <- img$id()$getInfo()
   # ee_print(img)
   # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
-  saveETSH <- ee_image_to_asset(img, description=paste0("Save_ET_JanFeb_", imgID), assetId=file.path(assetHome, "ET_JanFeb", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveETSH <- ee_image_to_asset(img$select("ET"), description=paste0("Save_ET_JanFeb_", imgID), assetId=file.path(assetHome, "ET_JanFeb", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveETSH$start()
 }
 # -----------
