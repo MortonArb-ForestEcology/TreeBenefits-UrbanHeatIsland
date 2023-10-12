@@ -2,19 +2,19 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google)
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v2/data_processed_final")
+# user.google <- dir("~/Library/CloudStorage/")
+path.google <- file.path("~/Google Drive/")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3/data_processed_final")
 
 if(!dir.exists(path.cities)) dir.create(path.cities, recursive=T, showWarnings = F)
 file.cityStatsRegion <- file.path(path.cities, "../city_stats_all.csv")
 
 # Path to where Earth Engine is saving the spatial extractions
-path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v2")
+path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v3")
 
 # Some color palettes for later
 grad.temp <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
@@ -23,6 +23,7 @@ grad.tree <- c("#a6611a", "#dfc27d", "#f5f5f5", "#80cdc1", "#018571") # ends wit
 grad.other <- c("#d01c8b", "#f1b6da", "#f7f7f7", "#b8e186", "#4dac26") # ends with green
 grad.bare <- c("#5e3c99", "#b2abd2", "#f7f7f7", "#fbd863", "#e66101") # Ends with orange
 
+grad.et <- rev(c("#5e3c99", "#b2abd2", "#f7f7f7", "#fbd863", "#e66101")) # Ends with orange
 
 
 # Lets add the ecoregion for each city; accessed 27 Oct 2022 9:30 a.m.
@@ -70,15 +71,21 @@ if(!file.exists(file.cityStatsRegion) | overwrite){
   # Some summary stats about the inputs at the region scale 
   # ------------------
   # - number of pixels, mean LST, cover, elev --> for ranges, give range across entire dataset to indicate range of values used in full model
-  cityStatsRegion[,c("biome", "biome.prop", "n.pixels", "LST.mean", "LST.sd", "LST.min", "LST.max", "tree.mean", "tree.sd", "tree.min", "tree.max", "veg.mean", "veg.sd", "veg.min", "veg.max", "elev.mean", "elev.sd", "elev.min", "elev.max")] <- NA
+  cityStatsRegion[,c("biome", "biome.prop", "n.pixels", "LST.mean", "LST.sd", "LST.min", "LST.max", "tree.mean", "tree.sd", "tree.min", "tree.max", "veg.mean", "veg.sd", "veg.min", "veg.max", "elev.mean", "elev.sd", "elev.min", "elev.max", "ET.mean", "ET.sd", "ET.min", "ET.max")] <- NA
   
   # Save the key info from the full model
-  cityStatsRegion[,c("model.R2adj", "model.tree.slope", "model.veg.slope", "model.elev.slope", "model.tree.p", "model.veg.p", "model.elev.p")] <- NA
+  cityStatsRegion[,c("LST.NoVeg.model.R2adj", "LST.NoVeg.model.AIC")] <- NA
+  cityStatsRegion[,c("LSTmodel.R2adj", "LSTmodel.AIC", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "LSTmodel.elev.slope", "LSTmodel.tree.p", "LSTmodel.veg.p", "LSTmodel.elev.p")] <- NA
+  cityStatsRegion[,c("ETmodel.R2adj", "ETmodel.AIC", "ETmodel.tree.slope", "ETmodel.veg.slope", "ETmodel.elev.slope", "ETmodel.tree.p", "ETmodel.veg.p", "ETmodel.elev.p")] <- NA
+  
+  # I had run this, but removed it because we don't have ET everywhere we need/want it
+  # cityStatsRegion[,c("LST.ET.model.R2adj", "LST.ET.model.df", "LST.ET.model.AIC")] <- NA
   
   # For each variable calculate the overall trends --> this will need to be separate from the pixel-by-pixel analysis, although we'll do and save that as well
   cityStatsRegion[,c("trend.LST.slope", "trend.LST.slope.sd", "trend.LST.p")] <- NA
   cityStatsRegion[,c("trend.tree.slope", "trend.tree.slope.sd", "trend.tree.p")] <- NA
   cityStatsRegion[,c("trend.veg.slope", "trend.veg.slope.sd", "trend.veg.p")] <- NA
+  cityStatsRegion[,c("trend.ET.slope", "trend.ET.slope.sd", "trend.ET.p")] <- NA
   
   # Also look at the correlation between warming and change in tree & veg cover
   cityStatsRegion[,c("corr.LST.tree.slope", "corr.LST.tree.p", "corr.LST.tree.Rsq")] <- NA
@@ -102,14 +109,16 @@ summary(cityStatsRegion); dim(cityStatsRegion)
 # # Note: Some cities (2-3) seems to have >1 file, which is weird.  Can do a spot check or just roll with the last file like I think I have coded in
 files.elev <- dir(path.EEout, "elevation")
 files.lst <- dir(path.EEout, "LST_Day_Tmean")
+files.et <- dir(path.EEout, "ETmean")
 files.tree <- dir(path.EEout, "PercentTree")
 files.veg <- dir(path.EEout, "PercentOtherVeg")
 files.mask <- dir(path.EEout, "CityMask")
-length(files.elev); length(files.lst); length(files.tree); length(files.veg); length(files.mask)
+length(files.elev); length(files.lst); length(files.et); length(files.tree); length(files.veg); length(files.mask)
 
-# Figure out which cities have all the layers needed ot be analyzed
+# Figure out which cities have all the layers needed to be analyzed
 cities.elev <- unlist(lapply(files.elev, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.lst <- unlist(lapply(files.lst, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+cities.et <- unlist(lapply(files.et, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.tree <- unlist(lapply(files.tree, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.veg <- unlist(lapply(files.veg, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.mask <- unlist(lapply(files.mask, FUN=function(x){strsplit(x, "_")[[1]][1]}))
@@ -117,11 +126,11 @@ cities.mask <- unlist(lapply(files.mask, FUN=function(x){strsplit(x, "_")[[1]][1
 
 # citiesDone <- unique(cities.lst)
 
-citiesDone <- unique(cities.lst[cities.lst %in% cities.elev & cities.lst %in% cities.tree & cities.lst %in% cities.veg & cities.lst %in% cities.mask])
+citiesDone <- unique(cities.lst[cities.lst %in% cities.et & cities.lst %in% cities.elev & cities.lst %in% cities.tree & cities.lst %in% cities.veg & cities.lst %in% cities.mask])
 length(citiesDone)
 
 # Now compare the done list to what needs to be analyzed
-citiesAnalyze <- citiesDone[citiesDone %in% cityStatsRegion$ISOURBID[is.na(cityStatsRegion$model.R2adj)]]
+citiesAnalyze <- citiesDone[citiesDone %in% cityStatsRegion$ISOURBID[is.na(cityStatsRegion$LSTmodel.R2adj)]]
 length(citiesAnalyze)
 
 for(CITY in citiesAnalyze){
@@ -169,6 +178,7 @@ for(CITY in citiesAnalyze){
   fLST <- files.lst[grep(CITY, files.lst)]
   fTREE <- files.tree[grep(CITY, files.tree)]
   fVEG <- files.veg[grep(CITY, files.veg)]
+  fET <- files.et[grep(CITY, files.et)]
   
   # The length statements will grab the newest file if there's more than one
   maskCity <- raster(file.path(path.EEout, fMASK[length(fMASK)]))
@@ -176,6 +186,7 @@ for(CITY in citiesAnalyze){
   lstCity <- brick(file.path(path.EEout, fLST[length(fLST)]))-273.15
   treeCity <- brick(file.path(path.EEout, fTREE[length(fTREE)]))
   vegCity <- brick(file.path(path.EEout, fVEG[length(fVEG)]))
+  etCity <- brick(file.path(path.EEout, fET[length(fET)]))
   
   # par(mfrow=c(1,2))
   # plot(elevCity); plot(maskCity)
@@ -218,7 +229,7 @@ for(CITY in citiesAnalyze){
     stop("Veg and Elev Layer doesn't match. :-( gotta figure it out")
   }
   
-  # Land Surface Temperature is mismatched with 
+  # Land Surface Temperature 
   coordsLST <- data.frame(coordinates(lstCity))
   coordsLST$location <- paste0("x", coordsLST$x, "y", coordsLST$y)
   
@@ -238,49 +249,49 @@ for(CITY in citiesAnalyze){
   } else if( any(coordsLST$location %in% valsCity$location)) {  
     valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
   } else {
-    print(warning("LST coords do not match elev.  Doing nearest neighbor"))
-    
-    valsCity$LST_Day <- NA
-    valsCity$LST_Offset <- NA
-    
-    for(i in 1:nrow(coordsLST)){
-      locLST <- coordsLST$location[i]
-      xLST <- coordsLST$x[i]
-      yLST <- coordsLST$y[i]
-      lstNow <- which(valsLST$location==locLST)
-      
-      # Check to see if this is a blank spot; if so, move on
-      if(all(is.na(valsLST$LST_Day[lstNow]))) next 
-      
-      # Find the nearest pixel from the cityCoords
-      distLocX <- coordsCity$x - xLST
-      distLocY <- coordsCity$y - yLST
-      distLocCity <- sqrt(distLocX^2 + distLocY^2)
-      # summary(distLocCity)
-      
-      minDist <- min(distLocCity)
-      locCity <- coordsCity$location[which(distLocCity==minDist)]
-      valsCity$LST_Offset[valsCity$location==locCity] <- minDist
-      
-      # If the closest cell is more than half a pixel away, skip it
-      if(minDist > 927/2) next
-      # if(minDist > 1000/2) next  # Adjusting to our nominal scale
-      
-      valsCity$LST_Day[valsCity$location==locCity] <- valsLST$LST_Day[lstNow]
-    }
-    
+    print(warning("LST coords do not match elev.  Need to re-implment nearest neighbor"))
   }
 
+  # Adding ET --> note: This will just be a subset of years!
+  layersET <- names(etCity)[names(etCity) %in% names(lstCity)]
+  
+  coordsET <- data.frame(coordinates(etCity))
+  coordsET$location <- paste0("x", coordsET$x, "y", coordsET$y)
+  
+  valsET <- stack(data.frame(getValues(etCity[[layersET]])))
+  names(valsET) <- c("ET", "year")
+  valsET$x <- coordsET$x
+  valsET$y <- coordsET$y
+  valsET$location <- coordsET$location
+  summary(valsET)
+  
+  # locLSTAll <- unique(valsLST$location[!is.na(valsLST$LST_Day)])
+  
+  # nrow(coordsCity); nrow(coordsLST)
+  if(all(coordsET$location == coordsCity$location)){
+    valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
+    # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
+  } else if( any(coordsET$location %in% valsCity$location)) {  
+    print(warning("Using a merge to get things together.  Slow, but it should work"))
+    valsCity <- merge(valsCity, valsET, all.x=T, all.y=T)
+  } else {
+    print(warning("LST coords do not match elev.  Need to re-implment nearest neighbor"))
+  }
+  
+  summary(valsCity)
+  
+  # Doing some conversion etc
   valsCity$year <- as.numeric(substr(valsCity$year, 3, 6))
   valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree),]
   summary(valsCity)
- 
+  
   if(length(unique(valsCity$location[!is.na(valsCity$LST_Day)]))<50){
     print(warning("LST Spatial mismatch too big; skip city"))
     print("") # Just give a clean return before moving on
     cityStatsRegion$model.R2adj[row.city] <- -9999
     next
   }
+  
   
   
   # Don't bother creating a folder for a city until we'll have at least something to save!
@@ -308,39 +319,139 @@ for(CITY in citiesAnalyze){
   cityStatsRegion$elev.sd[row.city] <- sd(valsCity$elevation, na.rm=T)
   cityStatsRegion$elev.min[row.city] <- min(valsCity$elevation, na.rm=T)
   cityStatsRegion$elev.max[row.city] <- max(valsCity$elevation, na.rm=T)
+  
+  # Saving ET params values, but bear in mind they're only a subset of the area!
+  cityStatsRegion$ET.mean[row.city] <- mean(valsCity$ET, na.rm=T)
+  cityStatsRegion$ET.sd[row.city] <- sd(valsCity$ET, na.rm=T)
+  cityStatsRegion$ET.min[row.city] <- min(valsCity$ET, na.rm=T)
+  cityStatsRegion$ET.max[row.city] <- max(valsCity$ET, na.rm=T)
   # cityStatsRegion[row.city,]
   
 
-  # Running the actual model! Woot Woot
-  modCity <- gam(LST_Day ~ cover.tree + cover.veg + elevation + s(x,y) + as.factor(year)-1, data=valsCity)
-  sum.modCity <- summary(modCity)
-  valsCity$gam.pred[!is.na(valsCity$LST_Day)] <- predict(modCity)
-  valsCity$gam.resid[!is.na(valsCity$LST_Day)] <- resid(modCity)
-  save(modCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model_gam.RData")))
-  # par(mfrow=c(1,1)); plot(modCity)
+  # Running a null LST model to better get a sense for how much is actually explained by the veg & not just spatial stuff
+  modLSTnull <- gam(LST_Day ~ elevation + s(x,y) + as.factor(year)-1, data=valsCity)
+  sum.modLSTnull <- summary(modLSTnull)
   
-  png(file.path(path.cities, CITY, paste0(CITY, "_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
+  cityStatsRegion$LST.NoVeg.model.R2adj[row.city] <- sum.modLSTnull$r.sq
+  cityStatsRegion$LST.NoVeg.model.AIC[row.city] <- AIC(modLSTnull)
+  
+  valsCity$LST.NoVeg.gam.pred <- predict(modLSTnull, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
+  valsCity$LST.NoVeg.gam.resid <- valsCity$LST_Day - valsCity$LST.NoVeg.gam.pred # Hand-calculating te residuals... gives the same thing
+  save(modLSTnull, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST-NoVegNull_gam.RData")))
+  
+  png(file.path(path.cities, CITY, paste0(CITY, "LST-NoVegNull_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
   par(mfrow=c(2,2))
-  plot(modCity)
-  hist(valsCity$gam.resid)
-  plot(gam.resid ~ gam.pred, data=valsCity); abline(h=0, col="red")
-  plot(LST_Day ~ gam.pred, data=valsCity); abline(a=0, b=1, col="red")
+  plot(modLSTnull)
+  hist(valsCity$LST.NoVeg.gam.resid)
+  plot(LST.NoVeg.gam.resid ~ LST.NoVeg.gam.pred, data=valsCity); abline(h=0, col="red")
+  plot(LST_Day ~ LST.NoVeg.gam.pred, data=valsCity); abline(a=0, b=1, col="red")
   par(mfrow=c(1,1))
   dev.off()
   
   
-  # Save the key stats from the big model
-  cityStatsRegion$model.R2adj[row.city] <- sum.modCity$r.sq
-  cityStatsRegion[row.city,c("model.tree.slope", "model.veg.slope", "model.elev.slope")] <- sum.modCity$p.coeff[c("cover.tree", "cover.veg", "elevation")]
-  cityStatsRegion[row.city,c("model.tree.p", "model.veg.p", "model.elev.p")] <- sum.modCity$p.pv[c("cover.tree", "cover.veg", "elevation")]
+  # plot(modLSTnull)
+  
+  # Running the LST actual model! Woot Woot
+  modLSTCity <- gam(LST_Day ~ cover.tree + cover.veg + elevation + s(x,y) + as.factor(year)-1, data=valsCity)
+  sum.modLSTCity <- summary(modLSTCity)
+  valsCity$LSTgam.pred <- predict(modLSTCity, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
+  valsCity$LSTgam.resid <- valsCity$LST_Day - valsCity$LSTgam.pred # Hand-calculating te residuals... gives the same thing
+  save(modLSTCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam.RData")))
+  # par(mfrow=c(1,1)); plot(modLSTCity)
+  
+  png(file.path(path.cities, CITY, paste0(CITY, "LST_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
+  par(mfrow=c(2,2))
+  plot(modLSTCity)
+  hist(valsCity$LSTgam.resid)
+  plot(LSTgam.resid ~ LSTgam.pred, data=valsCity); abline(h=0, col="red")
+  plot(LST_Day ~ LSTgam.pred, data=valsCity); abline(a=0, b=1, col="red")
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  
+  # Save the key stats from the big LST model
+  cityStatsRegion$LSTmodel.R2adj[row.city] <- sum.modLSTCity$r.sq
+  cityStatsRegion$LSTmodel.AIC[row.city] <- AIC(modLSTCity)
+  cityStatsRegion[row.city,c("LSTmodel.tree.slope", "LSTmodel.veg.slope", "LSTmodel.elev.slope")] <- sum.modLSTCity$p.coeff[c("cover.tree", "cover.veg", "elevation")]
+  cityStatsRegion[row.city,c("LSTmodel.tree.p", "LSTmodel.veg.p", "LSTmodel.elev.p")] <- sum.modLSTCity$p.pv[c("cover.tree", "cover.veg", "elevation")]
   # cityStatsRegion[row.city,]
+  
+  
+  # ------------
+  # Adding an couple ET models 
+  # ------------
+  # This first one is predicting ET The same way we do LST to decompose the effects of veg cover on ET
+  modETCity <- gam(ET ~ cover.tree + cover.veg + elevation + s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
+  sum.modETCity <- summary(modETCity)
+  sum.modETCity
+  
+  rows.ET <- which(valsCity$year %in% unique(valsCity$year[!is.na(valsCity$ET)]))
+  valsCity$ETgam.pred[rows.ET] <- predict(modETCity, newdata=valsCity[rows.ET,]) # Shifting to the newdata version to predict for where we have missing data
+  valsCity$ETgam.resid <- valsCity$ET - valsCity$ETgam.pred # Hand-calculating te residuals... gives the same thing
+  save(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_gam.RData")))
+  # par(mfrow=c(1,1)); plot(modETCity)
+  
+  png(file.path(path.cities, CITY, paste0(CITY, "ET_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
+  par(mfrow=c(2,2))
+  plot(modETCity)
+  hist(valsCity$ETgam.resid)
+  plot(ETgam.resid ~ ETgam.pred, data=valsCity); abline(h=0, col="red")
+  plot(ET ~ ETgam.pred, data=valsCity); abline(a=0, b=1, col="red")
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  
+  cityStatsRegion$ETmodel.R2adj[row.city] <- sum.modETCity$r.sq
+  cityStatsRegion$ETmodel.AIC[row.city] <- AIC(modETCity)
+  cityStatsRegion[row.city,c("ETmodel.tree.slope", "ETmodel.veg.slope", "ETmodel.elev.slope")] <- sum.modETCity$p.coeff[c("cover.tree", "cover.veg", "elevation")]
+  cityStatsRegion[row.city,c("ETmodel.tree.p", "ETmodel.veg.p", "ETmodel.elev.p")] <- sum.modETCity$p.pv[c("cover.tree", "cover.veg", "elevation")]
+  # cityStatsRegion[row.city,]
+  
+  
+  # plot(LST_Day ~ ET, data=valsCity)
+  # # NOTE: THIS ONLY WORKS FOR THE NON-URBAN CORE --> We can't use this for everywhere, so lets ignore it!
+  # modLSTETCity <- gam(LST_Day ~ ET + s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
+  # sum.modLSTETCity <- summary(modLSTETCity)
+  # sum.modLSTETCity
+  # 
+  # cityStatsRegion$LST.ET.model.R2adj[row.city] <- sum.modLSTETCity$r.sq
+  # cityStatsRegion$LST.ET.model.AIC[row.city] <- AIC(modLSTETCity)
+  # # cityStatsRegion[row.city,]
+  # 
+  # valsCity$LST.ET.gam.pred <- predict(modLSTETCity, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
+  # valsCity$LST.ET.gam.resid <- valsCity$LST_Day - valsCity$LST.ET.gam.pred # Hand-calculating te residuals... gives the same thing
+  # 
+  # save(modLSTETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST-ET_gam.RData")))
+  # # par(mfrow=c(1,1)); plot(modLSTCity)
+  # 
+  # png(file.path(path.cities, CITY, paste0(CITY, "LST-ET_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
+  # par(mfrow=c(2,2))
+  # plot(modLSTETCity)
+  # hist(valsCity$LST.ET.gam.resid)
+  # plot(LST.ET.gam.resid ~ LST.ET.gam.pred, data=valsCity); abline(h=0, col="red")
+  # plot(LST_Day ~ LST.ET.gam.pred, data=valsCity); abline(a=0, b=1, col="red")
+  # par(mfrow=c(1,1))
+  # dev.off()
+  
+  # ------------
+  
+  
   
   # Calculating pixel-based summary stats to do some trend correlations
   # For computational tractability, need to run each pixel independently.  Doing Hobart as a loop just takes a few seconds
   summaryCity <- aggregate(cbind(LST_Day, cover.tree, cover.veg, elevation) ~ x+y+location + cityBounds, data=valsCity, FUN=mean)
   names(summaryCity)[names(summaryCity) %in% c("LST_Day", "cover.tree", "cover.veg")] <- c("LST.mean", "tree.mean", "veg.mean")
   summary(summaryCity)
+
+  # Addign ET Into this
+  summaryCityET <- aggregate(ET ~ x+y+location + cityBounds, data=valsCity, FUN=mean)
+  names(summaryCityET)[names(summaryCityET) %in% c("ET")] <- c("ET.mean")
+  summary(summaryCityET)
+
+  summaryCity <- merge(summaryCity, summaryCityET, all.x=T, all.y=T)
+  summary(summaryCity)
   
+    
   summaryCity[,c("LST.trend", "LST.p", "LST.R2")] <- NA
   summaryCity[,c("tree.trend", "tree.p", "tree.R2")] <- NA
   summaryCity[,c("veg.trend", "veg.p", "veg.R2")] <- NA
@@ -372,6 +483,14 @@ for(CITY in citiesAnalyze){
   	summaryCity[i,c("veg.trend", "veg.p")] <- sum.veg$coefficients["year",c(1,4)]
   	summaryCity[i,"veg.R2"] <- sum.veg$r.squared
   	
+  	etGood <- which(valsCity$location==summaryCity$location[i] & !is.na(valsCity$ET))
+  	if(length(etGood)>10){
+    	trend.et <- lm(ET ~ year, data=valsCity[rowsCity,])
+    	sum.et <- summary(trend.et)
+    	summaryCity[i,c("ET.trend", "ET.p")] <- sum.et$coefficients["year",c(1,4)]
+    	summaryCity[i,"ET.R2"] <- sum.et$r.squared
+  	}
+  	
   }
   summary(summaryCity)
   write.csv(summaryCity, file.path(path.cities, CITY, paste0(CITY, "_CityStats_Pixels.csv")), row.names=F)
@@ -393,8 +512,7 @@ for(CITY in citiesAnalyze){
           panel.grid=element_blank(),
           axis.ticks.length = unit(-0.5, "lines"),
           axis.title=element_blank(),
-          axis.text.x=element_text(margin=margin(t=1.5, unit="lines"), color="black"),
-          axis.text.y=element_text(margin=margin(r=1.5, unit="lines"), color="black"))
+          axis.text=element_blank())
   
   plot.elev <- ggplot(data=summaryCity[!is.na(summaryCity$elevation),]) +
     coord_equal() +
@@ -407,8 +525,7 @@ for(CITY in citiesAnalyze){
           panel.grid=element_blank(),
           axis.ticks.length = unit(-0.5, "lines"),
           axis.title=element_blank(),
-          axis.text.x=element_text(margin=margin(t=1.5, unit="lines"), color="black"),
-          axis.text.y=element_text(margin=margin(r=1.5, unit="lines"), color="black"))
+          axis.text=element_blank())
   
   plot.tree <- ggplot(data=summaryCity[!is.na(summaryCity$tree.mean),]) +
     coord_equal() +
@@ -420,8 +537,7 @@ for(CITY in citiesAnalyze){
           panel.grid=element_blank(),
           axis.ticks.length = unit(-0.5, "lines"),
           axis.title=element_blank(),
-          axis.text.x=element_text(margin=margin(t=1.5, unit="lines"), color="black"),
-          axis.text.y=element_text(margin=margin(r=1.5, unit="lines"), color="black"))
+          axis.text=element_blank())
   
   plot.veg <- ggplot(data=summaryCity[!is.na(summaryCity$veg.mean),]) +
     coord_equal() +
@@ -433,13 +549,24 @@ for(CITY in citiesAnalyze){
           panel.grid=element_blank(),
           axis.ticks.length = unit(-0.5, "lines"),
           axis.title=element_blank(),
-          axis.text.x=element_text(margin=margin(t=1.5, unit="lines"), color="black"),
-          axis.text.y=element_text(margin=margin(r=1.5, unit="lines"), color="black"))
+          axis.text=element_blank())
+  
+  plot.et <- ggplot(data=summaryCity[!is.na(summaryCity$ET.mean),]) +
+    coord_equal() +
+    geom_tile(aes(x=x, y=y, fill=ET.mean)) +
+    geom_tile(data=summaryCity[!summaryCity$cityBounds,], aes(x=x, y=y), alpha=0.2, fill="black", color=NA) +
+    # geom_path(data=city.sp, aes(x=long, y=lat, group=group)) +
+    scale_fill_gradientn(name="ET (kg/m2)", colors=grad.et) +
+    theme(panel.background=element_rect(fill=NA, color="black"),
+          panel.grid=element_blank(),
+          axis.ticks.length = unit(-0.5, "lines"),
+          axis.title=element_blank(),
+          axis.text=element_blank())
   
   
-  png(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Maps_Means.png")), height=8, width=8, units="in", res=120)
+  png(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Maps_Means.png")), height=10, width=8, units="in", res=120)
   print(
-    cowplot::plot_grid(plot.lst, plot.elev, plot.tree, plot.veg)
+    cowplot::plot_grid(plot.lst, plot.et, plot.tree, plot.veg, plot.elev, ncol=2)
   )
   dev.off()  
   
@@ -460,52 +587,70 @@ for(CITY in citiesAnalyze){
     cityStatsRegion$trend.veg.slope.sd[row.city] <- sd(summaryCity$veg.trend, na.rm=T)
     veg.out <- t.test(summaryCity$veg.trend)
     cityStatsRegion$trend.veg.p[row.city] <- veg.out$p.value
+
+    cityStatsRegion$trend.ET.slope[row.city] <- mean(summaryCity$ET.trend, na.rm=T)
+    cityStatsRegion$trend.ET.slope.sd[row.city] <- sd(summaryCity$ET.trend, na.rm=T)
+    et.out <- t.test(summaryCity$ET.trend)
+    cityStatsRegion$trend.et.p[row.city] <- et.out$p.value
     
     
     # Creating and saving some maps of those trends
+    lstlim <- max(abs(summaryCity$LST.trend), na.rm=T)
     plot.lst.trend <- ggplot(data=summaryCity[!is.na(summaryCity$LST.trend),]) +
       coord_equal() +
       geom_tile(aes(x=x, y=y, fill=LST.trend)) +
       geom_tile(data=summaryCity[!summaryCity$cityBounds,], aes(x=x, y=y), alpha=0.2, fill="black") +
       # geom_sf(data=sp.city3, fill=NA) +
-      scale_fill_gradientn(name="Summer\nTemp\n(deg. C/yr)", colors=grad.temp) +
+      scale_fill_gradientn(name="Summer\nTemp\n(deg. C/yr)", colors=grad.temp, limits=c(-lstlim, lstlim)) +
       theme(panel.background=element_rect(fill=NA, color="black"),
             panel.grid=element_blank(),
             axis.ticks.length = unit(-0.5, "lines"),
             axis.title=element_blank(),
-            axis.text.x=element_text(margin=margin(t=1.5, unit="lines"), color="black"),
-            axis.text.y=element_text(margin=margin(r=1.5, unit="lines"), color="black"))
+            axis.text=element_blank())
     
+    treelim <- max(abs(summaryCity$tree.trend), na.rm=T)
     plot.tree.trend <- ggplot(data=summaryCity[!is.na(summaryCity$tree.trend),]) +
       coord_equal() +
       geom_tile(aes(x=x, y=y, fill=tree.trend)) +
       geom_tile(data=summaryCity[!summaryCity$cityBounds,], aes(x=x, y=y), alpha=0.2, fill="black") +
       # geom_path(data=city.sp, aes(x=long, y=lat, group=group)) +
-      scale_fill_gradientn(name="Tree\nCover\n(%/yr)", colors=grad.tree) +
+      scale_fill_gradientn(name="Tree\nCover\n(%/yr)", colors=grad.tree, limits=c(-treelim, treelim)) +
       theme(panel.background=element_rect(fill=NA, color="black"),
             panel.grid=element_blank(),
             axis.ticks.length = unit(-0.5, "lines"),
             axis.title=element_blank(),
-            axis.text.x=element_text(margin=margin(t=1.5, unit="lines"), color="black"),
-            axis.text.y=element_text(margin=margin(r=1.5, unit="lines"), color="black"))
+            axis.text=element_blank())
     
+    veglim <- max(abs(summaryCity$veg.trend), na.rm=T)
     plot.veg.trend <- ggplot(data=summaryCity[!is.na(summaryCity$veg.trend),]) +
       coord_equal() +
       geom_tile(aes(x=x, y=y, fill=veg.trend)) +
       geom_tile(data=summaryCity[!summaryCity$cityBounds,], aes(x=x, y=y), alpha=0.2, fill="black") +
       # geom_path(data=city.sp, aes(x=long, y=lat, group=group)) +
-      scale_fill_gradientn(name="Other Veg\nCover (%/yr)", colors=grad.other) +
+      scale_fill_gradientn(name="Other Veg\nCover (%/yr)", colors=grad.other, limits=c(-veglim, veglim)) +
       theme(panel.background=element_rect(fill=NA, color="black"),
             panel.grid=element_blank(),
             axis.ticks.length = unit(-0.5, "lines"),
             axis.title=element_blank(),
-            axis.text.x=element_text(margin=margin(t=1.5, unit="lines"), color="black"),
-            axis.text.y=element_text(margin=margin(r=1.5, unit="lines"), color="black"))
+            axis.text=element_blank())
+    
+    etlim <- max(abs(summaryCity$ET.trend), na.rm=T)
+    plot.et.trend <- ggplot(data=summaryCity[!is.na(summaryCity$et.trend),]) +
+      coord_equal() +
+      geom_tile(aes(x=x, y=y, fill=et.trend)) +
+      geom_tile(data=summaryCity[!summaryCity$cityBounds,], aes(x=x, y=y), alpha=0.2, fill="black") +
+      # geom_path(data=city.sp, aes(x=long, y=lat, group=group)) +
+      scale_fill_gradientn(name="ET (kg/m2/yr)", colors=grad.et, limits=c(-etlim, etlim)) +
+      theme(panel.background=element_rect(fill=NA, color="black"),
+            panel.grid=element_blank(),
+            axis.ticks.length = unit(-0.5, "lines"),
+            axis.title=element_blank(),
+            axis.text=element_blank())
     
     
     png(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Maps_Trends.png")), height=8, width=8, units="in", res=120)
     print(
-      cowplot::plot_grid(plot.lst.trend, NULL, plot.tree.trend, plot.veg.trend)
+      cowplot::plot_grid(plot.lst.trend, plot.et.trend, plot.tree.trend, plot.veg.trend)
     )
     dev.off()  
     
@@ -574,6 +719,6 @@ for(CITY in citiesAnalyze){
   print("") # Just give a clean return before moving on
   
   # Remove a bunch of stuff for our own sanity
-  # rm(elevCity, treeCity, vegCity, lstCity, modCity, valsCity, summaryCity, coordsCity, biome, sp.city, plot.corr.LST.Tree, plot.corr.LST.Veg, plot.corr.Tree.Veg, plot.lst.trend, plot.tree.trend, plot.veg.trend, plot.elev, plot.lst, plot.tree, plot.veg, veg.lst, veg.tree, tree.lst, veg.out, tree.out, sum.corrTreeLST, sum.corrVegLST, sum.corrVegTree, sum.modCity)
+  # rm(elevCity, treeCity, vegCity, lstCity, modLSTCity, valsCity, summaryCity, coordsCity, biome, sp.city, plot.corr.LST.Tree, plot.corr.LST.Veg, plot.corr.Tree.Veg, plot.lst.trend, plot.tree.trend, plot.veg.trend, plot.elev, plot.lst, plot.tree, plot.veg, veg.lst, veg.tree, tree.lst, veg.out, tree.out, sum.corrTreeLST, sum.corrVegLST, sum.corrVegTree, sum.modLSTCity)
   
 }	
