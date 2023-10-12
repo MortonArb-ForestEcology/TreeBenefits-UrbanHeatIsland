@@ -6,11 +6,12 @@ library(ggplot2); library(RColorBrewer); library(cowplot)
 ###########################################
 # Establish file paths etc ----
 ###########################################
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v2")
+# user.google <- dir("~/Library/CloudStorage/")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google)
 
 file.cityAll.stats <- file.path(path.cities, "city_stats_all.csv")
+# summary(file.cityAll.stats)
 
 path.figs <- file.path(path.google, "figures_exploratory")
 dir.create(path.figs, recursive=T, showWarnings=F)
@@ -39,7 +40,7 @@ world <- map_data("world")
 # Read in Data; do some cleanup ----
 # ##########################################
 cityAll.stats <- read.csv(file.cityAll.stats)
-summary(cityAll.stats[!is.na(cityAll.stats$model.R2adj),])
+summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),])
 
 cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
 summary(as.factor(cityAll.stats$biome))
@@ -125,24 +126,24 @@ dev.off()
 # ##########################
 # Start with looking at some patterns of overall model fit (R2adj) ----
 # ##########################
-summary(cityAll.stats$model.R2adj)
-hist(cityAll.stats$model.R2adj)
+summary(cityAll.stats$LSTmodel.R2adj)
+hist(cityAll.stats$LSTmodel.R2adj)
 
 # don't save it, but do a quick map of model performance
 # # The models with weird tree slopes are not the ones with low R2
 # ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),])+
-#   geom_point(aes(x=model.R2adj, y=model.tree.slope, color=biomeName)) +
+#   geom_point(aes(x=LSTmodel.R2adj, y=LSTmodel.tree.slope, color=biomeName)) +
 #   scale_color_manual(name="biome", values=biome.pall.all) +
 #   theme_bw()
 
-mod.r2.biome <- lm(model.R2adj ~ biomeName-1, data=cityAll.stats)
+mod.r2.biome <- lm(LSTmodel.R2adj ~ biomeName-1, data=cityAll.stats)
 anova(mod.r2.biome)
 summary(mod.r2.biome)
 
 r2.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
   coord_equal(expand=0, ylim=c(-65,80)) +
   geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=model.R2adj), size=0.5) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=LSTmodel.R2adj), size=0.5) +
   # scale_color_manual(name="Tree Effect\n(deg. C / % cover)", values=colors.cut) +
   # scale_color_gradient2(name="Tree Effect\n(deg. C / % cover)", low = "dodgerblue2", high = "red3", mid = "white", midpoint =0) +
   theme_bw() +
@@ -162,7 +163,7 @@ r2.map
 dev.off()
 
 r2.histo.biome <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),])+
-  geom_histogram(aes(x=model.R2adj, fill=biomeName)) +
+  geom_histogram(aes(x=LSTmodel.R2adj, fill=biomeName)) +
   scale_fill_manual(name="biome", values=biome.pall.all) +
   theme_bw() +
   theme(legend.position="right",
@@ -179,14 +180,14 @@ dev.off()
 
 # ##########################
 
-hist(cityAll.stats$model.elev.slope)
-summary(cityAll.stats$model.elev.slope)
+hist(cityAll.stats$LSTmodel.elev.slope)
+summary(cityAll.stats$LSTmodel.elev.slope)
 nrow(cityAll.stats)
 # ##########################
 # Now looking at the model slopes for trees ----
 # ##########################
-summary(cityAll.stats$model.tree.slope)
-cityAll.stats$tree.slope.cut <- cut(cityAll.stats$model.tree.slope, breaks=c(-Inf, -1, -0.5, -0.25, -0.1, -0.05, -0.025, 0, 0.025, 0.5, Inf))
+summary(cityAll.stats$LSTmodel.tree.slope)
+cityAll.stats$tree.slope.cut <- cut(cityAll.stats$LSTmodel.tree.slope, breaks=c(-Inf, -1, -0.5, -0.25, -0.1, -0.05, -0.025, 0, 0.025, 0.5, Inf))
 summary(cityAll.stats$tree.slope.cut)
 colors.cut <- c("#084594", "#2171b5", "#4292c6", "#6baed6", "#9ecae1", "#c6dbef", "#eff3ff", "#fee0d2", "#fc9272", "#de2d26")
 
@@ -212,10 +213,10 @@ cooling.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
 TreeCoolingLat <- ggplot(data=cityAll.stats,) +
   coord_flip(xlim=c(-65,80)) +
   # coord_cartesian(, ylim=c(-65,80))
-  # geom_point(aes(x=LATITUDE, y=exp(model.tree.slope), color=biomeName)) +
+  # geom_point(aes(x=LATITUDE, y=exp(LSTmodel.tree.slope), color=biomeName)) +
   geom_hline(yintercept=0, linetype="dashed") +
   # geom_vline(xintercept=0, linetype="dashed", size=0.5, color="red") +
-  stat_smooth(aes(x=LATITUDE, y=model.tree.slope), color="black") +
+  stat_smooth(aes(x=LATITUDE, y=LSTmodel.tree.slope), color="black") +
   scale_color_manual(values=biome.pall.all[]) +
   scale_fill_manual(values=biome.pall.all[]) +
   labs(y="Tree Effect\n(deg C / % cover)", x="Latitude") +
@@ -240,7 +241,7 @@ ggplot(data=cityAll.stats,) +
   geom_histogram(aes(x=LATITUDE)) +
   geom_hline(yintercept=0, linetype="dashed") +
   # geom_vline(xintercept=0, linetype="dashed", size=0.5, color="red") +
-  # stat_smooth(aes(x=LATITUDE, y=model.tree.slope), color="black") +
+  # stat_smooth(aes(x=LATITUDE, y=LSTmodel.tree.slope), color="black") +
   scale_color_manual(values=biome.pall.all[]) +
   scale_fill_manual(values=biome.pall.all[]) +
   labs(y="Number Cities", x="Latitude") +
@@ -257,7 +258,7 @@ ggplot(data=cityAll.stats,) +
 # TreeSlope.breaks <- c(-1, -0.5, -0.25, -0.1, -0.05, -0.025, 0, 0.025, 0.5)
 # TreeCoolingBiomeHist <- 
 ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  # geom_histogram(aes(x=model.tree.slope, fill=biomeName)) +
+  # geom_histogram(aes(x=LSTmodel.tree.slope, fill=biomeName)) +
   geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
   geom_vline(xintercept=7.5, linetype="dashed") +
   scale_fill_manual(name="biome", values=biome.pall.all) +
@@ -271,16 +272,16 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
         axis.text=element_text(color="black"),
         axis.title=element_text(color="black", face="bold"))
 
-cityAll.stats$model.tree.slope2 <- cityAll.stats$model.tree.slope
-cityAll.stats$model.tree.slope2[cityAll.stats$model.tree.slope2 < -1] <- -1
-cityAll.stats$model.tree.slope2[cityAll.stats$model.tree.slope2 >0.25] <- 0.25
+cityAll.stats$LSTmodel.tree.slope2 <- cityAll.stats$LSTmodel.tree.slope
+cityAll.stats$LSTmodel.tree.slope2[cityAll.stats$LSTmodel.tree.slope2 < -1] <- -1
+cityAll.stats$LSTmodel.tree.slope2[cityAll.stats$LSTmodel.tree.slope2 >0.25] <- 0.25
 
-cityAll.stats$model.veg.slope2 <- cityAll.stats$model.veg.slope
-cityAll.stats$model.veg.slope2[cityAll.stats$model.veg.slope2 < -1] <- -1
-cityAll.stats$model.veg.slope2[cityAll.stats$model.veg.slope2 >0.25] <- 0.25
+cityAll.stats$LSTmodel.veg.slope2 <- cityAll.stats$LSTmodel.veg.slope
+cityAll.stats$LSTmodel.veg.slope2[cityAll.stats$LSTmodel.veg.slope2 < -1] <- -1
+cityAll.stats$LSTmodel.veg.slope2[cityAll.stats$LSTmodel.veg.slope2 >0.25] <- 0.25
 
 TreeEffectBiomeHisto <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  geom_histogram(aes(x=model.tree.slope2, fill=biomeName), breaks=seq(-1.1,0.3, by=0.05)) +
+  geom_histogram(aes(x=LSTmodel.tree.slope2, fill=biomeName), breaks=seq(-1.1,0.3, by=0.05)) +
   geom_vline(xintercept=0,linetype="dashed") +
   # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
   # geom_vline(xintercept=7.5, linetype="dashed") +
@@ -296,7 +297,7 @@ TreeEffectBiomeHisto <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),])
         axis.title=element_text(color="black", face="bold"))
 
 VegEffectBiomeHisto <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  geom_histogram(aes(x=model.veg.slope2, fill=biomeName), breaks=seq(-1.1,0.3, by=0.05)) +
+  geom_histogram(aes(x=LSTmodel.veg.slope2, fill=biomeName), breaks=seq(-1.1,0.3, by=0.05)) +
   geom_vline(xintercept=0,linetype="dashed") +
   # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
   # geom_vline(xintercept=7.5, linetype="dashed") +
@@ -321,11 +322,11 @@ plot_grid(TreeEffectBiomeHisto, VegEffectBiomeHisto, ncol=1, rel_heights = c(0.6
 dev.off()
 
 
-ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj),]) +
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),]) +
   facet_wrap(~biomeName, scales="free", ncol=3) +
-  geom_density(aes(x=model.elev.slope, fill="Elev Effect"), adjust=2, alpha=0.5) +
-  geom_density(aes(x=model.veg.slope, fill="Other Veg Effect"), adjust=2, alpha=0.5) +
-  geom_density(aes(x=model.tree.slope, fill="Tree Effect"), adjust=2, alpha=0.5) +
+  geom_density(aes(x=LSTmodel.elev.slope, fill="Elev Effect"), adjust=2, alpha=0.5) +
+  geom_density(aes(x=LSTmodel.veg.slope, fill="Other Veg Effect"), adjust=2, alpha=0.5) +
+  geom_density(aes(x=LSTmodel.tree.slope, fill="Tree Effect"), adjust=2, alpha=0.5) +
   geom_vline(xintercept=0,linetype="dashed") +
   scale_fill_manual(values=c("Tree Effect" = "darkgreen", "Other Veg Effect"="darkgoldenrod", "Elev Effect" = "gray20")) +
   # scale_x_continuous(breaks=c(-1.025, seq(-0.75, 0, by=0.25), 0.225), labels=c("<= -1", seq(-0.75, 0, by=0.25), ">= 0.25"))+
@@ -338,12 +339,12 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj),]) +
         axis.text=element_text(color="black"),
         axis.title=element_text(color="black", face="bold"))
 
-ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj),]) +
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),]) +
   coord_cartesian(xlim=c(-1.0, 0.5)) +
   # facet_wrap(~biomeName, scales="free", ncol=3) +
-  # geom_density(aes(x=model.elev.slope, fill="Elev Effect"), adjust=2, alpha=0.5) +
-  geom_density(aes(x=model.veg.slope, fill="Other Veg Effect"), adjust=2, alpha=0.5) +
-  geom_density(aes(x=model.tree.slope, fill="Tree Effect"), adjust=2, alpha=0.5) +
+  # geom_density(aes(x=LSTmodel.elev.slope, fill="Elev Effect"), adjust=2, alpha=0.5) +
+  geom_density(aes(x=LSTmodel.veg.slope, fill="Other Veg Effect"), adjust=2, alpha=0.5) +
+  geom_density(aes(x=LSTmodel.tree.slope, fill="Tree Effect"), adjust=2, alpha=0.5) +
   geom_vline(xintercept=0,linetype="dashed") +
   scale_fill_manual(values=c("Tree Effect" = "darkgreen", "Other Veg Effect"="darkgoldenrod", "Elev Effect" = "gray20")) +
   # scale_x_continuous(breaks=c(-1.025, seq(-0.75, 0, by=0.25), 0.225), labels=c("<= -1", seq(-0.75, 0, by=0.25), ">= 0.25"))+
@@ -358,77 +359,77 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj),]) +
 
 # Quick summary of places with significant tree cover trends -- most places (so far) have been INCREASING in cover, but also still getting warmer on average; how much would these cities have warmed without their trees??  
 summary(cityAll.stats[!is.na(cityAll.stats$trend.tree.slope) & cityAll.stats$trend.tree.p<0.01,])
-summary(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.p<0.01,])
-summary(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.p>0.01,])
-nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.p<0.01,]);
-nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.p>0.01,])
+summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p<0.01,])
+summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p>0.01,])
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p<0.01,]);
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p>0.01,])
 
-nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope<0,]);
-nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope>0,])
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0,]);
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope>0,])
 
-nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope<0 & cityAll.stats$model.tree.p<0.01,]);
-nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope<0 & cityAll.stats$model.tree.p<0.01,])/nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope),])
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0 & cityAll.stats$LSTmodel.tree.p<0.01,]);
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0 & cityAll.stats$LSTmodel.tree.p<0.01,])/nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope),])
 
 
 # Cities with significant warming effect of trees
-summary(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope>0.0,])
+summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope>0.0,])
 
-nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope>0 & cityAll.stats$model.tree.p<0.01,])
-nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope>0 & cityAll.stats$model.tree.p<0.01,])/nrow(cityAll.stats[!is.na(cityAll.stats$model.tree.slope),])
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope>0 & cityAll.stats$LSTmodel.tree.p<0.01,])
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope>0 & cityAll.stats$LSTmodel.tree.p<0.01,])/nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope),])
 
 # There are a couple in the US --> lets find those 
-cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope>0 & cityAll.stats$model.tree.p<0.01 & cityAll.stats$ISO3=="USA",]
-cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope>0.5 & cityAll.stats$model.tree.p<0.01 ,]
+cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope>0 & cityAll.stats$LSTmodel.tree.p<0.01 & cityAll.stats$ISO3=="USA",]
+cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope>0.5 & cityAll.stats$LSTmodel.tree.p<0.01 ,]
 cityAll.stats[cityAll.stats$ISO3=="USA" & cityAll.stats$NAME=="Chicago",]
 
-cityAll.stats[!is.na(cityAll.stats$model.tree.slope) & cityAll.stats$model.tree.slope< -2.5 & cityAll.stats$model.tree.p<0.01,]
+cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope< -2.5 & cityAll.stats$LSTmodel.tree.p<0.01,]
 
 
 
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=tree.sd, y=model.tree.slope))
+  geom_point(aes(x=tree.sd, y=LSTmodel.tree.slope))
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=veg.mean, y=model.tree.slope))
+  geom_point(aes(x=veg.mean, y=LSTmodel.tree.slope))
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=100-(veg.mean + tree.mean), y=model.tree.slope))
+  geom_point(aes(x=100-(veg.mean + tree.mean), y=LSTmodel.tree.slope))
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=100-(veg.mean + tree.mean), y=model.R2adj))
+  geom_point(aes(x=100-(veg.mean + tree.mean), y=LSTmodel.R2adj))
 
 
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=trend.tree.slope, y=model.tree.slope))
+  geom_point(aes(x=trend.tree.slope, y=LSTmodel.tree.slope))
 
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=trend.veg.slope, y=model.tree.slope))
+  geom_point(aes(x=trend.veg.slope, y=LSTmodel.tree.slope))
 
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=(trend.veg.slope-trend.tree.slope)/trend.veg.slope, y=exp(model.tree.slope)))
+  geom_point(aes(x=(trend.veg.slope-trend.tree.slope)/trend.veg.slope, y=exp(LSTmodel.tree.slope)))
 
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=trend.LST.slope, y=model.tree.slope))
+  geom_point(aes(x=trend.LST.slope, y=LSTmodel.tree.slope))
 
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=tree.veg.trend, y=model.tree.slope))
+  geom_point(aes(x=tree.veg.trend, y=LSTmodel.tree.slope))
 
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=veg.mean/tree.mean, y=model.tree.slope))
+  geom_point(aes(x=veg.mean/tree.mean, y=LSTmodel.tree.slope))
 
 ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=model.tree.slope, y=model.veg.slope))
+  geom_point(aes(x=LSTmodel.tree.slope, y=LSTmodel.veg.slope))
 
 
 # Looking at the tree slope by biome & by MST
-TreeSlope.lm.biome <- lm(model.tree.slope ~ biome-1, data=cityAll.stats[!is.na(cityAll.stats$model.tree.slope),])
+TreeSlope.lm.biome <- lm(LSTmodel.tree.slope ~ biome-1, data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope),])
 anova(TreeSlope.lm.biome)
 summary(TreeSlope.lm.biome)
 
-TreeSlope.lm.mst <- lm(model.tree.slope ~ biome-1, data=cityAll.stats[!is.na(cityAll.stats$model.tree.slope),])
+TreeSlope.lm.mst <- lm(LSTmodel.tree.slope ~ biome-1, data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope),])
 anova(TreeSlope.lm.mst)
 summary(TreeSlope.lm.mst)
 
 
-ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj),]) +
-  geom_histogram(aes(x=model.tree.slope, fill=biomeName, y=log(stat(count)))) +
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),]) +
+  geom_histogram(aes(x=LSTmodel.tree.slope, fill=biomeName, y=log(stat(count)))) +
   geom_vline(xintercept=0, linetype="dashed") +
   scale_fill_manual(values=biome.pall.all[]) +
   scale_alpha_manual(values=c(0.4,1)) +
@@ -441,8 +442,8 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj),]) +
         axis.title=element_text(color="black", face="bold"))
 
 # Tree Effect as a funciton of LST
-ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj) & cityAll.stats$model.tree.p<0.01,]) +
-  geom_point(aes(x = LST.mean, y=model.tree.slope, color=biomeName)) +
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj) & cityAll.stats$LSTmodel.tree.p<0.01,]) +
+  geom_point(aes(x = LST.mean, y=LSTmodel.tree.slope, color=biomeName)) +
   geom_hline(yintercept=0, linetype="dashed") +
   scale_color_manual(values=biome.pall.all[]) +
   scale_y_continuous(expand=c(0,0)) +
@@ -455,9 +456,9 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj) & cityAll.stats$mode
         axis.title=element_text(color="black", face="bold"))
 
 # Tree Effect as a funciton of mean tree cover -- where do we get diminishing returns?
-ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj) & cityAll.stats$model.tree.p<0.01,]) +
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj) & cityAll.stats$LSTmodel.tree.p<0.01,]) +
   coord_cartesian(ylim=c(-2.5, 0.5)) +
-  geom_point(aes(x = tree.mean, y=model.tree.slope, color=biomeName)) +
+  geom_point(aes(x = tree.mean, y=LSTmodel.tree.slope, color=biomeName)) +
   geom_hline(yintercept=0, linetype="dashed") +
   scale_color_manual(values=biome.pall.all[]) +
   scale_y_continuous(expand=c(0,0)) +
@@ -469,9 +470,9 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj) & cityAll.stats$mode
         axis.text=element_text(color="black"),
         axis.title=element_text(color="black", face="bold"))
 
-ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj) & cityAll.stats$model.tree.p<0.01,]) +
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj) & cityAll.stats$LSTmodel.tree.p<0.01,]) +
   coord_cartesian(ylim=c(0, 1.5)) +
-  geom_point(aes(x = tree.mean, y=exp(model.tree.slope), color=biomeName), alpha=0.5) +
+  geom_point(aes(x = tree.mean, y=exp(LSTmodel.tree.slope), color=biomeName), alpha=0.5) +
   geom_hline(yintercept=exp(0), linetype="dashed") +
   scale_color_manual(values=biome.pall.all[]) +
   scale_y_continuous(expand=c(0,0)) +
@@ -484,12 +485,12 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj) & cityAll.stats$mode
         axis.title=element_text(color="black", face="bold"))
 
 # Ross had the suggestion of plotting the best fit lines for each biome, but to do that, we'll need to compute the trends by hand 
-biome.npts <- aggregate(model.tree.slope ~ biomeName, data=cityAll.stats, FUN = length)
+biome.npts <- aggregate(LSTmodel.tree.slope ~ biomeName, data=cityAll.stats, FUN = length)
 
-ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj) & cityAll.stats$biomeName %in% biome.npts$biomeName[biome.npts$model.tree.slope>20],]) +
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj) & cityAll.stats$biomeName %in% biome.npts$biomeName[biome.npts$LSTmodel.tree.slope>20],]) +
   coord_cartesian(xlim=c(0, 20)) +
-  # geom_point(aes(x = tree.mean, y=model.tree.slope, color=biomeName), size=0.1) +
-  stat_smooth(aes(x = tree.mean, y=model.tree.slope, color=biomeName, fill=biomeName), alpha=0.3) +
+  # geom_point(aes(x = tree.mean, y=LSTmodel.tree.slope, color=biomeName), size=0.1) +
+  stat_smooth(aes(x = tree.mean, y=LSTmodel.tree.slope, color=biomeName, fill=biomeName), alpha=0.3) +
   geom_hline(yintercept=0, linetype="dashed") +
   scale_color_manual(values=biome.pall.all[]) +
   scale_fill_manual(values=biome.pall.all[]) +
@@ -504,9 +505,9 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$model.R2adj) & cityAll.stats$biom
 
 
 
-cityAll.stats[cityAll.stats$model.tree.slope< -2.5 & !is.na(cityAll.stats$model.tree.slope),]
+cityAll.stats[cityAll.stats$LSTmodel.tree.slope< -2.5 & !is.na(cityAll.stats$LSTmodel.tree.slope),]
 
-summary(cityAll.stats$model.tree.slope/cityAll.stats$model.veg.slope)
+summary(cityAll.stats$LSTmodel.tree.slope/cityAll.stats$LSTmodel.veg.slope)
 
 
 # ##########################
@@ -567,8 +568,8 @@ dev.off()
 
 
 # Calculating the effect trees & veg have on regional temperatures
-cityAll.stats$effect.tree.degC <- cityAll.stats$tree.mean*cityAll.stats$model.tree.slope
-cityAll.stats$effect.veg.degC <- cityAll.stats$veg.mean*cityAll.stats$model.veg.slope
+cityAll.stats$effect.tree.degC <- cityAll.stats$tree.mean*cityAll.stats$LSTmodel.tree.slope
+cityAll.stats$effect.veg.degC <- cityAll.stats$veg.mean*cityAll.stats$LSTmodel.veg.slope
 summary(cityAll.stats)
 
 # Comparing temperature effects attributed to different veg covers
@@ -682,8 +683,8 @@ dev.off()
 
 
 # Translating tree trends into 
-cityAll.stats$trend.tree.degC <- cityAll.stats$trend.tree.slope*cityAll.stats$model.tree.slope
-cityAll.stats$trend.veg.degC <- cityAll.stats$trend.veg.slope*cityAll.stats$model.veg.slope
+cityAll.stats$trend.tree.degC <- cityAll.stats$trend.tree.slope*cityAll.stats$LSTmodel.tree.slope
+cityAll.stats$trend.veg.degC <- cityAll.stats$trend.veg.slope*cityAll.stats$LSTmodel.veg.slope
 summary(cityAll.stats[,c("trend.tree.degC", "trend.veg.degC")]*20)
 
 # Without changes in tree canopy, temperatures would have risen X% more
