@@ -90,7 +90,10 @@ cityAll.stats$biomeName <- factor(cityAll.stats$biomeName, levels=biome.order$bi
 # ##########################################
 names(cityAll.stats)
 # summary(cityAll.stats[,c("LST.NoVeg.model.R2adj", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "ETmodel.tree.slope", "ETmodel.veg.slope", "LSTmodel.tree.p", "LSTmodel.veg.p", "ETmodel.tree.p", "ETmodel.veg.p")])
+ncities <- length(which(!is.na(cityAll.stats$TreeVeg.LSTratio))) # More cooling from trees
+
 summary(cityAll.stats[,c("LST.NoVeg.model.R2adj", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "ETmodel.tree.slope", "ETmodel.veg.slope")])
+
 
 # ------------
 # Comparing Veg Cover types
@@ -98,8 +101,10 @@ summary(cityAll.stats[,c("LST.NoVeg.model.R2adj", "LSTmodel.R2adj", "LSTmodel.tr
 # Looking at how much more cooling per percent cover trees provide; >1 = trees more cooling
 cityAll.stats$TreeVeg.LSTratio <- cityAll.stats$LSTmodel.tree.slope/cityAll.stats$LSTmodel.veg.slope
 summary(cityAll.stats$TreeVeg.LSTratio)
-length(which(!is.na(cityAll.stats$TreeVeg.LSTratio) & cityAll.stats$TreeVeg.LSTratio>1)) # More cooling from trees
-length(which(!is.na(cityAll.stats$TreeVeg.LSTratio) & cityAll.stats$TreeVeg.LSTratio<1)) # More cooling from other veg
+treecool <- length(which(!is.na(cityAll.stats$TreeVeg.LSTratio) & cityAll.stats$TreeVeg.LSTratio>1)) # More cooling from trees
+vegcool <- length(which(!is.na(cityAll.stats$TreeVeg.LSTratio) & cityAll.stats$TreeVeg.LSTratio<1)) # More cooling from other veg
+treecool; treecool/ncities
+vegcool; vegcool/ncities
 
 # Looking at how much higher per percent cover ET is; >1 means trees use more water
 cityAll.stats$TreeVeg.ETratio <- cityAll.stats$ETmodel.tree.slope/cityAll.stats$ETmodel.veg.slope
@@ -127,8 +132,11 @@ cityAll.stats$LST.ETratio.comparison <- cityAll.stats$LST.ETratio.tree/cityAll.s
 summary(cityAll.stats$LST.ETratio.comparison)
 
 # Looking at the number of cities where trees or other veg are more efficient
-length(which(!is.na(cityAll.stats$LST.ETratio.comparison) & cityAll.stats$LST.ETratio.comparison>1)) # Trees more efficient
-length(which(!is.na(cityAll.stats$LST.ETratio.comparison) & cityAll.stats$LST.ETratio.comparison<1)) # Other Veg more efficient
+treeEff <- length(which(!is.na(cityAll.stats$LST.ETratio.comparison) & cityAll.stats$LST.ETratio.comparison>1)) # Trees more efficient
+vegEff <- length(which(!is.na(cityAll.stats$LST.ETratio.comparison) & cityAll.stats$LST.ETratio.comparison<1)) # Other Veg more efficient
+
+treeEff; treeEff/ncities
+vegEff; vegEff/ncities
 # ------------
 
 # ##########################################
