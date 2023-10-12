@@ -81,6 +81,27 @@ biome.order <- aggregate(LST.mean ~ biomeName, data=cityAll.stats, FUN=mean)
 biome.order <- biome.order[order(biome.order$LST.mean),]
 
 cityAll.stats$biomeName <- factor(cityAll.stats$biomeName, levels=biome.order$biomeName)
+
+# Lookign at where our cities are so far
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+  coord_equal(expand=0, ylim=c(-65,80)) +
+  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=biomeName), size=0.5) +
+  scale_color_manual(name="biome", values=biome.pall.all) +
+  # scale_shape_manual(name="biome", values=1:length(biome.pall.all)) +
+  guides(color="none") +
+  theme_bw() +
+  theme(legend.position="top",
+        legend.title=element_blank(),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        plot.margin = margin(0.5, 2, 1, 3, "lines"))
+
 # ##########################################
 
 
@@ -90,7 +111,8 @@ cityAll.stats$biomeName <- factor(cityAll.stats$biomeName, levels=biome.order$bi
 # ##########################################
 names(cityAll.stats)
 # summary(cityAll.stats[,c("LST.NoVeg.model.R2adj", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "ETmodel.tree.slope", "ETmodel.veg.slope", "LSTmodel.tree.p", "LSTmodel.veg.p", "ETmodel.tree.p", "ETmodel.veg.p")])
-ncities <- length(which(!is.na(cityAll.stats$TreeVeg.LSTratio))) # More cooling from trees
+ncities <- length(which(!is.na(cityAll.stats$LSTmodel.tree.slope))) # More cooling from trees
+ncities
 
 summary(cityAll.stats[,c("LST.NoVeg.model.R2adj", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "ETmodel.tree.slope", "ETmodel.veg.slope")])
 
@@ -109,9 +131,11 @@ vegcool; vegcool/ncities
 # Looking at how much higher per percent cover ET is; >1 means trees use more water
 cityAll.stats$TreeVeg.ETratio <- cityAll.stats$ETmodel.tree.slope/cityAll.stats$ETmodel.veg.slope
 summary(cityAll.stats$TreeVeg.ETratio)
-length(which(!is.na(cityAll.stats$TreeVeg.ETratio) & cityAll.stats$TreeVeg.ETratio>1)) # More water from trees
-length(which(!is.na(cityAll.stats$TreeVeg.ETratio) & cityAll.stats$TreeVeg.ETratio<1)) # More water from other veg
+treewater <- length(which(!is.na(cityAll.stats$TreeVeg.ETratio) & cityAll.stats$TreeVeg.ETratio>1)) # More water from trees
+vegwater <- length(which(!is.na(cityAll.stats$TreeVeg.ETratio) & cityAll.stats$TreeVeg.ETratio<1)) # More water from other veg
 
+treewater; treewater/ncities
+vegwater; vegwater/ncities
 # ------------
 
 
