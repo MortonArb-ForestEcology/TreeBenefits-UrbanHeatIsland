@@ -2,7 +2,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -70,6 +70,7 @@ if(!file.exists(file.cityStatsRegion) | overwrite){
   # ------------------
   # Some summary stats about the inputs at the region scale 
   # ------------------
+  cityStatsRegion[,"SpatialMistmatch"] <- NA
   # - number of pixels, mean LST, cover, elev --> for ranges, give range across entire dataset to indicate range of values used in full model
   cityStatsRegion[,c("biome", "biome.prop", "n.pixels", "LST.mean", "LST.sd", "LST.min", "LST.max", "tree.mean", "tree.sd", "tree.min", "tree.max", "veg.mean", "veg.sd", "veg.min", "veg.max", "elev.mean", "elev.sd", "elev.min", "elev.max", "ET.mean", "ET.sd", "ET.min", "ET.max")] <- NA
   
@@ -192,6 +193,8 @@ for(CITY in citiesAnalyze){
   # plot(elevCity); plot(maskCity)
   # par(mfrow=c(1,1))
   # plot(treeCity)
+  # plot(lstCity)
+  # plot(etCity)
   
   # lst.mean <- mean(lstCity)
   # tree.mean <- mean(treeCity)
@@ -220,13 +223,33 @@ for(CITY in citiesAnalyze){
   valsCityVeg$location <- coordsVeg$location
   
   # nrow(coordsCity); nrow(coordsVeg)
+
+  # summary(coordsVeg$location == coordsCity$location)
+  # summary(coordsVeg[coordsVeg$location==coordsCity$location,])
+  # summary(coordsVeg[coordsVeg$location!=coordsCity$location,])
   if(all(coordsVeg$location == coordsCity$location)){
+    cityStatsRegion$SpatialMistmatch[row.city] <- F # No problem, we're good
+    
     valsCity <- valsCityVeg[,]
     valsCity$elevation <- coordsCity$elevation
     valsCity$cityBounds <- coordsCity$cityBounds
     # valsCity <- merge(coordsCity, valsCityVeg, all.x=T, all.y=T)
+    
+  } else if(nrow(coordsVeg)==nrow(coordsCity)) {
+    print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
+    cityStatsRegion$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+    
+    valsCity <- valsCityVeg[,]
+    valsCity$elevation <- coordsCity$elevation
+    valsCity$cityBounds <- coordsCity$cityBounds
+    
+  } else if( any(coordsVeg$location %in% coordsCity$location)) {  
+    valsCity <- valsCityVeg[,]
+    
+    valsCity <- merge(valsCity, coordsCity, all.x=T, all.y=F)
   } else {
-    stop("Veg and Elev Layer doesn't match. :-( gotta figure it out")
+    print(warning("Veg and Elev Layer doesn't match. :-( skipping for now to see how prevalent that is"))
+    next
   }
   
   # Land Surface Temperature 
@@ -246,6 +269,9 @@ for(CITY in citiesAnalyze){
   if(all(coordsLST$location == coordsCity$location)){
     valsCity$LST_Day <- valsLST$LST_Day
     # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
+  } else if( nrow(coordsLST) == nrow (coordsCity)) {  
+    valsCity$LST_Day <- valsLST$LST_Day
+    
   } else if( any(coordsLST$location %in% valsCity$location)) {  
     valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
   } else {
@@ -271,9 +297,12 @@ for(CITY in citiesAnalyze){
   if(all(coordsET$location == coordsCity$location)){
     valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
     # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
-  } else if( any(coordsET$location %in% valsCity$location)) {  
+  } else if( nrow(coordsET) == nrow (coordsCity)) {  
+    # print(warning("Using a merge to get things together.  Slow, but it should work"))
+    valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
+  } else if( any(coordsET$location %in% valsCity$location)) {
     print(warning("Using a merge to get things together.  Slow, but it should work"))
-    valsCity <- merge(valsCity, valsET, all.x=T, all.y=T)
+    valsCity <- merge(valsCity, valsET, all.x=T, all.y=F)
   } else {
     print(warning("LST coords do not match elev.  Need to re-implment nearest neighbor"))
   }
@@ -386,7 +415,7 @@ for(CITY in citiesAnalyze){
   sum.modETCity
   
   rows.ET <- which(valsCity$year %in% unique(valsCity$year[!is.na(valsCity$ET)]))
-  valsCity$ETgam.pred[rows.ET] <- predict(modETCity, newdata=valsCity[rows.ET,]) # Shifting to the newdata version to predict for where we have missing data
+  valsCity[rows.ET, "ETgam.pred"] <- predict(modETCity, newdata=valsCity[rows.ET,]) # note: need to note column differently because of missing values
   valsCity$ETgam.resid <- valsCity$ET - valsCity$ETgam.pred # Hand-calculating te residuals... gives the same thing
   save(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_gam.RData")))
   # par(mfrow=c(1,1)); plot(modETCity)
@@ -591,7 +620,7 @@ for(CITY in citiesAnalyze){
     cityStatsRegion$trend.ET.slope[row.city] <- mean(summaryCity$ET.trend, na.rm=T)
     cityStatsRegion$trend.ET.slope.sd[row.city] <- sd(summaryCity$ET.trend, na.rm=T)
     et.out <- t.test(summaryCity$ET.trend)
-    cityStatsRegion$trend.et.p[row.city] <- et.out$p.value
+    cityStatsRegion$trend.ET.p[row.city] <- et.out$p.value
     
     
     # Creating and saving some maps of those trends
@@ -635,9 +664,9 @@ for(CITY in citiesAnalyze){
             axis.text=element_blank())
     
     etlim <- max(abs(summaryCity$ET.trend), na.rm=T)
-    plot.et.trend <- ggplot(data=summaryCity[!is.na(summaryCity$et.trend),]) +
+    plot.et.trend <- ggplot(data=summaryCity[!is.na(summaryCity$ET.trend),]) +
       coord_equal() +
-      geom_tile(aes(x=x, y=y, fill=et.trend)) +
+      geom_tile(aes(x=x, y=y, fill=ET.trend)) +
       geom_tile(data=summaryCity[!summaryCity$cityBounds,], aes(x=x, y=y), alpha=0.2, fill="black") +
       # geom_path(data=city.sp, aes(x=long, y=lat, group=group)) +
       scale_fill_gradientn(name="ET (kg/m2/yr)", colors=grad.et, limits=c(-etlim, etlim)) +
