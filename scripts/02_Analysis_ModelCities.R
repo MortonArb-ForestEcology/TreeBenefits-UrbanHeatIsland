@@ -103,6 +103,7 @@ if(!file.exists(file.cityStatsRegion) | overwrite){
 
 }
 
+# Read in Summary file -----
 cityStatsRegion <- read.csv(file.cityStatsRegion)
 summary(cityStatsRegion); dim(cityStatsRegion)
 
@@ -134,6 +135,7 @@ length(citiesDone)
 citiesAnalyze <- citiesDone[citiesDone %in% cityStatsRegion$ISOURBID[is.na(cityStatsRegion$LSTmodel.R2adj)]]
 length(citiesAnalyze)
 
+# # Start City Loop -----
 for(CITY in citiesAnalyze){
   # # Good Test Cities: Sydney (AUS66430)
   # CITY="AUS66430"; CITY="USA26687"
@@ -409,33 +411,35 @@ for(CITY in citiesAnalyze){
   # ------------
   # Adding an couple ET models 
   # ------------
-  # This first one is predicting ET The same way we do LST to decompose the effects of veg cover on ET
-  modETCity <- gam(ET ~ cover.tree + cover.veg + elevation + s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
-  sum.modETCity <- summary(modETCity)
-  sum.modETCity
-  
-  rows.ET <- which(valsCity$year %in% unique(valsCity$year[!is.na(valsCity$ET)]))
-  valsCity[rows.ET, "ETgam.pred"] <- predict(modETCity, newdata=valsCity[rows.ET,]) # note: need to note column differently because of missing values
-  valsCity$ETgam.resid <- valsCity$ET - valsCity$ETgam.pred # Hand-calculating te residuals... gives the same thing
-  save(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_gam.RData")))
-  # par(mfrow=c(1,1)); plot(modETCity)
-  
-  png(file.path(path.cities, CITY, paste0(CITY, "ET_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
-  par(mfrow=c(2,2))
-  plot(modETCity)
-  hist(valsCity$ETgam.resid)
-  plot(ETgam.resid ~ ETgam.pred, data=valsCity); abline(h=0, col="red")
-  plot(ET ~ ETgam.pred, data=valsCity); abline(a=0, b=1, col="red")
-  par(mfrow=c(1,1))
-  dev.off()
-  
-  
-  cityStatsRegion$ETmodel.R2adj[row.city] <- sum.modETCity$r.sq
-  cityStatsRegion$ETmodel.AIC[row.city] <- AIC(modETCity)
-  cityStatsRegion[row.city,c("ETmodel.tree.slope", "ETmodel.veg.slope", "ETmodel.elev.slope")] <- sum.modETCity$p.coeff[c("cover.tree", "cover.veg", "elevation")]
-  cityStatsRegion[row.city,c("ETmodel.tree.p", "ETmodel.veg.p", "ETmodel.elev.p")] <- sum.modETCity$p.pv[c("cover.tree", "cover.veg", "elevation")]
-  # cityStatsRegion[row.city,]
-  
+  if(length(unique(valsCity$location[!is.na(valsCity$ET)]))>=50){
+    print(warning("Not enough ET pixels to model"))
+    # This first one is predicting ET The same way we do LST to decompose the effects of veg cover on ET
+    modETCity <- gam(ET ~ cover.tree + cover.veg + elevation + s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
+    sum.modETCity <- summary(modETCity)
+    sum.modETCity
+    
+    rows.ET <- which(valsCity$year %in% unique(valsCity$year[!is.na(valsCity$ET)]))
+    valsCity[rows.ET, "ETgam.pred"] <- predict(modETCity, newdata=valsCity[rows.ET,]) # note: need to note column differently because of missing values
+    valsCity$ETgam.resid <- valsCity$ET - valsCity$ETgam.pred # Hand-calculating te residuals... gives the same thing
+    save(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_gam.RData")))
+    # par(mfrow=c(1,1)); plot(modETCity)
+    
+    png(file.path(path.cities, CITY, paste0(CITY, "ET_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
+    par(mfrow=c(2,2))
+    plot(modETCity)
+    hist(valsCity$ETgam.resid)
+    plot(ETgam.resid ~ ETgam.pred, data=valsCity); abline(h=0, col="red")
+    plot(ET ~ ETgam.pred, data=valsCity); abline(a=0, b=1, col="red")
+    par(mfrow=c(1,1))
+    dev.off()
+    
+    
+    cityStatsRegion$ETmodel.R2adj[row.city] <- sum.modETCity$r.sq
+    cityStatsRegion$ETmodel.AIC[row.city] <- AIC(modETCity)
+    cityStatsRegion[row.city,c("ETmodel.tree.slope", "ETmodel.veg.slope", "ETmodel.elev.slope")] <- sum.modETCity$p.coeff[c("cover.tree", "cover.veg", "elevation")]
+    cityStatsRegion[row.city,c("ETmodel.tree.p", "ETmodel.veg.p", "ETmodel.elev.p")] <- sum.modETCity$p.pv[c("cover.tree", "cover.veg", "elevation")]
+    # cityStatsRegion[row.city,]
+  }
   
   # plot(LST_Day ~ ET, data=valsCity)
   # # NOTE: THIS ONLY WORKS FOR THE NON-URBAN CORE --> We can't use this for everywhere, so lets ignore it!
@@ -617,11 +621,12 @@ for(CITY in citiesAnalyze){
     veg.out <- t.test(summaryCity$veg.trend)
     cityStatsRegion$trend.veg.p[row.city] <- veg.out$p.value
 
-    cityStatsRegion$trend.ET.slope[row.city] <- mean(summaryCity$ET.trend, na.rm=T)
-    cityStatsRegion$trend.ET.slope.sd[row.city] <- sd(summaryCity$ET.trend, na.rm=T)
-    et.out <- t.test(summaryCity$ET.trend)
-    cityStatsRegion$trend.ET.p[row.city] <- et.out$p.value
-    
+    if("ET.trend" %in% names(summaryCity)){
+      cityStatsRegion$trend.ET.slope[row.city] <- mean(summaryCity$ET.trend, na.rm=T)
+      cityStatsRegion$trend.ET.slope.sd[row.city] <- sd(summaryCity$ET.trend, na.rm=T)
+      et.out <- t.test(summaryCity$ET.trend)
+      cityStatsRegion$trend.ET.p[row.city] <- et.out$p.value
+    }  
     
     # Creating and saving some maps of those trends
     lstlim <- max(abs(summaryCity$LST.trend), na.rm=T)
@@ -663,19 +668,22 @@ for(CITY in citiesAnalyze){
             axis.title=element_blank(),
             axis.text=element_blank())
     
-    etlim <- max(abs(summaryCity$ET.trend), na.rm=T)
-    plot.et.trend <- ggplot(data=summaryCity[!is.na(summaryCity$ET.trend),]) +
-      coord_equal() +
-      geom_tile(aes(x=x, y=y, fill=ET.trend)) +
-      geom_tile(data=summaryCity[!summaryCity$cityBounds,], aes(x=x, y=y), alpha=0.2, fill="black") +
-      # geom_path(data=city.sp, aes(x=long, y=lat, group=group)) +
-      scale_fill_gradientn(name="ET (kg/m2/yr)", colors=grad.et, limits=c(-etlim, etlim)) +
-      theme(panel.background=element_rect(fill=NA, color="black"),
-            panel.grid=element_blank(),
-            axis.ticks.length = unit(-0.5, "lines"),
-            axis.title=element_blank(),
-            axis.text=element_blank())
-    
+    if("ET.trend" %in% names(summaryCity)){
+      etlim <- max(abs(summaryCity$ET.trend), na.rm=T)
+      plot.et.trend <- ggplot(data=summaryCity[!is.na(summaryCity$ET.trend),]) +
+        coord_equal() +
+        geom_tile(aes(x=x, y=y, fill=ET.trend)) +
+        geom_tile(data=summaryCity[!summaryCity$cityBounds,], aes(x=x, y=y), alpha=0.2, fill="black") +
+        # geom_path(data=city.sp, aes(x=long, y=lat, group=group)) +
+        scale_fill_gradientn(name="ET (kg/m2/yr)", colors=grad.et, limits=c(-etlim, etlim)) +
+        theme(panel.background=element_rect(fill=NA, color="black"),
+              panel.grid=element_blank(),
+              axis.ticks.length = unit(-0.5, "lines"),
+              axis.title=element_blank(),
+              axis.text=element_blank())
+    } else {
+      plot.et.trend <- NULL
+    }
     
     png(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Maps_Trends.png")), height=8, width=8, units="in", res=120)
     print(
