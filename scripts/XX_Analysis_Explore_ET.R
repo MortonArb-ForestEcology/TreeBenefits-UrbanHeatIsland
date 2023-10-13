@@ -164,3 +164,93 @@ vegEff; vegEff/ncities
 # ------------
 
 # ##########################################
+
+
+TreeEffectTempBiomeHisto <-ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+  geom_histogram(aes(x=LSTmodel.tree.slope, fill=biomeName), breaks=seq(-0.3, 0.1, by=0.02)) +
+  # geom_vline(xintercept=0,linetype="dashed") +
+  # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
+  geom_vline(xintercept=0, linetype="dashed") +
+  scale_fill_manual(name="biome", values=biome.pall.all) +
+  # scale_x_continuous(breaks=c(-1.025, seq(-0.75, 0, by=0.25), 0.225), labels=c("<= -1", seq(-0.75, 0, by=0.25), ">= 0.25"))+
+  labs(x="Tree Effect (deg. C/%)") +
+  # guides(fill="none") +
+  theme_bw() +
+  theme(legend.position="none",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        panel.grid=element_blank(),
+        axis.text=element_text(color="black"),
+        axis.title=element_text(color="black", face="bold"))
+
+VegEffectTempBiomeHisto <-ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+  geom_histogram(aes(x=LSTmodel.veg.slope, fill=biomeName), breaks=seq(-0.3, 0.1, by=0.02)) +
+  # geom_vline(xintercept=0,linetype="dashed") +
+  # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
+  geom_vline(xintercept=0, linetype="dashed") +
+  scale_fill_manual(name="biome", values=biome.pall.all) +
+  # scale_x_continuous(breaks=c(-1.025, seq(-0.75, 0, by=0.25), 0.225), labels=c("<= -1", seq(-0.75, 0, by=0.25), ">= 0.25"))+
+  labs(x="Other Veg Effect (deg. C/%)") +
+  # guides(fill="none") +
+  theme_bw() +
+  theme(legend.position="none",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        panel.grid=element_blank(),
+        axis.text=element_text(color="black"),
+        axis.title=element_text(color="black", face="bold"))
+
+TreeCoolEfficiencyBiomeHisto <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+  geom_histogram(aes(x=LST.ETratio.tree, fill=biomeName), breaks=seq(-1, 0.1, by=0.1)) +
+  # geom_vline(xintercept=0,linetype="dashed") +
+  # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
+  geom_vline(xintercept=0, linetype="dashed") +
+  scale_fill_manual(name="biome", values=biome.pall.all) +
+  # scale_x_continuous(breaks=c(-1.025, seq(-0.75, 0, by=0.25), 0.225), labels=c("<= -1", seq(-0.75, 0, by=0.25), ">= 0.25"))+
+  labs(x="Tree Effect (deg. C/kg/m2)") +
+  # guides(fill="none") +
+  theme_bw() +
+  theme(legend.position="none",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        panel.grid=element_blank(),
+        axis.text=element_text(color="black"),
+        axis.title=element_text(color="black", face="bold"))
+
+VegCoolEfficiencyBiomeHisto <-ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+  geom_histogram(aes(x=LST.ETratio.veg, fill=biomeName), breaks=seq(-1, 0.1, by=0.1)) +
+  # geom_vline(xintercept=0,linetype="dashed") +
+  # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
+  geom_vline(xintercept=0, linetype="dashed") +
+  scale_fill_manual(name="biome", values=biome.pall.all) +
+  # scale_x_continuous(breaks=c(-1.025, seq(-0.75, 0, by=0.25), 0.225), labels=c("<= -1", seq(-0.75, 0, by=0.25), ">= 0.25"))+
+  labs(x="Other Veg Effect (deg. C/kg/m2)") +
+  # guides(fill="none") +
+  theme_bw() +
+  theme(legend.position="none",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        panel.grid=element_blank(),
+        axis.text=element_text(color="black"),
+        axis.title=element_text(color="black", face="bold"))
+
+
+cowplot::plot_grid(TreeEffectTempBiomeHisto, TreeCoolEfficiencyBiomeHisto, VegEffectTempBiomeHisto, VegCoolEfficiencyBiomeHisto)
+
+
+ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+  geom_histogram(aes(x=LST.ETratio.comparison, fill=biomeName), breaks=seq(-5, 5, by=0.5)) +
+  # geom_vline(xintercept=0,linetype="dashed") +
+  # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
+  geom_vline(xintercept=1, linetype="dashed") +
+  scale_fill_manual(name="biome", values=biome.pall.all) +
+  # scale_x_continuous(breaks=c(-1.025, seq(-0.75, 0, by=0.25), 0.225), labels=c("<= -1", seq(-0.75, 0, by=0.25), ">= 0.25"))+
+  labs(x="Cooling Efficiency Ratio: Trees/Other Veg") +
+  # guides(fill="none") +
+  theme_bw() +
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        panel.grid=element_blank(),
+        axis.text=element_text(color="black"),
+        axis.title=element_text(color="black", face="bold"))
