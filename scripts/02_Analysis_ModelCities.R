@@ -412,7 +412,7 @@ for(CITY in citiesAnalyze){
   # Adding an couple ET models 
   # ------------
   if(length(unique(valsCity$location[!is.na(valsCity$ET)]))>=50){
-    print(warning("Not enough ET pixels to model"))
+    # print(warning("Not enough ET pixels to model"))
     # This first one is predicting ET The same way we do LST to decompose the effects of veg cover on ET
     modETCity <- gam(ET ~ cover.tree + cover.veg + elevation + s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
     sum.modETCity <- summary(modETCity)
@@ -621,7 +621,7 @@ for(CITY in citiesAnalyze){
     veg.out <- t.test(summaryCity$veg.trend)
     cityStatsRegion$trend.veg.p[row.city] <- veg.out$p.value
 
-    if("ET.trend" %in% names(summaryCity)){
+    if("ET.trend" %in% names(summaryCity) & length(which(!is.na(summaryCity$ET.trend)))>5){
       cityStatsRegion$trend.ET.slope[row.city] <- mean(summaryCity$ET.trend, na.rm=T)
       cityStatsRegion$trend.ET.slope.sd[row.city] <- sd(summaryCity$ET.trend, na.rm=T)
       et.out <- t.test(summaryCity$ET.trend)
@@ -759,3 +759,4 @@ for(CITY in citiesAnalyze){
   # rm(elevCity, treeCity, vegCity, lstCity, modLSTCity, valsCity, summaryCity, coordsCity, biome, sp.city, plot.corr.LST.Tree, plot.corr.LST.Veg, plot.corr.Tree.Veg, plot.lst.trend, plot.tree.trend, plot.veg.trend, plot.elev, plot.lst, plot.tree, plot.veg, veg.lst, veg.tree, tree.lst, veg.out, tree.out, sum.corrTreeLST, sum.corrVegLST, sum.corrVegTree, sum.modLSTCity)
   
 }	
+
