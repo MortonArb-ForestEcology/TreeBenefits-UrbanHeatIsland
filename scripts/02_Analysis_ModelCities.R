@@ -411,7 +411,7 @@ for(CITY in citiesAnalyze){
   # ------------
   # Adding an couple ET models 
   # ------------
-  if(length(unique(valsCity$location[!is.na(valsCity$ET)]))>=50){
+  if(length(unique(valsCity$location[!is.na(valsCity$ET)]))>=50 & length(unique(valsCity$year[!is.na(valsCity$ET)]))>1){
     # print(warning("Not enough ET pixels to model"))
     # This first one is predicting ET The same way we do LST to decompose the effects of veg cover on ET
     modETCity <- gam(ET ~ cover.tree + cover.veg + elevation + s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
