@@ -238,8 +238,17 @@ VegCoolEfficiencyBiomeHisto <-ggplot(data=cityAll.stats[!is.na(cityAll.stats$bio
 cowplot::plot_grid(TreeEffectTempBiomeHisto, TreeCoolEfficiencyBiomeHisto, VegEffectTempBiomeHisto, VegCoolEfficiencyBiomeHisto)
 
 
-ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  geom_histogram(aes(x=LST.ETratio.comparison, fill=biomeName), breaks=seq(-5, 5, by=0.5)) +
+# Looking at comparing the cooling efficiency where the slopes of the LST model are negative (veg cools) and the ET model positive (veg uses water)
+rows.done <- which(!is.na(cityAll.stats$biome))
+rows.ratio <- which(!is.na(cityAll.stats$biome) & cityAll.stats$LSTmodel.tree.slope<0 & cityAll.stats$LSTmodel.veg.slope<0 & cityAll.stats$ETmodel.tree.slope>0 & cityAll.stats$ETmodel.veg.slope>0)
+
+
+length(rows.ratio)
+length(rows.ratio)/length(rows.done)
+summary(cityAll.stats[rows.ratio,])
+
+ggplot(data=cityAll.stats[rows.ratio,]) +
+  geom_histogram(aes(x=LST.ETratio.comparison, fill=biomeName), breaks=seq(0, 5, by=0.1)) +
   # geom_vline(xintercept=0,linetype="dashed") +
   # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
   geom_vline(xintercept=1, linetype="dashed") +
