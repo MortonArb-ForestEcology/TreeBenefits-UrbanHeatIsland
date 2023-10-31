@@ -64,11 +64,15 @@ elevVis = list(
   max= 5000,
   palette=c ('0000ff', '00ffff', 'ffff00', 'ff0000', 'ffffff')
 );
-elev <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj')#$select('elevation')
-ee_print(elev)
-# Map$addLayer(elev, elevVis, "Elevation - Masked, reproj")
+elevN <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj_NH')#$select('elevation')
+ee_print(elevN)
+# Map$addLayer(elevN, elevVis, "Elevation - Masked, reproj")
 
-projElev = elev$projection()
+elevS <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj_SH')#$select('elevation')
+ee_print(elevS)
+
+
+projElev = elevN$projection()
 projCRS = projElev$crs()
 projTransform <- unlist(projElev$getInfo()$transform)
 ##################### 
@@ -133,9 +137,9 @@ citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 
 # # All except 1 ran successfully
 if(length(cityIdS)>0){
-  extractElevEE(CitySP=citiesSouth, CityNames = cityIdS, ELEV = elev, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractElevEE(CitySP=citiesSouth, CityNames = cityIdS, ELEV = elevS, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 if(length(cityIdN)>0){
-  extractElevEE(CitySP=citiesNorth, CityNames = cityIdN, ELEV = elev, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractElevEE(CitySP=citiesNorth, CityNames = cityIdN, ELEV = elevN, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 

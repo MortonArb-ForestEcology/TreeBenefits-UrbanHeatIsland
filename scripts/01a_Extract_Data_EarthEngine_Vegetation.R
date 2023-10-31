@@ -46,12 +46,15 @@ vizTree <- list(
   palette=c('bbe029', '0a9501', '074b03')
 );
 
-modTree <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover')
-modVeg <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation')
+modTreeN <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_NH')
+modVegN <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_NH')
 # modBare <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated')
 
-ee_print(modTree)
-# Map$addLayer(modTree$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
+modTreeS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_SH')
+modVegS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_SH')
+
+ee_print(modTreeNH)
+# Map$addLayer(modTreeNH$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
 
 projTree = modTree$projection()
 projCRS = projTree$crs()

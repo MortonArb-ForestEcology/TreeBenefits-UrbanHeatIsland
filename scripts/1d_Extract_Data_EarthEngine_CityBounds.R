@@ -39,10 +39,12 @@ citiesBuff <- citiesUse$map(function(f){f$buffer(10e3)})
 ##################### 
 # 2. Load in data layers  -- formatting in script 1!
 ####################
-vegMask <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask")
-# Map$addLayer(vegMask)
+vegMaskN <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask_NH")
+vegMaskS <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask_SH")
+# Map$addLayer(vegMaskN)
+# Map$addLayer(vegMaskS)
 
-projMask = vegMask$projection()
+projMask = vegMaskN$projection()
 projCRS = projMask$crs()
 projTransform <- unlist(projMask$getInfo()$transform)
 
@@ -90,8 +92,9 @@ extractCityMask <- function(cityBuff, cityRaw, CityNames, BASE, GoogleFolderSave
 # 3 . Start extracting data for each city -- only ones that were done before!
 ##################### 
 
-cityIdAll <-sdei.df$ISOURBID
-length(cityIdAll)
+cityIdS <-sdei.df$ISOURBID[sdei.df$LATITUDE<0]
+cityIdN <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0]
+# length(cityIdS); length(cityIdNW)
 
 # If we're not trying to overwrite our files, remove files that were already done
 cityRemove <- vector()
@@ -102,12 +105,24 @@ if(!overwrite){
   # Check to make sure a city has all three layers; if it doesn't do it again
   cityRemove <- unlist(lapply(strsplit(mask.done, "_"), function(x){x[1]}))
   
-  cityIdAll <- cityIdAll[!cityIdAll %in% cityRemove]
+  cityIdS <- cityIdS[!cityIdS %in% cityRemove]
+  cityIdN <- cityIdN[!cityIdN %in% cityRemove]
+  
 } # End remove cities loop
-length(cityIdAll)
+length(cityIdS); length(cityIdN)
 
-if(length(cityIdAll)>0){
-  extractCityMask(cityBuff=citiesBuff, cityRaw=citiesUse, CityNames=cityIdAll, BASE=vegMask, GoogleFolderSave, overwrite=F)
+
+citiesSouth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
+citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
+
+buffSouth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
+buffNorth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
+
+if(length(cityIdS)>0){
+  extractCityMask(cityBuff=buffSouth, cityRaw=citiesSouth, CityNames=cityIdS, BASE=vegMaskS, GoogleFolderSave, overwrite=T)
 }
 
+if(length(cityIdN)>0){
+  extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=cityIdN, BASE=vegMaskN, GoogleFolderSave, overwrite=T)
+}
 
