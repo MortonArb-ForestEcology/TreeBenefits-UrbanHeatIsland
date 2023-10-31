@@ -13,6 +13,12 @@ path.cities <- file.path(path.google)
 file.cityAll.stats <- file.path(path.cities, "city_stats_all.csv")
 # summary(file.cityAll.stats)
 
+# Adding info for the previous version so we can double check
+path.google2 <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v2")
+path.cities2 <- file.path(path.google2)
+file.cityAll.stats2 <- file.path(path.cities2, "city_stats_all.csv")
+
+
 path.figs <- file.path(path.google, "figures_exploratory")
 dir.create(path.figs, recursive=T, showWarnings=F)
 
@@ -40,7 +46,11 @@ world <- map_data("world")
 # Read in Data; do some cleanup ----
 # ##########################################
 cityAll.stats <- read.csv(file.cityAll.stats)
-summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),])
+# summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),])
+summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),9:25])
+
+# cityAll.stats2 <- read.csv(file.cityAll.stats2)
+# summary(cityAll.stats2[,9:25])
 
 cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
 summary(as.factor(cityAll.stats$biome))
@@ -126,7 +136,7 @@ dev.off()
 # ##########################
 # Start with looking at some patterns of overall model fit (R2adj) ----
 # ##########################
-summary(cityAll.stats$LSTmodel.R2adj)
+summary(cityAll.stats$LSTmodel.R2adj) # Have 3 cities missing compared to previous version
 hist(cityAll.stats$LSTmodel.R2adj)
 
 # don't save it, but do a quick map of model performance
@@ -162,6 +172,7 @@ png(file.path(path.figs, "ModelFit_R2adj_Map.png"), height=6, width=12, units="i
 r2.map
 dev.off()
 
+# This looks different
 r2.histo.biome <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),])+
   geom_histogram(aes(x=LSTmodel.R2adj, fill=biomeName)) +
   scale_fill_manual(name="biome", values=biome.pall.all) +
@@ -361,14 +372,14 @@ ggplot(data=cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),]) +
 summary(cityAll.stats[!is.na(cityAll.stats$trend.tree.slope) & cityAll.stats$trend.tree.p<0.01,])
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p<0.01,])
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p>0.01,])
-nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p<0.01,]);
-nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p>0.01,])
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p<0.01,]);  # 6 fewer than before
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.p>0.01,]) # 3 more than before
 
-nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0,]);
-nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope>0,])
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0,]); # 2 fewer
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope>0,]) # 1 fewer
 
-nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0 & cityAll.stats$LSTmodel.tree.p<0.01,]);
-nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0 & cityAll.stats$LSTmodel.tree.p<0.01,])/nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope),])
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0 & cityAll.stats$LSTmodel.tree.p<0.01,]); # 4 fewer
+nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope) & cityAll.stats$LSTmodel.tree.slope<0 & cityAll.stats$LSTmodel.tree.p<0.01,])/nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.tree.slope),]) # very slightly lower percent
 
 
 # Cities with significant warming effect of trees
@@ -408,8 +419,8 @@ ggplot(data=cityAll.stats[,]) +
 ggplot(data=cityAll.stats[,]) +
   geom_point(aes(x=trend.LST.slope, y=LSTmodel.tree.slope))
 
-ggplot(data=cityAll.stats[,]) +
-  geom_point(aes(x=tree.veg.trend, y=LSTmodel.tree.slope))
+# ggplot(data=cityAll.stats[,]) +
+#   geom_point(aes(x=tree.veg.trend, y=LSTmodel.tree.slope))
 
 ggplot(data=cityAll.stats[,]) +
   geom_point(aes(x=veg.mean/tree.mean, y=LSTmodel.tree.slope))
@@ -513,7 +524,7 @@ summary(cityAll.stats$LSTmodel.tree.slope/cityAll.stats$LSTmodel.veg.slope)
 # ##########################
 
 # ##########################################
-# Looking at regional tree cover and estiamted effects on temperature ----
+# Looking at regional tree cover and estimated effects on temperature ----
 # BECAUSE THE UHI part (diff b/n metro area + buffer) didn't save :-( 
 # ##########################################
 summary(cityAll.stats)
