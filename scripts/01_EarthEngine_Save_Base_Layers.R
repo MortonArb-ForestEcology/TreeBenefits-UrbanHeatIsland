@@ -5,7 +5,7 @@ library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
 path.google <- "/Volumes/GoogleDrive/My Drive"
-GoogleFolderSave <- "UHI_Analysis_Output_v30"
+GoogleFolderSave <- "UHI_Analysis_Output_v3"
 assetHome <- ee_get_assethome()
 
 
@@ -205,8 +205,11 @@ vegMask <- mod44bReprojOrig$first()$select("Percent_Tree_Cover", "Percent_NonTre
 maskGeom <- vegMask$geometry()$getInfo()
 
 # proj4string: "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
-saveVegMask <- ee_image_to_asset(vegMask, description="Save_VegetationMask", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveVegMask$start()
+saveVegMaskN <- ee_image_to_asset(vegMask, description="Save_VegetationMask_North", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveVegMaskN$start()
+
+saveVegMaskS <- ee_image_to_asset(vegMask, description="Save_VegetationMask_South", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveVegMaskS$start()
 
 
 
@@ -278,11 +281,18 @@ modBare <- ee$ImageCollection$toBands(mod44bReproj$select("Percent_NonVegetated"
 # ee_print(modTree)
 # Map$addLayer(modTree$select("YR2020"), vizTree, "TreeCover")
 
-saveTree <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveTree$start()
+saveTreeN <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover_North", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveTreeN$start()
 
-saveVeg <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveVeg$start()
+saveTreeS <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover_South", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveTreeS$start()
+
+saveVegN <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover_North", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveVegN$start()
+
+saveVegS <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover_South", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveVegS$start()
+
 # 
 # # Commenting out because of space limitations
 # # saveBare <- ee_image_to_asset(modBare, description="Save_Mod44bReproj_NonVeg", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonVegetated"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
@@ -471,6 +481,10 @@ elevVis = list(
 
 Map$addLayer(elevReproj, elevVis, "Elevation - Masked, reproj")
 
-saveElev <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveElev$start()
+saveElevN <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation_North", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveElevN$start()
+
+saveElevS <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation_South", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveElevS$start()
+
 # -----------
