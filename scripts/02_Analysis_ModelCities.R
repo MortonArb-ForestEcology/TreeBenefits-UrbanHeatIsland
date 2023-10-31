@@ -2,7 +2,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=T
+overwrite=F
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -233,11 +233,11 @@ for(CITY in citiesAnalyze){
   coordsET$location <- paste0("x", coordsET$x, "y", coordsET$y)
   
   # Checkign to see whcih coords match
-  if(!all(coordsCity$location == coordsMask$location)){ stop("Mask and elev coords don't match")} # Elev = mask --> NO!
-  all(coordsVeg$location == coordsCity$location){ stop("Veg and elev coords don't match")} # Veg = elev --> NO! # Elevation is the bad one!
-  all(coordsVeg$location == coordsMask$location){ stop("Veg and Mask coords don't match")} # Veg = mask --> YES
-  all(coordsVeg$location == coordsLST$location){ stop("Veg and LST coords don't match")} # Veg = LST --> YES
-  all(coordsVeg$location == coordsET$location){ stop("Veg and ET coords don't match")}  #  Veg = ET  --> YES
+  if(!all(coordsCity$location == coordsMask$location)) { stop("Mask and elev coords don't match") } # Elev = mask --> NO!
+  if(!all(coordsVeg$location == coordsCity$location)){ stop("Veg and elev coords don't match")} # Veg = elev --> NO! # Elevation is the bad one!
+  if(!all(coordsVeg$location == coordsMask$location)){ stop("Veg and Mask coords don't match")} # Veg = mask --> YES
+  if(!all(coordsVeg$location == coordsLST$location)){ stop("Veg and LST coords don't match")} # Veg = LST --> YES
+  if(!all(coordsVeg$location == coordsET$location)){ stop("Veg and ET coords don't match")}  #  Veg = ET  --> YES
   
   valsCityVeg <- stack(data.frame(getValues(treeCity[[layers.use]])))
   names(valsCityVeg) <- c("cover.tree", "year")

@@ -66,7 +66,7 @@ elevVis = list(
 );
 elev <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj')#$select('elevation')
 ee_print(elev)
-# Map$addLayer(elevLoad, elevVis, "Elevation - Masked, reproj")
+# Map$addLayer(elev, elevVis, "Elevation - Masked, reproj")
 
 projElev = elev$projection()
 projCRS = projElev$crs()
