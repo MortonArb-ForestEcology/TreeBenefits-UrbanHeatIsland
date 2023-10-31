@@ -2,7 +2,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -211,11 +211,33 @@ for(CITY in citiesAnalyze){
   coordsCity$cityBounds <- getValues(maskCity)
   coordsCity$cityBounds <- !is.na(coordsCity$cityBounds) # NA = buffer = FALSE citybounds
   
+  # Double Checking the mask 
+  coordsMask <- data.frame(coordinates(maskCity))
+  coordsMask$location <- paste0("x", coordsMask$x, "y", coordsMask$y)
+  
   # In case we're missing some years of LST (likely in the tropics); only pull certain layers
   layers.use <- names(treeCity)[names(treeCity) %in% names(lstCity)]
   
   coordsVeg <- data.frame(coordinates(treeCity))
   coordsVeg$location <- paste0("x", coordsVeg$x, "y", coordsVeg$y)
+  
+  
+  # Land Surface Temperature 
+  coordsLST <- data.frame(coordinates(lstCity))
+  coordsLST$location <- paste0("x", coordsLST$x, "y", coordsLST$y)
+  
+  # Adding ET --> note: This will just be a subset of years!
+  layersET <- names(etCity)[names(etCity) %in% names(lstCity)]
+  
+  coordsET <- data.frame(coordinates(etCity))
+  coordsET$location <- paste0("x", coordsET$x, "y", coordsET$y)
+  
+  # Checkign to see whcih coords match
+  if(!all(coordsCity$location == coordsMask$location)){ stop("Mask and elev coords don't match")} # Elev = mask --> NO!
+  all(coordsVeg$location == coordsCity$location){ stop("Veg and elev coords don't match")} # Veg = elev --> NO! # Elevation is the bad one!
+  all(coordsVeg$location == coordsMask$location){ stop("Veg and Mask coords don't match")} # Veg = mask --> YES
+  all(coordsVeg$location == coordsLST$location){ stop("Veg and LST coords don't match")} # Veg = LST --> YES
+  all(coordsVeg$location == coordsET$location){ stop("Veg and ET coords don't match")}  #  Veg = ET  --> YES
   
   valsCityVeg <- stack(data.frame(getValues(treeCity[[layers.use]])))
   names(valsCityVeg) <- c("cover.tree", "year")
@@ -254,9 +276,6 @@ for(CITY in citiesAnalyze){
     next
   }
   
-  # Land Surface Temperature 
-  coordsLST <- data.frame(coordinates(lstCity))
-  coordsLST$location <- paste0("x", coordsLST$x, "y", coordsLST$y)
   
   valsLST <- stack(data.frame(getValues(lstCity[[layers.use]])))
   names(valsLST) <- c("LST_Day", "year")
@@ -280,11 +299,6 @@ for(CITY in citiesAnalyze){
     print(warning("LST coords do not match elev.  Need to re-implment nearest neighbor"))
   }
 
-  # Adding ET --> note: This will just be a subset of years!
-  layersET <- names(etCity)[names(etCity) %in% names(lstCity)]
-  
-  coordsET <- data.frame(coordinates(etCity))
-  coordsET$location <- paste0("x", coordsET$x, "y", coordsET$y)
   
   valsET <- stack(data.frame(getValues(etCity[[layersET]])))
   names(valsET) <- c("ET", "year")
