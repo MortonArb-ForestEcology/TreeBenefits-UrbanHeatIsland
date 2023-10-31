@@ -4,8 +4,8 @@ library(ggplot2); library(RColorBrewer); library(cowplot)
 ###########################################
 # Establish file paths etc ----
 ###########################################
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+# user.google <- dir("~/Library/CloudStorage/")
+path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google, "data_processed_final")
 
 path.figs <- file.path(path.google, "figures_exploratory")
@@ -40,7 +40,7 @@ world <- map_data("world")
 # ##########################################
 # Regional Sumary Stuff ----
 cityAll.stats <- read.csv(file.path(path.cities, "..", "city_stats_all.csv"))
-summary(cityAll.stats[!is.na(cityAll.stats$model.R2adj),])
+summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),])
 
 cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
 summary(as.factor(cityAll.stats$biome))
@@ -83,79 +83,79 @@ head(valMean2)
 valMean[,names(valMean2)[2:4]] <- valMean2[,2:4]
 
 # Merge in metadata
-valMean <- merge(valMean, cityAll.stats[,c("ISOURBID", "NAME",  "LATITUDE", "LONGITUDE", "ES00POP", "biomeName", "model.tree.slope", "model.veg.slope")], all=T)
+valMean <- merge(valMean, cityAll.stats[,c("ISOURBID", "NAME",  "LATITUDE", "LONGITUDE", "ES00POP", "biomeName", "LSTmodel.tree.slope", "LSTmodel.veg.slope")], all=T)
 summary(valMean)
 
 # Looking at the difference in tree cover between the metro core & buffer
 valMean$LST.diff <- valMean$value.mean.core.LST-valMean$value.mean.buffer.LST
 
 valMean$Tree.diff <- valMean$value.mean.core.tree-valMean$value.mean.buffer.tree
-valMean$Tree.diff.degC <- valMean$Tree.diff*valMean$model.tree.slope
+valMean$Tree.diff.degC <- valMean$Tree.diff*valMean$LSTmodel.tree.slope
 
 valMean$Veg.diff <- valMean$`value.mean.core.other veg`-valMean$`value.mean.buffer.other veg`
-valMean$Veg.diff.degC <- valMean$Veg.diff*valMean$model.veg.slope
+valMean$Veg.diff.degC <- valMean$Veg.diff*valMean$LSTmodel.veg.slope
 
 summary(valMean)
-mean(valMean$Tree.diff); sd(valMean$Tree.diff)
-mean(valMean$Tree.diff.degC); sd(valMean$Tree.diff.degC)
+mean(valMean$Tree.diff, na.rm=T); sd(valMean$Tree.diff, na.rm=T)
+mean(valMean$Tree.diff.degC, na.rm=T); sd(valMean$Tree.diff.degC, na.rm=T)
 
 # Proportion of the LST diff attributable to Tree Cover ----
 valMean$percentTreeCool <- valMean$Tree.diff.degC/valMean$LST.diff
 
-mean(valMean$percentTreeCool); sd(valMean$percentTreeCool)
+mean(valMean$percentTreeCool, na.rm=T); sd(valMean$percentTreeCool, na.rm=T)
 
 #### Exploring statements from our outline ----
 # https://docs.google.com/document/d/1jzRpgNR8pWvmhS0bCULx4iAG5QjX5b0GcW8YPAs01VI/edit?usp=sharing
 
 # Of the cities with showing UHI effects, XX% have decreased tree canopy cover, with a mean differences  XX% between the core metropolitan area and surrounding landscape.
 hist(valMean$Tree.diff[valMean$LST.diff>0])
-mean(valMean$Tree.diff[valMean$LST.diff>0]); sd(valMean$Tree.diff[valMean$LST.diff>0]) 
-quantile(valMean$Tree.diff[valMean$LST.diff>0], c(0.05, 0.5, 0.95))
+mean(valMean$Tree.diff[valMean$LST.diff>0], na.rm=T); sd(valMean$Tree.diff[valMean$LST.diff>0], na.rm=T) 
+quantile(valMean$Tree.diff[valMean$LST.diff>0], c(0.05, 0.5, 0.95), na.rm=T)
 
 hist(valMean$Tree.diff.degC[valMean$LST.diff>0])
-mean(valMean$Tree.diff.degC[valMean$LST.diff>0]); sd(valMean$Tree.diff.degC[valMean$LST.diff>0]) 
+mean(valMean$Tree.diff.degC[valMean$LST.diff>0], na.rm=T); sd(valMean$Tree.diff.degC[valMean$LST.diff>0], na.rm=T) 
 t.test(valMean$Tree.diff[valMean$LST.diff>0])
 t.test(valMean$Tree.diff.degC[valMean$LST.diff>0])
 
 summary(valMean$Tree.diff.degC[valMean$LST.diff>0]/valMean$LST.diff[valMean$LST.diff>0])
-mean(valMean$Tree.diff.degC[valMean$LST.diff>0]/valMean$LST.diff[valMean$LST.diff>0]); sd(valMean$Tree.diff.degC[valMean$LST.diff>0]/valMean$LST.diff[valMean$LST.diff>0])
+mean(valMean$Tree.diff.degC[valMean$LST.diff>0]/valMean$LST.diff[valMean$LST.diff>0], na.rm=T); sd(valMean$Tree.diff.degC[valMean$LST.diff>0]/valMean$LST.diff[valMean$LST.diff>0], na.rm=T)
 
-mean(valMean$Tree.diff.degC[valMean$LST.diff>0 & valMean$Tree.diff<0]/valMean$LST.diff[valMean$LST.diff>0 & valMean$Tree.diff<0])
+mean(valMean$Tree.diff.degC[valMean$LST.diff>0 & valMean$Tree.diff<0]/valMean$LST.diff[valMean$LST.diff>0 & valMean$Tree.diff<0], na.rm=T)
 
 length(valMean$Tree.diff.degC[valMean$LST.diff>0 & valMean$Tree.diff<0])
-mean(valMean$Tree.diff.degC[valMean$LST.diff>0 & valMean$Tree.diff<0]); sd(valMean$Tree.diff.degC[valMean$LST.diff>0 & valMean$Tree.diff<0])
+mean(valMean$Tree.diff.degC[valMean$LST.diff>0 & valMean$Tree.diff<0], na.rm=T); sd(valMean$Tree.diff.degC[valMean$LST.diff>0 & valMean$Tree.diff<0], na.rm=T)
 # t.test(valMean$value.mean.core.tree[valMean$LST.diff>0], valMean$value.mean.buffer.tree[valMean$LST.diff>0], paired=T)
 
 hist(valMean$Veg.diff[valMean$LST.diff>0])
-mean(valMean$Veg.diff[valMean$LST.diff>0]); sd(valMean$Veg.diff[valMean$LST.diff>0]) 
-mean(valMean$Veg.diff.degC[valMean$LST.diff>0]); sd(valMean$Veg.diff.degC[valMean$LST.diff>0]) 
+mean(valMean$Veg.diff[valMean$LST.diff>0], na.rm=T); sd(valMean$Veg.diff[valMean$LST.diff>0], na.rm=T) 
+mean(valMean$Veg.diff.degC[valMean$LST.diff>0], na.rm=T); sd(valMean$Veg.diff.degC[valMean$LST.diff>0], na.rm=T) 
 t.test(valMean$Veg.diff[valMean$LST.diff>0])
 
 
 nrow(valMean[valMean$LST.diff>0 & valMean$Veg.diff<0,])/nrow(valMean[valMean$LST.diff>0,])
 nrow(valMean[valMean$LST.diff>0 & valMean$Veg.diff>0,])/nrow(valMean[valMean$LST.diff>0,])
 
-mean(valMean$Tree.diff[valMean$LST.diff>0 & valMean$Tree.diff<0]); sd(valMean$Tree.diff[valMean$LST.diff>0 & valMean$Tree.diff<0])
+mean(valMean$Tree.diff[valMean$LST.diff>0 & valMean$Tree.diff<0], na.rm=T); sd(valMean$Tree.diff[valMean$LST.diff>0 & valMean$Tree.diff<0], na.rm=T)
 
 # Conversely -- looking at the cities with negative LST diff
 hist(valMean$Tree.diff[valMean$LST.diff<0])
-mean(valMean$Tree.diff[valMean$LST.diff<0]); sd(valMean$Tree.diff[valMean$LST.diff<0]) 
-quantile(valMean$Tree.diff[valMean$LST.diff<0], c(0.025, 0.5, 0.975))
+mean(valMean$Tree.diff[valMean$LST.diff<0], na.rm=T); sd(valMean$Tree.diff[valMean$LST.diff<0], na.rm=T) 
+quantile(valMean$Tree.diff[valMean$LST.diff<0], c(0.025, 0.5, 0.975), na.rm=T)
 t.test(valMean$Tree.diff[valMean$LST.diff<0])
 
 nrow(valMean[valMean$LST.diff<0 & valMean$Tree.diff>0,])/nrow(valMean[valMean$LST.diff<0,])
 
-mean(valMean$Tree.diff[valMean$LST.diff>0 & valMean$Tree.diff<0]); sd(valMean$Tree.diff[valMean$LST.diff>0 & valMean$Tree.diff<0])
+mean(valMean$Tree.diff[valMean$LST.diff>0 & valMean$Tree.diff<0], na.rm=T); sd(valMean$Tree.diff[valMean$LST.diff>0 & valMean$Tree.diff<0], na.rm=T)
 
 
 
 
 ### # Looking at temporal trends in the urban core ----
 valTrendCore <- reshape(CityBuffStats[,c("ISOURBID", "factor", "trend.mean.core")], idvar="ISOURBID", timevar="factor", direction="wide")
-valTrendCore <- merge(valTrendCore, cityAll.stats[,c("ISOURBID", "NAME",  "LATITUDE", "LONGITUDE", "ES00POP", "biomeName", "model.tree.slope", "model.veg.slope")], all=T)
+valTrendCore <- merge(valTrendCore, cityAll.stats[,c("ISOURBID", "NAME",  "LATITUDE", "LONGITUDE", "ES00POP", "biomeName", "LSTmodel.tree.slope", "LSTmodel.veg.slope")], all=T)
 
 # Converting the tree trend to deg. C per year ----
-valTrendCore$LST.change.Tree <- valTrendCore$trend.mean.core.tree*valTrendCore$model.tree.slope
+valTrendCore$LST.change.Tree <- valTrendCore$trend.mean.core.tree*valTrendCore$LSTmodel.tree.slope
 valTrendCore$LST.change.NoTree <- valTrendCore$trend.mean.core.LST - valTrendCore$LST.change.Tree
 summary(valTrendCore)
 

@@ -4,8 +4,8 @@ library(ggplot2); library(RColorBrewer); library(cowplot)
 ###########################################
 # Establish file paths etc ----
 ###########################################
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+# user.google <- dir("~/Library/CloudStorage/")
+path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google, "data_processed_final")
 
 path.figs <- file.path(path.google, "figures_exploratory")
@@ -96,7 +96,7 @@ summary(CityBuffStats$biomeName[CityBuffStats$factor=="LST" & CityBuffStats$valu
 
 
 
-mean(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST"]); sd(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST"])
+mean(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST"], na.rm=T); sd(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST"], na.rm=T)
 
 
 nrow(CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff<0 & CityBuffStats$value.mean.diff.p<0.01,])

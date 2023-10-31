@@ -5,8 +5,8 @@ library(ggplot2); library(RColorBrewer); library(cowplot)
 ###########################################
 # Establish file paths etc ----
 ###########################################
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+# user.google <- dir("~/Library/CloudStorage/")
+path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google, "data_processed_final")
 
 path.figs <- file.path(path.google, "figures_exploratory")
@@ -57,6 +57,7 @@ for(i in 1:nrow(cityAll.stats)){
   row.veg <- which(CityBuff.stats$ISOURBID==URBID & CityBuff.stats$factor=="other veg")
   
   # Read in the data
+  if(!file.exists(file.path(path.cities, URBID, paste0(URBID, "_CityStats_Pixels.csv")))) next
   datAll <- read.csv(file.path(path.cities, URBID, paste0(URBID, "_CityStats_Pixels.csv")))
   summary(datAll)
   
