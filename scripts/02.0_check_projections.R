@@ -172,8 +172,8 @@ citiesLSTelev <- unique(cities.lst[cities.lst %in% cities.elev])
 length(citiesLSTelev)
 
 # # Start City Loop -----
-for(CITY in citiesLSTelev[2:length(citiesLSTelev)]){
-  print(paste0(CITY, " - ", sdei.urb$NAME[sdei.urb$ISOURBID==CITY]))
+for(CITY in citiesLSTelev[!citiesLSTelev %in% c("CAN18062")]){
+  # print(paste0(CITY, " - ", sdei.urb$NAME[sdei.urb$ISOURBID==CITY]))
   # length(files.elev); length(files.lst); length(files.tree); length(files.veg); length(files.mask)
   # Circuitous coding, but it will be more resilient to multiple versions
   fLST <- files.lst[grep(CITY, files.lst)]
@@ -184,13 +184,13 @@ for(CITY in citiesLSTelev[2:length(citiesLSTelev)]){
   lstCity <- brick(file.path(path.EEout, fLST[length(fLST)]))-273.15
   elevCity <- raster(file.path(path.EEout, fELEV[length(fELEV)]))
   elevCityOLD <- raster(file.path(path.EEout2, fELEVold[length(fELEVold)]))
-  lstCity
-  elevCity
-  elevCityOLD
-  
-  plot(lstCity[[1]])
-  plot(elevCityOLD[[1]])
-  plot(elevCity[[1]])
+  # lstCity
+  # elevCity
+  # elevCityOLD
+  # 
+  # plot(lstCity[[1]])
+  # plot(elevCityOLD[[1]])
+  # plot(elevCity[[1]])
 
   
   # Land Surface Temperature 
@@ -215,12 +215,15 @@ for(CITY in citiesLSTelev[2:length(citiesLSTelev)]){
   summary(coordsLST$location == coordsElevOLD$location)
   
   if(!all(coordsElev$location == coordsLST$location)){ 
-    if(any(coordsElev$location %in% coordsLST$location))({
+    print(paste0(CITY, " - ", sdei.urb$NAME[sdei.urb$ISOURBID==CITY]))
+    if(all(coordsLST$location == coordsElevOLD$location)){
+      print("Problem with new Elev data; not old")
+    } else if(any(coordsElev$location %in% coordsLST$location)){
       nElev <- nrow(coordsElev)
       nLST <- nrow(coordsLST)
       lMatch <- length(which(coordsElev$location %in% coordsLST$location))/nElev
-      stop(paste("only some locations match:", nElev, "Elev points, ", nLST, "LST points;", round(lMatch, 2)*100, "% match"))
-    }) else {
+      paste(paste("only some locations match:", nElev, "Elev points, ", nLST, "LST points;", round(lMatch, 2)*100, "% match"))
+    } else {
       stop("Elev and LST coords don't match")
     }
     
