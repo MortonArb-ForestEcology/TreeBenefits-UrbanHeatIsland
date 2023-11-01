@@ -1,6 +1,5 @@
 # Migrating the Trees & Urban Heat Island workflow to using Google Earth Engine
-# NOTE: Some of this may need to get run in batches because of Earth Engine Storage Limtis
-
+# NOTE: Some of this may need to get run in batches because of Earth Engine Storage Limits
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
@@ -25,43 +24,10 @@ bitwiseExtract <- function(input, fromBit, toBit) {
   mask <- ee$Number(1)$leftShift(maskSize)$subtract(1)
   return(input$rightShift(fromBit)$bitwiseAnd(mask))
 }
-##################### 
 
-##################### 
-# 1. Load and select cities
-#####################
 bBoxS = ee$Geometry$BBox(-180, -60, 180, 5);
 bBoxN = ee$Geometry$BBox(-180, -5, 180, 75);
 maskBBox <- ee$Geometry$BBox(-180, -60, 180, 75)
-
-# bBoxNW = ee$Geometry$BBox(-180, 0, 0, 90);
-# bBoxNE1 = ee$Geometry$BBox(0, 0, 75, 90);
-# bBoxNE2 = ee$Geometry$BBox(75, 0, 80, 90);
-
-# sdei <- ee$FeatureCollection('users/crollinson/sdei-global-uhi-2013');
-# # print(sdei.first())
-# 
-# # Right now, just set all cities with >100k people in the metro area and at least 100 sq km in size
-# citiesUse <- sdei$filter(ee$Filter$gte('ES00POP', 100e3))$filter(ee$Filter$gte('SQKM_FINAL', 1e2))
-# # ee_print(citiesUse) # Thsi function gets the summary stats; this gives us 2,682 cities
-# 
-# # Use map to go ahead and create the buffer around everything
-# citiesUse <- citiesUse$map(function(f){f$buffer(10e3)})
-# # ee_print(citiesUse)
-# 
-# 
-# citiesSouth <- citiesUse$filter(ee$Filter$lt('LATITUDE', 0))
-# citiesNorthW <- citiesUse$filter(ee$Filter$gte('LATITUDE', 0))$filter(ee$Filter$lte('LONGITUDE', 0))
-# citiesNorthE1 <- citiesUse$filter(ee$Filter$gte('LATITUDE', 0))$filter(ee$Filter$gt('LONGITUDE', 0))$filter(ee$Filter$lte('LONGITUDE', 75))
-# citiesNorthE2 <- citiesUse$filter(ee$Filter$gte('LATITUDE', 0))$filter(ee$Filter$gt('LONGITUDE', 75))
-# 
-# # imageNE2 <- citiesNorthE2$reduceToImage()
-# # ee_print(flatNE2)
-# # ncitiesSouth <- citiesSouth$size()$getInfo() # 336 cities
-# # ncitiesNorthW <- citiesNorthW$size()$getInfo() # 484 cities 
-# # ncitiesNorthE1 <- citiesNorthE1$size()$getInfo() # 982 cities
-# # ncitiesNorthE2 <- citiesNorthE2$size()$getInfo() # 880 cities
-
 ##################### 
 
 
@@ -136,8 +102,6 @@ tempJanFeb <- tempJanFeb$map(setYear)
 # tempJulAug$first()$propertyNames()$getInfo()
 # ee_print(tempJulAug$first())
 # Map$addLayer(tempJulAug$first()$select('LST_Day_1km'), vizTempK, "Jul/Aug Temperature")
-# Map$addLayer(tempJanFeb$first()$select('LST_Day_1km'), vizTempK, "Jan/Feb Temperature")
-
 
 projLST = tempJulAug$select("LST_Day_1km")$first()$projection()
 projCRS = projLST$crs()
@@ -202,14 +166,12 @@ vegMask <- mod44bReprojOrig$first()$select("Percent_Tree_Cover", "Percent_NonTre
 # ee_print(vegMask)
 # Map$addLayer(vegMask, vizBit)
 
-maskGeom <- vegMask$geometry()$getInfo()
+# maskGeom <- vegMask$geometry()$getInfo()
+# maskBBox <- ee$Geometry$BBox(-180, -90, 180, 90)
 
 # proj4string: "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
-saveVegMaskN <- ee_image_to_asset(vegMask, description="Save_VegetationMask_North", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveVegMaskN$start()
-
-saveVegMaskS <- ee_image_to_asset(vegMask, description="Save_VegetationMask_South", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveVegMaskS$start()
+saveVegMask <- ee_image_to_asset(vegMask, description="Save_VegetationMask", assetId=file.path(assetHome, "MOD44b_1km_Reproj_VegMask"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveVegMask$start()
 
 
 
@@ -279,43 +241,25 @@ modVeg <- ee$ImageCollection$toBands(mod44bReproj$select("Percent_NonTree_Vegeta
 modBare <- ee$ImageCollection$toBands(mod44bReproj$select("Percent_NonVegetated"))$rename(yrString)
 
 # ee_print(modTree)
-# Map$addLayer(modTree$select("YR2020"), vizTree, "TreeCover")
+Map$addLayer(modTree$select("YR2020"), vizTree, "TreeCover")
 
-saveTreeN <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover_North", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveTreeN$start()
+saveTree <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveTree$start()
 
-saveTreeS <- ee_image_to_asset(modTree, description="Save_Mod44bReproj_TreeCover_South", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_Tree_Cover_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveTreeS$start()
+saveVeg <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveVeg$start()
 
-saveVegN <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover_North", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveVegN$start()
-
-saveVegS <- ee_image_to_asset(modVeg, description="Save_Mod44bReproj_OtherVegCover_South", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonTree_Vegetation_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveVegS$start()
-
-# 
-# # Commenting out because of space limitations
-# # saveBare <- ee_image_to_asset(modBare, description="Save_Mod44bReproj_NonVeg", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonVegetated"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-# # saveBare$start()
+saveBare <- ee_image_to_asset(modBare, description="Save_Mod44bReproj_NonVeg", assetId=file.path(assetHome, "MOD44b_1km_Reproj_Percent_NonVegetated"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveBare$start()
 # ----------
 
 # -----------
 # Revisit Temperatures to save
 # -----------
-# Mask out bad veg cells & crop to just N/S hemisphere
 lstNHmask <- lstDayGoodNH$select("LST_Day_1km")$map(function(IMG){IMG$updateMask(vegMask)})
 lstSHmask <- lstDayGoodSH$select("LST_Day_1km")$map(function(IMG){IMG$updateMask(vegMask)})
-# ee_print(lstDayGoodNH)
-# ee_print(lstNHmask)
+ee_print(lstNHmask)
 # Map$addLayer(lstNHmask$first()$select('LST_Day_1km'), vizTempK, "Jul/Aug Temperature")
-
-# Cropping size to save our sanity!
-# lstNHmaskCrop <- lstNHmask$clip(bBoxN)
-# lstSHmaskCrop <- lstSHmask$clip(bBoxS)
-
-# ee_print(lstNHmaskCrop)
-# Map$addLayer(lstNHmaskCrop$first()$select('LST_Day_1km'), vizTempK, "Jul/Aug Temperature")
-
 
 # Trying to export each collection as a Collection 
 # Source: https://gis.stackexchange.com/questions/407146/export-imagecollection-to-asset
@@ -346,23 +290,6 @@ for(i in 1:sizeSH-1){
   saveLSTSH <- ee_image_to_asset(img, description=paste0("Save_LST_JanFeb_", imgID), assetId=file.path(assetHome, "LST_JanFeb_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveLSTSH$start()
 }
-
-# for (var i = 0; i < size; i++) {
-#   var img = ee.Image(listOfImage.get(i));
-#   var id = img.id().getInfo() || 'image_'+i.toString();
-#   var region = p.buffer(1000)
-#   var assetId = 'TEST'
-#   
-#   Export.image.toAsset({
-#     image: img,
-#     description: id,
-#     assetId: assetId,
-#     region: region,
-#     scale: 10,
-#     maxPixels: 1e13
-#   })
-# }
-
 # -----------
 
 # -----------
@@ -372,7 +299,7 @@ for(i in 1:sizeSH-1){
 # XX1. https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD16A2#bands says 2001-2023, but description notes major gaps; gapfilled project: https://lpdaac.usgs.gov/products/mod16a2gfv061/
 # ---> The data on Earth Engine are no good.  Only >2001 & little urban core coverage  
 # 2. https://developers.google.com/earth-engine/datasets/catalog/MODIS_NTSG_MOD16A2_105 # only runs 2000-2014
- # --> also missing urban core, but maybe good enough to try
+# --> also missing urban core, but maybe good enough to try
 # -----------
 # NOTE: This product will only run through 2016
 ETConvert <- function(img){
@@ -466,27 +393,6 @@ for(i in 1:sizeETJF-1){
 ## Now using MERIT, which has combined several other products and removed bias, including from trees
 # https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017GL072874
 # -----------
-# elev <- ee$Image('MERIT/DEM/v1_0_3')#$select('elevation')
-# ee_print(elev)
-# 
-# elevReproj <- elev$reproject(projLST)$reduceResolution(reducer=ee$Reducer$mean())
-# # elevReproj <- elevReproj$updateMask(vegMask)
-# ee_print(elevReproj)
-# 
-# elevVis = list(
-#   min= 0,
-#   max= 5000,
-#   palette=c ('0000ff', '00ffff', 'ffff00', 'ff0000', 'ffffff')
-# );
-# 
-# Map$addLayer(elevReproj, elevVis, "Elevation - Masked, reproj")
-# 
-# saveElevN <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation_North", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-# saveElevN$start()
-# 
-# saveElevS <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation_South", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-# saveElevS$start()
-
 elev <- ee$Image('MERIT/DEM/v1_0_3')#$select('elevation')
 ee_print(elev)
 
@@ -504,4 +410,5 @@ Map$addLayer(elevReproj, elevVis, "Elevation - Masked, reproj")
 
 saveElev <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
 saveElev$start()
-# -----------
+
+
