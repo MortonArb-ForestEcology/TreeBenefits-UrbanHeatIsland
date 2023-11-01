@@ -54,7 +54,7 @@ modTreeS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_SH')
 modVegS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_SH')
 
 ee_print(modTreeNH)
-# Map$addLayer(modTreeNH$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
+# Map$addLayer(modTreeN$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
 
 projTree = modTree$projection()
 projCRS = projTree$crs()
@@ -82,9 +82,9 @@ extractVeg <- function(CitySP, CityNames, TREE, VEG, BARE, GoogleFolderSave, ove
     # Start Tree Cover Layer
     treeCity <- TREE$clip(cityNow)
     # ee_print(treeCity)
-    # Map$addLayer(treeCity$select('2020_Percent_Tree_Cover'), vizTree, 'Percent Tree Cover')
+    # Map$addLayer(treeCity$select('YR2020'), vizTree, 'Percent Tree Cover')
     
-    exportTree <- ee_image_to_drive(image=treeCity, description=paste0(cityID, "_Vegetation_PercentTree"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentTree"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    exportTree <- ee_image_to_drive(image=treeCity, description=paste0(cityID, "_Vegetation_PercentTree-TEST"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentTree-TEST"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     exportTree$start()
 
     # Start Other Veg Cover Layer
@@ -136,20 +136,20 @@ length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
 
 
 if(length(cityIdS)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdS, TREE=modTree, VEG = modVeg, BARE=modBare, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdS, TREE=modTreeS, VEG = modVegS, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 
 if(length(cityIdNW)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNW, TREE=modTree, VEG = modVeg, BARE=modBare, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNW, TREE=modTreeN, VEG = modVegN, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE1)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNE1, TREE=modTree, VEG = modVeg, BARE=modBare, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNE1, TREE=modTreeN, VEG = modVegN, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE2)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNE2, TREE=modTree, VEG = modVeg, BARE=modBare, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNE2, TREE=modTreeN, VEG = modVegN, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 ##################### 

@@ -466,6 +466,27 @@ for(i in 1:sizeETJF-1){
 ## Now using MERIT, which has combined several other products and removed bias, including from trees
 # https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017GL072874
 # -----------
+# elev <- ee$Image('MERIT/DEM/v1_0_3')#$select('elevation')
+# ee_print(elev)
+# 
+# elevReproj <- elev$reproject(projLST)$reduceResolution(reducer=ee$Reducer$mean())
+# # elevReproj <- elevReproj$updateMask(vegMask)
+# ee_print(elevReproj)
+# 
+# elevVis = list(
+#   min= 0,
+#   max= 5000,
+#   palette=c ('0000ff', '00ffff', 'ffff00', 'ff0000', 'ffffff')
+# );
+# 
+# Map$addLayer(elevReproj, elevVis, "Elevation - Masked, reproj")
+# 
+# saveElevN <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation_North", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+# saveElevN$start()
+# 
+# saveElevS <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation_South", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+# saveElevS$start()
+
 elev <- ee$Image('MERIT/DEM/v1_0_3')#$select('elevation')
 ee_print(elev)
 
@@ -478,13 +499,9 @@ elevVis = list(
   max= 5000,
   palette=c ('0000ff', '00ffff', 'ffff00', 'ff0000', 'ffffff')
 );
-
 Map$addLayer(elevReproj, elevVis, "Elevation - Masked, reproj")
 
-saveElevN <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation_North", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj_NH"), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveElevN$start()
 
-saveElevS <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation_South", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj_SH"), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-saveElevS$start()
-
+saveElev <- ee_image_to_asset(elevReproj, description="Save_MERIT_Elevation", assetId=file.path(assetHome, "MERIT-DEM-v1_1km_Reproj"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveElev$start()
 # -----------

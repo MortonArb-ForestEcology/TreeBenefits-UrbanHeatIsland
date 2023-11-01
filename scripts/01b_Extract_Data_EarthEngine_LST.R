@@ -344,7 +344,7 @@ extractTempEE <- function(CitySP, CityNames, TEMPERATURE, ET, GoogleFolderSave, 
     # ee_print(tempYrMean)
     # Map$addLayer(tempYrMean$select('YR2020'), vizTempK, 'Mean Surface Temperature (K)');
     
-    export.TempMean <- ee_image_to_drive(image=tempYrMean, description=paste0(cityID, "_LST_Day_Tmean"), fileNamePrefix=paste0(cityID, "_LST_Day_Tmean"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    export.TempMean <- ee_image_to_drive(image=tempYrMean, description=paste0(cityID, "_LST_Day_Tmean-TEST"), fileNamePrefix=paste0(cityID, "_LST_Day_Tmean-TEST"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     
     export.TempMean$start()
     # ee_monitoring(export.TempMean)
