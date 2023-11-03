@@ -147,20 +147,20 @@ length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
 
 
 if(length(cityIdS)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdS, TREE=modTreeS, VEG = modVegS, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdS, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 
 if(length(cityIdNW)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNW, TREE=modTreeN, VEG = modVegN, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNW, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE1)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNE1, TREE=modTreeN, VEG = modVegN, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNE1, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE2)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNE2, TREE=modTreeN, VEG = modVegN, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNE2, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 ##################### 
