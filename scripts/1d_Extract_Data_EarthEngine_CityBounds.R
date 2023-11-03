@@ -39,12 +39,15 @@ citiesBuff <- citiesUse$map(function(f){f$buffer(10e3)})
 ##################### 
 # 2. Load in data layers  -- formatting in script 1!
 ####################
-vegMaskN <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask_NH")
-vegMaskS <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask_SH")
+vegMask <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask")
+# Map$addLayer(vegMask)
+
+# vegMaskN <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask_NH")
+# vegMaskS <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask_SH")
 # Map$addLayer(vegMaskN)
 # Map$addLayer(vegMaskS)
 
-projMask = vegMaskN$projection()
+projMask = vegMask$projection()
 projCRS = projMask$crs()
 projTransform <- unlist(projMask$getInfo()$transform)
 
@@ -118,11 +121,19 @@ citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 buffSouth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
 buffNorth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 
-if(length(cityIdS)>0){
-  extractCityMask(cityBuff=buffSouth, cityRaw=citiesSouth, CityNames=cityIdS, BASE=vegMaskS, GoogleFolderSave, overwrite=T)
-}
+# TEST CITY
+# CITY = "SWE3477"
+# extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=CITY, BASE=vegMask, GoogleFolderSave, overwrite=T)
+# 
+# testBuff <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_CityMask.tif")))
+# plot(testBuff)
 
 if(length(cityIdN)>0){
-  extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=cityIdN, BASE=vegMaskN, GoogleFolderSave, overwrite=T)
+  extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=cityIdN, BASE=vegMask, GoogleFolderSave, overwrite=T)
 }
+
+if(length(cityIdS)>0){
+  extractCityMask(cityBuff=buffSouth, cityRaw=citiesSouth, CityNames=cityIdS, BASE=vegMask, GoogleFolderSave, overwrite=T)
+}
+
 

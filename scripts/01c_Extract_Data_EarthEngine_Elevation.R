@@ -64,12 +64,12 @@ elevVis = list(
   max= 5000,
   palette=c ('0000ff', '00ffff', 'ffff00', 'ff0000', 'ffffff')
 );
-elevN <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj_NH')#$select('elevation')
-# ee_print(elevN)
-# Map$addLayer(elevN, elevVis, "Elevation - Masked, reproj")
-
-elevS <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj_SH')#$select('elevation')
-# ee_print(elevS)
+# elevN <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj_NH')#$select('elevation')
+# # ee_print(elevN)
+# # Map$addLayer(elevN, elevVis, "Elevation - Masked, reproj")
+# 
+# elevS <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj_SH')#$select('elevation')
+# # ee_print(elevS)
 
 elev <- ee$Image('users/crollinson/MERIT-DEM-v1_1km_Reproj')#$select('elevation')
 # ee_print(elev)
@@ -119,7 +119,7 @@ extractElevEE <- function(CitySP, CityNames, ELEV, GoogleFolderSave, overwrite=F
     # export.TempMean <- ee_image_to_drive(image=tempYrMean, description=paste0(cityID, "_LST_Day_Tmean"), fileNamePrefix=paste0(cityID, "_LST_Day_Tmean"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     
     # projTransform2 <- c(926.6000000005, 0, -20016035.954, 0, -926.5999999995, 8339674.6770009)
-    export.elev <- ee_image_to_drive(image=elevCity, description=paste0(cityID, "_elevation-TEST2"), fileNamePrefix=paste0(cityID, "_elevation"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e6, crs=projCRS, crsTransform=projTransform)
+    export.elev <- ee_image_to_drive(image=elevCity, description=paste0(cityID, "_elevation"), fileNamePrefix=paste0(cityID, "_elevation"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e6, crs=projCRS, crsTransform=projTransform)
     # timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform
     export.elev$start()
       # ee_monitoring(export.elev)
@@ -159,11 +159,18 @@ citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 # citiesSouth$size()$getInfo()
 # length(cityIdS)
 
+# # Running a test case
+# CITY = "SWE3477"
+# extractElevEE(CitySP=citiesNorth, CityNames = CITY, ELEV = elev, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# testElev <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_elevation.tif")))
+# plot(testElev[[1]])
+
+
 # # All except 1 ran successfully
 if(length(cityIdS)>0){
-  extractElevEE(CitySP=citiesSouth, CityNames = cityIdS, ELEV = elevS, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractElevEE(CitySP=citiesSouth, CityNames = cityIdS, ELEV = elev, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 if(length(cityIdN)>0){
-  extractElevEE(CitySP=citiesNorth, CityNames = cityIdN, ELEV = elevN, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractElevEE(CitySP=citiesNorth, CityNames = cityIdN, ELEV = elev, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 

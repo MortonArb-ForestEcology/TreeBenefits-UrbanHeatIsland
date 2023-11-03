@@ -155,11 +155,11 @@ for(CITY in citiesLSTET){
 
 
 # LST vs elevation ----
-files.lst <- dir(path.EEout, "ET")
-cities.lst <- unlist(lapply(files.lst, FUN=function(x){strsplit(x, "_")[[1]][1]}))
-length(files.lst)
+# files.lst <- dir(path.EEout, "LST_Day_Tmean")
+# cities.lst <- unlist(lapply(files.lst, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+# length(files.lst)
 
-files.elev <- dir(path.EEout, "elevation-TEST")
+files.elev <- dir(path.EEout, "elevation")
 cities.elev <- unlist(lapply(files.elev, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 length(files.elev); 
 
@@ -244,11 +244,11 @@ cities.veg <- unlist(lapply(files.veg, FUN=function(x){strsplit(x, "_")[[1]][1]}
 
 
 # LST vs Tree ----
-files.lst <- dir(path.EEout, "LST_Day_Tmean-TEST")
+files.lst <- dir(path.EEout, "LST_Day_Tmean")
 cities.lst <- unlist(lapply(files.lst, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 length(files.lst)
 
-files.tree <- dir(path.EEout, "PercentTree-TEST")
+files.tree <- dir(path.EEout, "PercentTree")
 cities.tree <- unlist(lapply(files.tree, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 length(files.tree); 
 
@@ -282,12 +282,34 @@ for(CITY in citiesLSTtree){
   # Checkign to see whcih coords match
   # if(!all(coordsCity$location == coordsMask$location)) { stop("Mask and elev coords don't match") } # Elev = mask --> NO!
   # if(!all(coordsVeg$location == coordsCity$location)){ stop("Veg and elev coords don't match")} # Veg = elev --> NO! # Elevation is the bad one!
+  dim(coord_trans())
   
   if(!all(coordsTree$location == coordsLST$location)){ 
+    cellMatch <- coordsTree$location == coordsLST$location
+    summary(cellMatch)
+    
+    if(nrow(coordsTree)==nrow(coordsLST)){
+      datComb <- data.frame(x.tree=coordsTree$x, y.tree=coordsTree$y, x.LST = coordsLST$x, y.LST = coordsLST$y)
+      datComb$x.diff <- datComb$x.tree - datComb$x.LST
+      datComb$y.diff <- datComb$y.tree - datComb$y.LST
+      # summary(datComb) # For this example, it's a stupid tiny offset
+      
+      if(max(abs(x.diff), abs(y.diff)<1)) next
+      
+      # Checking that the difference is tiny relative to the grid cell
+      # It is because the units are in meters and we're talking about a stupid tiny number offset for our check
+      # xUnique <- unique(datComb$x.tree)
+      # xUnique <- xUnique[order(xUnique)]
+      # xUnique[1:10]
+      # xDiff <- diff(xUnique)
+      # summary(xDiff)
+    }
+    
+    
     if(any(coordsTree$location %in% coordsLST$location))({
       nTree <- nrow(coordsTree)
       nLST <- nrow(coordsLST)
-      lMatch <- length(which(coordsTree$location %in% coordsLST$location))/nElev
+      lMatch <- length(which(coordsTree$location %in% coordsLST$location))/nTree
       print(paste("only some locations match:", nTree, "Tree points, ", nLST, "LST points;", round(lMatch, 2)*100, "% match"))
     }) else {
       stop("Tree and LST coords don't match")

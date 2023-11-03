@@ -4,6 +4,7 @@ rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
 path.google <- "/Volumes/GoogleDrive/My Drive"
 GoogleFolderSave <- "UHI_Analysis_Output_v30"
 assetHome <- ee_get_assethome()
+ee_manage_assetlist(assetHome)
 
 
 ee_manage_cancel_all_running_task()

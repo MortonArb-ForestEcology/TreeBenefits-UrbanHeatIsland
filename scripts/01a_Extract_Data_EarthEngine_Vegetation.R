@@ -45,15 +45,19 @@ vizTree <- list(
   max=100.0,
   palette=c('bbe029', '0a9501', '074b03')
 );
+# MOD44b_1km_Reproj_Percent_Tree_Cover
+modTree <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover')
+modVeg <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation')
+ee_print(modTree)
+Map$addLayer(modTree$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
 
-modTreeN <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_NH')
-modVegN <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_NH')
-# modBare <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated')
-
-modTreeS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_SH')
-modVegS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_SH')
-
-ee_print(modTreeNH)
+# modTreeN <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_NH')
+# modVegN <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_NH')
+# # modBare <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated')
+# 
+# modTreeS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_SH')
+# modVegS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_SH')
+# ee_print(modTreeN)
 # Map$addLayer(modTreeN$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
 
 projTree = modTree$projection()
@@ -84,7 +88,7 @@ extractVeg <- function(CitySP, CityNames, TREE, VEG, BARE, GoogleFolderSave, ove
     # ee_print(treeCity)
     # Map$addLayer(treeCity$select('YR2020'), vizTree, 'Percent Tree Cover')
     
-    exportTree <- ee_image_to_drive(image=treeCity, description=paste0(cityID, "_Vegetation_PercentTree-TEST"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentTree-TEST"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    exportTree <- ee_image_to_drive(image=treeCity, description=paste0(cityID, "_Vegetation_PercentTree"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentTree"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     exportTree$start()
 
     # Start Other Veg Cover Layer
@@ -133,6 +137,13 @@ if(!overwrite){
   
 } # End remove cities loop
 length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
+
+
+# Running a test case
+# CITY = "SWE3477"
+# extractVeg(CitySP=citiesUse, CityNames = CITY, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# testTree <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_Vegetation_PercentTree.tif")))
+# plot(testTree[[1]])
 
 
 if(length(cityIdS)>0){
