@@ -2,7 +2,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=T
+overwrite=F
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -125,6 +125,7 @@ files.tree <- dir(path.EEout, "PercentTree")
 files.veg <- dir(path.EEout, "PercentOtherVeg")
 files.mask <- dir(path.EEout, "CityMask")
 length(files.elev); length(files.lst); length(files.et); length(files.tree); length(files.veg); length(files.mask)
+# Note: We're missing 3 cities for ET data
 
 # Figure out which cities have all the layers needed to be analyzed
 cities.elev <- unlist(lapply(files.elev, FUN=function(x){strsplit(x, "_")[[1]][1]}))
@@ -242,12 +243,12 @@ for(CITY in citiesAnalyze){
   coordsET$location <- paste0("x", coordsET$x, "y", coordsET$y)
   
   # Checkign to see whcih coords match
-  if(!all(coordsCity$location == coordsMask$location)) { stop("Mask and elev coords don't match") } # Elev = mask --> NO!
-  if(!all(coordsVeg$location == coordsCity$location)){ stop("Veg and elev coords don't match")} # Veg = elev --> NO! # Elevation is the bad one!
-  if(!all(coordsVeg$location == coordsMask$location)){ stop("Veg and Mask coords don't match")} # Veg = mask --> YES
-  if(!all(coordsVeg$location == coordsLST$location)){ stop("Veg and LST coords don't match")} # Veg = LST --> YES
-  if(!all(coordsVeg$location == coordsET$location)){ stop("Veg and ET coords don't match")}  #  Veg = ET  --> YES
-  
+  # if(!all(coordsCity$location == coordsMask$location)) { stop("Mask and elev coords don't match") } # Elev = mask --> NO!
+  # if(!all(coordsVeg$location == coordsCity$location)){ stop("Veg and elev coords don't match")} # Veg = elev --> NO! # Elevation is the bad one!
+  # if(!all(coordsVeg$location == coordsMask$location)){ stop("Veg and Mask coords don't match")} # Veg = mask --> YES
+  # if(!all(coordsVeg$location == coordsLST$location)){ stop("Veg and LST coords don't match")} # Veg = LST --> YES
+  # if(!all(coordsVeg$location == coordsET$location)){ stop("Veg and ET coords don't match")}  #  Veg = ET  --> YES
+  # 
   valsCityVeg <- stack(data.frame(getValues(treeCity[[layers.use]])))
   names(valsCityVeg) <- c("cover.tree", "year")
   valsCityVeg$cover.veg <- stack(data.frame(getValues(vegCity[[layers.use]])))[,1]
@@ -269,14 +270,25 @@ for(CITY in citiesAnalyze){
     # valsCity <- merge(coordsCity, valsCityVeg, all.x=T, all.y=T)
     
   } else if(nrow(coordsVeg)==nrow(coordsCity)) {
-    print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
-    cityStatsRegion$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+    # Checking to make sure the offset is minimal
+    datComb <- data.frame(x1=coordsVeg$x, y1=coordsVeg$y, x2 = coordsCity$x, y2 = coordsCity$y)
+    datComb$x.diff <- datComb$x1 - datComb$x2
+    datComb$y.diff <- datComb$y1 - datComb$y2
+    # summary(datComb) # For this example, it's a stupid tiny offset
     
-    valsCity <- valsCityVeg[,]
-    valsCity$elevation <- coordsCity$elevation
-    valsCity$cityBounds <- coordsCity$cityBounds
+    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
+      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
+      # cityStatsRegion$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+      
+      valsCity <- valsCityVeg[,]
+      valsCity$elevation <- coordsCity$elevation
+      valsCity$cityBounds <- coordsCity$cityBounds
+    }  else {
+      stop("Something's really off")
+    }
     
   } else if( any(coordsVeg$location %in% coordsCity$location)) {  
+    print(warning("Veg and Elev Layer Coords don't match, but at least some do"))
     valsCity <- valsCityVeg[,]
     
     valsCity <- merge(valsCity, coordsCity, all.x=T, all.y=F)
@@ -300,8 +312,20 @@ for(CITY in citiesAnalyze){
     valsCity$LST_Day <- valsLST$LST_Day
     # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
   } else if( nrow(coordsLST) == nrow (coordsCity)) {  
-    valsCity$LST_Day <- valsLST$LST_Day
+    # Checking to make sure the offset is minimal
+    datComb <- data.frame(x1=coordsCity$x, y1=coordsCity$y, x2 = valsLST$x, y2 = coordsCity$y)
+    datComb$x.diff <- datComb$x1 - datComb$x2
+    datComb$y.diff <- datComb$y1 - datComb$y2
+    # summary(datComb) # For this example, it's a stupid tiny offset
     
+    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
+      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
+      # cityStatsRegion$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+      valsCity$LST_Day <- valsLST$LST_Day
+      
+    }  else {
+      stop("Something's really off")
+    }
   } else if( any(coordsLST$location %in% valsCity$location)) {  
     valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
   } else {
@@ -323,8 +347,22 @@ for(CITY in citiesAnalyze){
     valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
     # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
   } else if( nrow(coordsET) == nrow (coordsCity)) {  
+    # Checking to make sure the offset is minimal
+    datComb <- data.frame(x1=coordsCity$x, y1=coordsCity$y, x2 = valsET$x, y2 = valsET$y)
+    datComb$x.diff <- datComb$x1 - datComb$x2
+    datComb$y.diff <- datComb$y1 - datComb$y2
+    # summary(datComb) # For this example, it's a stupid tiny offset
+    
+    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
+      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
+      # cityStatsRegion$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+      valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
+      
+    }  else {
+      stop("Something's really off")
+    }
+    
     # print(warning("Using a merge to get things together.  Slow, but it should work"))
-    valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
   } else if( any(coordsET$location %in% valsCity$location)) {
     print(warning("Using a merge to get things together.  Slow, but it should work"))
     valsCity <- merge(valsCity, valsET, all.x=T, all.y=F)
