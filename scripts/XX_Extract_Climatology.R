@@ -57,46 +57,49 @@ summary(cityClim); dim(cityClim)
 # Because of how netcdf extractiosn work, we only want to open a file once, even if we extract a lot of cities from it
 varsAll <- c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")
 
-# Starting with tmax as an example
-VAR = varsAll[1]
 
-urlNow <- paste0("http://thredds.northwestknowledge.net:8080/thredds/dodsC/TERRACLIMATE_ALL/summaries/TerraClimate19912020_", VAR, ".nc")
-urlFut2 <- paste0("http://thredds.northwestknowledge.net:8080/thredds/dodsC/TERRACLIMATE_ALL/summaries/TerraClimate2C_", VAR, ".nc")
-urlFut4 <- paste0("http://thredds.northwestknowledge.net:8080/thredds/dodsC/TERRACLIMATE_ALL/summaries/TerraClimate4C_", VAR, ".nc")
-ncNow <- nc_open(urlNow)
-ncFut2 <- nc_open(urlFut2)
-ncFut4 <- nc_open(urlFut4)
-
-lon <- ncvar_get(ncNow, "lon")
-lat <- ncvar_get(ncNow, "lat")
-# ncTmax$var$tmax
-
-pb <- txtProgressBar(min=0, max=nrow(sdei.urb), style=3)
-for(i in 1:nrow(sdei.urb)){
-  setTxtProgressBar(pb, i)
+for(VAR in varsAll){
+  print(VAR)
+  urlNow <- paste0("http://thredds.northwestknowledge.net:8080/thredds/dodsC/TERRACLIMATE_ALL/summaries/TerraClimate19912020_", VAR, ".nc")
+  urlFut2 <- paste0("http://thredds.northwestknowledge.net:8080/thredds/dodsC/TERRACLIMATE_ALL/summaries/TerraClimate2C_", VAR, ".nc")
+  urlFut4 <- paste0("http://thredds.northwestknowledge.net:8080/thredds/dodsC/TERRACLIMATE_ALL/summaries/TerraClimate4C_", VAR, ".nc")
+  ncNow <- nc_open(urlNow)
+  ncFut2 <- nc_open(urlFut2)
+  ncFut4 <- nc_open(urlFut4)
   
-  # i=1
-  # plot(sdei.urb[1,])
-  URBID <- sdei.urb$ISOURBID[i]
-  moInd <- ifelse(sdei.urb$LATITUDE[i]<0, 1, 7) # The month things start on
+  lon <- ncvar_get(ncNow, "lon")
+  lat <- ncvar_get(ncNow, "lat")
+  # ncTmax$var$tmax
   
-  bbCity <- st_bbox(sdei.urb[i,])
-
-  lat.index <- which(lat>=bbCity$ymin & lat<=bbCity$ymax)    #! index values within specified range
-  lon.index <- which(lon>=bbCity$xmin & lon<=bbCity$xmax)    
-  lat.n <- length(lat.index)                                #!value for count
-  lon.n <- length(lon.index)
-  start <- c(lon.index[1], lat.index[1], moInd)
-  count <- c(lon.n, lat.n, 2)                            #! parameter change: 'NA' instead of '-1' to signify entire dimension
+  pb <- txtProgressBar(min=0, max=nrow(sdei.urb), style=3)
+  for(i in 1:nrow(sdei.urb)){
+    setTxtProgressBar(pb, i)
+    
+    # i=1
+    # plot(sdei.urb[1,])
+    URBID <- sdei.urb$ISOURBID[i]
+    moInd <- ifelse(sdei.urb$LATITUDE[i]<0, 1, 7) # The month things start on
+    
+    bbCity <- st_bbox(sdei.urb[i,])
   
-  rowNow <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="current")
-  rowFut2 <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="+2C")
-  rowFut4 <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="+4C")
-  cityClim[rowNow, VAR] <- mean(ncvar_get(ncNow, varid = VAR, start = start, count), na.rm=T)
-  cityClim[rowFut2, VAR] <- mean(ncvar_get(ncFut2, varid = VAR, start = start, count), na.rm=T)
-  cityClim[rowFut4, VAR] <- mean(ncvar_get(ncFut4, varid = VAR, start = start, count), na.rm=T)
-}
+    lat.index <- which(lat>=bbCity$ymin & lat<=bbCity$ymax)    #! index values within specified range
+    lon.index <- which(lon>=bbCity$xmin & lon<=bbCity$xmax)    
+    lat.n <- length(lat.index)                                #!value for count
+    lon.n <- length(lon.index)
+    start <- c(lon.index[1], lat.index[1], moInd)
+    count <- c(lon.n, lat.n, 2)                            #! parameter change: 'NA' instead of '-1' to signify entire dimension
+    
+    rowNow <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="current")
+    rowFut2 <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="+2C")
+    rowFut4 <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="+4C")
+    cityClim[rowNow, VAR] <- mean(ncvar_get(ncNow, varid = VAR, start = start, count), na.rm=T)
+    cityClim[rowFut2, VAR] <- mean(ncvar_get(ncFut2, varid = VAR, start = start, count), na.rm=T)
+    cityClim[rowFut4, VAR] <- mean(ncvar_get(ncFut4, varid = VAR, start = start, count), na.rm=T)
+  } # end city loop
+  
+  
+  nc_close(ncNow); nc_close(ncFut2); nc_close(ncFut4)
+} # End Var loop
 
 
-nc_close(ncNow); nc_close(ncFut2); nc_close(ncFut4)
-
+write.csv(cityClim, file.cityClim, row.names=F)
