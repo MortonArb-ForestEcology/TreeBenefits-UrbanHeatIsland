@@ -103,3 +103,55 @@ for(VAR in varsAll){
 
 
 write.csv(cityClim, file.cityClim, row.names=F)
+
+
+# Just doing some quick exploratory graphs.  We'll 
+cityClim <- read.csv(file.cityClim)
+cityClim$TIME <- as.factor(cityClim$TIME)
+summary(cityClim)
+
+summary(cityClim[cityClim$ppt==0,])
+summary(cityClim[cityClim$soil==0,])
+cityClim[cityClim$soil==0,]
+summary(cityClim[cityClim$aet==0,])
+
+ggplot(data=cityClim) +
+  facet_grid(TIME~.) +
+  geom_histogram(aes(x=def))
+
+
+diffClim <- data.frame(ISOURBID=unique(cityClim$ISOURBID),
+                       tmax.Fut2 = NA,
+                       tmax.Fut4 = NA,
+                       ppt.Fut2 = NA,
+                       ppt.Fut4 = NA,
+                       pet.Fut2 = NA,
+                       pet.Fut4 = NA,
+                       def.Fut2 = NA,
+                       def.Fut4 = NA)
+for(URBID in unique(cityClim$ISOURBID)){
+  rowRef <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="current")
+  rowFut2 <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="+2C")
+  rowFut4 <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="+4C")
+  
+  rowDiff <- which(diffClim$ISOURBID==URBID)
+  diffClim$tmax.Fut2[rowDiff] <-  cityClim$tmax[rowFut2] - cityClim$tmax[rowRef]
+  diffClim$tmax.Fut4[rowDiff] <- cityClim$tmax[rowFut4] - cityClim$tmax[rowRef]
+  diffClim$ppt.Fut2[rowDiff] <- cityClim$ppt[rowFut2] - cityClim$ppt[rowRef]
+  diffClim$ppt.Fut4[rowDiff] <- cityClim$ppt[rowFut4] - cityClim$ppt[rowRef]
+  diffClim$pet.Fut2[rowDiff] <- cityClim$pet[rowFut2] - cityClim$pet[rowRef]
+  diffClim$pet.Fut4[rowDiff] <- cityClim$pet[rowFut4] - cityClim$pet[rowRef]
+  diffClim$def.Fut2[rowDiff] <- cityClim$def[rowFut2] - cityClim$def[rowRef]
+  diffClim$def.Fut4[rowDiff] <- cityClim$def[rowFut4] - cityClim$def[rowRef]
+}
+
+summary(diffClim)
+
+ggplot(data=diffClim) +
+  # facet_grid(TIME~.) +
+  geom_histogram(aes(x=ppt.Fut4))
+
+ggplot(data=diffClim) +
+  # facet_grid(TIME~.) +
+  geom_histogram(aes(x=tmax.Fut2))
+
