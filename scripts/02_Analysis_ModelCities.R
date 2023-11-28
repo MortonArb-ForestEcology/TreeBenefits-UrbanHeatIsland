@@ -2,7 +2,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -340,6 +340,8 @@ for(CITY in citiesAnalyze){
   valsET$location <- coordsET$location
   summary(valsET)
   
+  # IMPORTANT: CONVERT ET from 8-day total to per day (mm/8-day to mm/day; 1 mm = 1 kg/m2)
+  valsET$ET <- valsET$ET/8
   # locLSTAll <- unique(valsLST$location[!is.na(valsLST$LST_Day)])
   
   # nrow(coordsCity); nrow(coordsLST)
@@ -475,7 +477,7 @@ for(CITY in citiesAnalyze){
   if(length(unique(valsCity$location[!is.na(valsCity$ET)]))>=50 & length(unique(valsCity$year[!is.na(valsCity$ET)]))>1){
     # print(warning("Not enough ET pixels to model"))
     # This first one is predicting ET The same way we do LST to decompose the effects of veg cover on ET
-    modETCity <- gam(ET ~ cover.tree + cover.veg + elevation + s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
+    modETCity <- gam(ET ~ cover.tree + cover.veg +  s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
     sum.modETCity <- summary(modETCity)
     sum.modETCity
     
