@@ -544,20 +544,20 @@ for(CITY in citiesAnalyze){
   trendYearLSTMean <-   lm(LST.mean ~ year, data=summaryYear)
   trendYearLSTSD <-   lm(LST.sd ~ year, data=summaryYear)
   cityStatsRegion[row.city, c("trendYear.LST.mean.slope", "trendYear.LST.mean.p")] <- summary(trendYearLSTMean)$coefficients["year", c("Estimate", "Pr(>|t|)")]
-  cityStatsRegion[row.city, c("trendYear.LST.mean.slope", "trendYear.LST.mean.p")] <- summary(trendYearLSTSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
+  cityStatsRegion[row.city, c("trendYear.LST.sd.slope", "trendYear.LST.sd.p")] <- summary(trendYearLSTSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
   
   
   # Trees
   trendYearTreeMean <-   lm(tree.mean ~ year, data=summaryYear)
   trendYearTreeSD <-   lm(tree.sd ~ year, data=summaryYear)
   cityStatsRegion[row.city, c("trendYear.tree.mean.slope", "trendYear.tree.mean.p")] <- summary(trendYearTreeMean)$coefficients["year", c("Estimate", "Pr(>|t|)")]
-  cityStatsRegion[row.city, c("trendYear.tree.mean.slope", "trendYear.tree.mean.p")] <- summary(trendYearTreeSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
+  cityStatsRegion[row.city, c("trendYear.tree.sd.slope", "trendYear.sd.mean.p")] <- summary(trendYearTreeSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
   
 
   trendYearVegMean <-   lm(veg.mean ~ year, data=summaryYear)
   trendYearVegSD <-   lm(veg.sd ~ year, data=summaryYear)
   cityStatsRegion[row.city, c("trendYear.veg.mean.slope", "trendYear.veg.mean.p")] <- summary(trendYearVegMean)$coefficients["year", c("Estimate", "Pr(>|t|)")]
-  cityStatsRegion[row.city, c("trendYear.veg.mean.slope", "trendYear.veg.mean.p")] <- summary(trendYearVegSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
+  cityStatsRegion[row.city, c("trendYear.veg.sd.slope", "trendYear.sd.mean.p")] <- summary(trendYearVegSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
   
   # cityStatsRegion[,c("trendYear.LST.mean.slope", "trendYear.LST.mean.p")] <- NA
   # cityStatsRegion[,c("trendYear.tree.mean.slope", "trendYear.tree.mean.p")] <- NA
