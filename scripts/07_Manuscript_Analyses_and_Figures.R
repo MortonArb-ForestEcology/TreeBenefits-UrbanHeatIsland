@@ -87,7 +87,7 @@ biomeCode.pall.all = c("Tai"= "#2c5c74",
 library(sp); library(sf)
 library(rworldmap)
 
-# world <- map_data("world")
+world <- map_data("world")
 worldR <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE))
 
 projLongLat <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
@@ -116,7 +116,7 @@ worldBBoxWinTri <- st_transform(worldBBox, CRS(projWinTri))
 # Read in base datasets ----
 # ##########################################
 # Regional Sumary Stuff ----
-cityAll.stats <- read.csv(file.path(path.cities, "..", "city_stats_all.csv"))
+cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),])
 
 cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
@@ -176,7 +176,7 @@ cityAll.stats$biomeName <- factor(cityAll.stats$biomeName, levels=biome.order$bi
 cityAll.stats$biomeCode <- factor(cityAll.stats$biomeCode, levels=biome.order$biomeCode)
 summary(cityAll.stats)
 
-CityBuffStats <- read.csv(file.path(path.cities, "city_stats_core-buffer.csv"))
+CityBuffStats <- read.csv(file.path(path.google, "city_stats_core-buffer.csv"))
 CityBuffStats$factor <- factor(CityBuffStats$factor, levels=c("LST", "tree", "other veg"))
 CityBuffStats <- merge(CityBuffStats, cityAll.stats[,c("ISOURBID", "NAME", "LONGITUDE", "LATITUDE", "biomeName", "ES00POP")], all.x=T)
 summary(CityBuffStats)
@@ -208,17 +208,18 @@ length(citiesUHI)
 nrow(cityAll.stats)
 
 
+summary(CityBuff.stats)
 
 # Getting rid of 4-sigma outliers for difference between metro core & reference region
-lstDiffMean <- mean(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST"])
-lstDiffSD <- sd(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST"])
+lstDiffMean <- mean(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST"], na.rm=T)
+lstDiffSD <- sd(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST"], na.rm=T)
 lstDiffMean; lstDiffSD
 
 cityDiffCOLD <- CityBuffStats$ISOURBID[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff<lstDiffMean-4*lstDiffSD]
 cityDiffHOT <- CityBuffStats$ISOURBID[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>lstDiffMean+4*lstDiffSD]
 
-cityAll.stats[cityAll.stats$ISOURBID %in% cityDiffHOT,]
-cityAll.stats[cityAll.stats$ISOURBID %in% cityDiffCOLD,]
+cityAll.stats[cityAll.stats$ISOURBID %in% cityDiffHOT,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biome", "biome.prop", "n.pixels")]
+cityAll.stats[cityAll.stats$ISOURBID %in% cityDiffCOLD,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biome", "biome.prop", "n.pixels")]
 
 # Getting rid of 4-sigma outliers for difference between metro core & reference region --> there are none!
 hist(CityBuffStats$value.mean.core[CityBuffStats$factor=="LST"])
@@ -267,7 +268,7 @@ length(which(cityAll.stats$elev.sd<1))
 length(cityDiffHOT)
 length(cityDiffCOLD)
 length(cityCoreHOT)
-length(cityCoreCold)
+length(cityCoreCOLD)
 length(citySDLo)
 length(citySDHi)
 
@@ -305,14 +306,14 @@ names(cityLST)[which(names(cityLST)=="trend.p.core")] <- "trend.LST.p.core"
 
 summary(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.tree.p", "LSTmodel.veg.slope", "LSTmodel.veg.p")])
 
-StatsCombined <- merge(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "xRobin", "yRobin", "xWinTri", "yWinTri", "biomeName", "biomeCode", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.tree.p", "LSTmodel.veg.slope", "LSTmodel.veg.p")],
+StatsCombined <- merge(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "xRobin", "yRobin", "xWinTri", "yWinTri", "biomeName", "biomeCode", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.tree.p", "LSTmodel.veg.slope", "LSTmodel.veg.p", "ETmodel.R2adj", "ETmodel.tree.slope", "ETmodel.tree.p", "ETmodel.veg.slope", "ETmodel.veg.p", "trendYear.LST.mean.slope", "trendYear.LST.mean.p", "trendYear.tree.mean.slope", "trendYear.tree.mean.p", "trendYear.veg.mean.slope", "trendYear.veg.mean.p")],
                        cityVeg, all=T)
 StatsCombined <- merge(StatsCombined, cityLST, all=T)
 summary(StatsCombined)
 
 
 # Saving this combined & formatted dataset for collaborators or other sharing
-write.csv(StatsCombined, file.path(path.cities, "..", "UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
+write.csv(StatsCombined, file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
 # SUPPLEMENTAL TABLE ----
 # Global + Biome:
 # -- Cities Considered

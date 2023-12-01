@@ -10,9 +10,9 @@ library(ggplot2); library(RColorBrewer); library(cowplot)
 ###########################################
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
-path.cities <- file.path(path.google)
+# path.cities <- file.path(path.google)
 
-file.cityAll.stats <- file.path(path.cities, "city_stats_all.csv")
+file.cityAll.stats <- file.path(path.google, "city_stats_all.csv")
 # summary(file.cityAll.stats)
 
 path.figs <- file.path(path.google, "figures_exploratory")
@@ -41,8 +41,14 @@ world <- map_data("world")
 # ##########################################
 # Read in Data; do some cleanup ----
 # ##########################################
+cityOld <- read.csv(file.path(path.google, "city_stats_all.csv"))
+summary(cityOld[,c("ETmodel.R2adj", "ETmodel.tree.slope", "ETmodel.veg.slope")])
+
 cityAll.stats <- read.csv(file.cityAll.stats)
 nrow(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),])
+
+summary(cityAll.stats[,c("ETmodel.R2adj", "ETmodel.tree.slope", "ETmodel.veg.slope")])
+summary(cityAll.stats)
 
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),])
 
