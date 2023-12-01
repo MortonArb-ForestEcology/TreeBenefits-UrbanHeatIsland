@@ -154,6 +154,6 @@ for(i in 1:nrow(cityAll.stats)){
 
 }
 
-write.csv(CityBuff.stats, file.path(path.cities, "city_stats_core-buffer.csv"), row.names=F)
+write.csv(CityBuff.stats, file.path(path.google, "city_stats_core-buffer.csv"), row.names=F)
 
 ###########################################
