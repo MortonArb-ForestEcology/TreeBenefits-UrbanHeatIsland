@@ -7,61 +7,38 @@
 library(ggplot2)
 
 # file paths for where to put the processed data ----
-path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+path.cities <- file.path(path.google, "data_processed_final")
 
-file.cityClim <- file.path(path.cities, "city_climatology.csv")
-file.cityAll.stats <- file.path(path.cities, "city_stats_all copy.csv")
+# which(dir(file.path(path.cities, "data_processed_final"))=="JPN28893")
+
+# file.cityClim <- file.path(path.cities, "city_climatology.csv")
+# file.cityAll.stats <- file.path(path.cities, "city_stats_all.csv")
 
 # -------------------
 # Reading in base data form our original analyses ----
 # -------------------
-cityAll.stats <- read.csv(file.cityAll.stats)
-summary(cityAll.stats)
+StatsCombined <- read.csv(file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"))
+summary(StatsCombined)
 
-
-cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
-summary(as.factor(cityAll.stats$biome))
-
-cityAll.stats$biomeName <- car::recode(cityAll.stats$biome, 
-                                       "'boreal forest/taiga'='Taiga';
-                                       'tundra'='Tundra';
-                                       'montane grassland/savanna'='Montane Grassland/Savanna';
-                                       'temperate broadleaf/mixed forest'='Temperate Broadleaf Forest';
-                                       'temperate coniferous forest'='Temperate Conifer Forest';
-                                       'temperate grassland/savanna'='Temperate Grassland/Savanna';
-                                       'mediterranean'='Mediterranean';
-                                       'desert/xeric shrublands'='Desert';
-                                       'flooded grassland/savanna'='Flooded Grassland/Savanna';
-                                       'tropical grassland/savannas'='Tropical Grassland/Savanna';
-                                       'tropical dry broadleaf forest'='Tropical Dry Broadleaf Forest';
-                                       'tropical coniferous forest'='Tropical Conifer Forest';
-                                       'tropical moist broadleaf forest'='Tropical Moist Broadleaf Forest';
-                                       'mangroves'='Mangroves'")
-
-cityAll.stats$biomeClim[grepl("tropical", cityAll.stats$biome) | grepl("flooded", cityAll.stats$biome) | grepl("mangroves", cityAll.stats$biome)] <- "Tropical/Subtropical"
-cityAll.stats$biomeClim[grepl("temperate", cityAll.stats$biome)] <- "Temperate"
-cityAll.stats$biomeClim[grepl("xeric", cityAll.stats$biome) | grepl("mediterranean", cityAll.stats$biome)] <- "Dry"
-cityAll.stats$biomeClim[grepl("taiga", cityAll.stats$biome) | grepl("tundra", cityAll.stats$biome) | grepl("montane", cityAll.stats$biome)] <- "Polar/Montane"
-summary(as.factor(cityAll.stats$biomeClim))
-
-cityAll.stats$biomeVeg[grepl("forest", cityAll.stats$biome) | grepl("mangrove", cityAll.stats$biome)] <- "Forest"
-cityAll.stats$biomeVeg[grepl("grassland", cityAll.stats$biome)] <- "Grassland/Savanna"
-cityAll.stats$biomeVeg[grepl("shrub", cityAll.stats$biome) | grepl("tundra", cityAll.stats$biome) | grepl("mediterranean", cityAll.stats$biome)] <- "Shrubland"
-summary(as.factor(cityAll.stats$biomeVeg))
-# unique(cityAll.stats$ISO3)
-
-biome.order <- aggregate(LST.mean ~ biomeName, data=cityAll.stats, FUN=mean)
+biome.order <- aggregate(LST.mean ~ biomeName, data=StatsCombined, FUN=mean)
 biome.order <- biome.order[order(biome.order$LST.mean),]
-
-cityAll.stats$biomeName <- factor(cityAll.stats$biomeName, levels=biome.order$biomeName)
-summary(cityAll.stats)
-
-# Adjusting our ET numbers to be per day --> currently kg/m2/8day --> this won't be necessary with the updated run
-cityAll.stats[, c("ET.mean", "ET.sd", "ET.min", "ET.max")] <- cityAll.stats[, c("ET.mean", "ET.sd", "ET.min", "ET.max")]/8
-cityAll.stats[, c("ETmodel.tree.slope", "ETmodel.veg.slope")] <- cityAll.stats[, c("ETmodel.tree.slope", "ETmodel.veg.slope")]/8
-
-cityAll.stats
+biome.order$biomeCode <- car::recode(biome.order$biomeName, 
+                                     " 'Taiga'='Tai';
+                                       'Tundra'='Tun';
+                                       'Montane Grassland/Savanna'='MGS';
+                                       'Temperate Broadleaf Forest'='TeBF';
+                                       'Temperate Conifer Forest'='TeCF';
+                                       'Temperate Grassland/Savanna'='TeGS';
+                                       'Mediterranean'='Med';
+                                       'Desert'='Des';
+                                       'Flooded Grassland/Savanna'='FGS';
+                                       'Tropical Grassland/Savanna'='TrGS';
+                                       'Tropical Dry Broadleaf Forest'='TrDBF';
+                                       'Tropical Conifer Forest'='TrCF';
+                                       'Tropical Moist Broadleaf Forest'='TrMBF';
+                                       'Mangroves'='Man'")
+biome.order
 # -------------------
 
 # -------------------
@@ -73,7 +50,7 @@ cityAll.stats
 #  - vapor pressure deficit (def) - kPA (month mean)
 #  - soil moisture (soil) - mm (total column; end of month)
 # -------------------
-cityClim <- read.csv(file.cityClim)
+cityClim <- read.csv(file.path(path.google, "city_climatology.csv"))
 cityClim$TIME <- as.factor(cityClim$TIME)
 summary(cityClim)
 
@@ -98,40 +75,81 @@ summary(cityClim$ppt[cityClim$TIME=="+4C"]>cityClim$pet[cityClim$TIME=="+4C"])
 #   facet_grid(TIME~.) +
 #   geom_histogram(aes(x=def))
 
-for(i in 1:nrow(cityAll.stats)){
+for(i in 1:nrow(StatsCombined)){
   URBID <- cityAll.stats$ISOURBID[i]
   rowRef <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="current")
   rowFut2 <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="+2C")
   rowFut4 <- which(cityClim$ISOURBID==URBID & cityClim$TIME=="+4C")
   
-  rowDiff <- which(diffClim$ISOURBID==URBID)
-  cityAll.stats[i,c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")] <- cityClim[rowRef, c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")]
-  cityAll.stats[i,c("tmax2", "tmin2", "ppt2", "aet2", "pet2", "def2", "soil2")] <- cityClim[rowFut2, c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")]
-  cityAll.stats[i,c("tmax4", "tmin4", "ppt4", "aet4", "pet4", "def4", "soil4")] <- cityClim[rowFut4, c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")]
+  # rowDiff <- which(diffClim$ISOURBID==URBID)
+  StatsCombined[i,c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")] <- cityClim[rowRef, c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")]
+  StatsCombined[i,c("tmax2", "tmin2", "ppt2", "aet2", "pet2", "def2", "soil2")] <- cityClim[rowFut2, c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")]
+  StatsCombined[i,c("tmax4", "tmin4", "ppt4", "aet4", "pet4", "def4", "soil4")] <- cityClim[rowFut4, c("tmax", "tmin", "ppt", "aet", "pet", "def", "soil")]
   
 }
 
-summary(cityAll.stats)
-
-ggplot(data=diffClim) +
-  # facet_grid(TIME~.) +
-  geom_histogram(aes(x=ppt.Fut4))
-
-ggplot(data=diffClim) +
-  # facet_grid(TIME~.) +
-  geom_histogram(aes(x=pet.Fut4))
-
-ggplot(data=diffClim) +
-  # facet_grid(TIME~.) +
-  geom_histogram(aes(x=tmax.Fut2))
+summary(StatsCombined)
 # -------------------
+
+# -------------------
+# Quick calculation of trees needed to offset the UHI: LST diff / tree cooling slope ----
+# -------------------
+# Subsetting to just cities with  tree cooling AND  UHI
+statsAnaly <- StatsCombined[StatsCombined$LSTmodel.tree.slope<0 & StatsCombined$value.LST.diff>0 & StatsCombined$ETmodel.tree.slope>0,]
+
+# How much more trees would there need to be to offset UHI?
+statsAnaly$TreeCoverUHINeed <- -statsAnaly$value.LST.diff/statsAnaly$LSTmodel.tree.slope
+statsAnaly$OtherCoverUHINeed <- -statsAnaly$value.LST.diff/statsAnaly$LSTmodel.veg.slope
+
+# 
+statsAnaly$TreeCoverTargetUHI <- statsAnaly$TreeCoverUHINeed + statsAnaly$value.tree.core
+statsAnaly$OtherCoverTargetUHI <- statsAnaly$OtherCoverUHINeed + statsAnaly$value.other.core
+summary(statsAnaly)
+
+ggplot(data=statsAnaly[,], aes(x=biomeCode, y=TreeCoverTargetUHI, fill="Biome Target", color="Biome Target")) +  
+  geom_bar(stat="summary", fun="median") +
+  # geom_segment(yend=0, aes(xend=biomeCode), stat="summary", fun="median", size=2) +
+  geom_violin(aes(x=biomeCode, y=value.tree.core, fill="Current", color="Current"), scale="width") +
+  geom_hline(yintercept=30, linetype="dashed") +
+  annotate("text", x=1, y=35, label="30%\nTarget") +
+  # geom_point(stat="summary", fun="median", size=5) +
+  scale_fill_manual(name="Tree Cover", values=c("Current"="#005a32", "Biome Target"=grad.tree[4])) +
+  scale_color_manual(name="Tree Cover", values=c("Current"="#005a32", "Biome Target"=grad.tree[4])) +
+  labs(x="Biome", y="Tree Cover (%)") +
+  scale_y_continuous(limits=c(0,70), expand=c(0,0)) +
+  theme_bw()+
+  theme(legend.position="top",
+        legend.title=element_text(face='bold'),
+        panel.background = element_rect(fill=NA),
+        panel.grid=element_blank(),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.text.y=element_text(color="black"),
+        axis.title=element_text(color="black", face="bold"),
+        axis.text.x=element_text(color="black", angle=-20, hjust=0),
+        # axis.text.x=element_blank(),
+        # axis.title.x=element_blank(),
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "lines"))
+
+# -------------------
+
+
 
 # -------------------
 # Water Analysis 1: how much water does the current canopy need; would be needed to increase tree cover to target ----
 # -------------------
-# How much water the current canopy needs: current % tree cover x ET Tree slope
-cityAll.stats$CurrentCanopyWater <- cityAll.stats$tree.mean*cityAll.stats$ETmodel.tree.slope
-summary(cityAll.stats)
+# How much water the current canopy needs: current % tree cover x ET Tree slope --> mm water/summer
+# Sanity check on ET estimates
+# statsAnaly$ETest <- statsAnaly$value.tree.core*statsAnaly$ETmodel.tree.slope+statsAnaly$value.other.core*statsAnaly$ETmodel.veg.slope
+summary(statsAnaly)
+
+statsAnaly$CurrentCanopyWater <- statsAnaly$value.tree.core*statsAnaly$ETmodel.tree.slope
+statsAnaly$CurrentVegWater <- statsAnaly$value.other.core*statsAnaly$ETmodel.veg.slope
+statsAnaly$CurrentTotalWater <- statsAnaly$CurrentCanopyWater+statsAnaly$CurrentVegWater
+statsAnaly$TargetCanopyWater <- statsAnaly$TreeCoverTargetUHI*statsAnaly$ETmodel.tree.slope
+statsAnaly$TargetTotalWater <- statsAnaly$TargetCanopyWater + statsAnaly$CurrentVegWater
+statsAnaly$TargetTotalWater.diff <- statsAnaly$TargetTotalWater - statsAnaly$CurrentTotalWater
+summary(statsAnaly$TargetTotalWater/statsAnaly$CurrentTotalWater)
+summary(statsAnaly)
 # -------------------
 
 
