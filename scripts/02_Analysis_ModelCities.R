@@ -2,7 +2,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=T
+overwrite=F
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -11,7 +11,7 @@ path.google <- file.path("~/Google Drive/")
 path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3/data_processed_final")
 
 if(!dir.exists(path.cities)) dir.create(path.cities, recursive=T, showWarnings = F)
-file.cityStatsRegion <- file.path(path.cities, "../city_stats_all.csv")
+file.cityStatsRegion <- file.path(path.cities, "../city_stats_all v301.csv")
 
 # Path to where Earth Engine is saving the spatial extractions
 path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v3")
