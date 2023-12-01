@@ -18,6 +18,7 @@
 
 library(ggplot2); library(RColorBrewer); library(cowplot)
 library(ggalt); library(sf)
+library(mapproj)
 
 ###########################################
 # Establish file paths etc ----
@@ -84,32 +85,34 @@ biomeCode.pall.all = c("Tai"= "#2c5c74",
                        "TrMBF"= "#266240",
                        "Man" = "#9c8c94")
 
-library(sp); library(sf)
-library(rworldmap)
 
-world <- map_data("world")
-worldR <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE))
+# library(sp); library(sf)
+# library(rworldmap)
 
-projLongLat <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
-projRobin <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-projWinTri <- "+proj=wintri"
-
-# worldR <- getMap()
-worldBBox <- Polygon(matrix(c(-180, -90,
-                      -180, 83.64513,  
-                      180, 83.64513,
-                      180, -90), ncol=2, byrow=T))
-worldBBox <- st_sf(geometry = st_sfc(
-  st_polygon(x = list(cbind(c(-180, rep(180, 100), rep(-180, 100)),
-                            c(-90, seq(-90, 83.64513, length = 100), 
-                              seq(83.64513, -90, length = 100))))),
-  crs = 'WGS84'))
-
-worldBBox <- SpatialPolygons(list(Polygons(list(worldBBox), ID="a")), proj4string = CRS(projLongLat))
-worldRobin <- fortify(st_transform(worldR, CRS(projRobin)))
-worldWinTri <- fortify(st_transform(worldR, CRS(projWinTri)))
-worldBBoxRobin <- st_transform(worldBBox, CRS(projRobin))
-worldBBoxWinTri <- st_transform(worldBBox, CRS(projWinTri))
+world <- map_data("world"); 
+world <- world[!world$long>180,]
+# worldR <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE))
+# 
+# projLongLat <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+# projRobin <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+# projWinTri <- "+proj=wintri"
+# 
+# # worldR <- getMap()
+# worldBBox <- Polygon(matrix(c(-180, -90,
+#                       -180, 83.64513,  
+#                       180, 83.64513,
+#                       180, -90), ncol=2, byrow=T))
+# worldBBox <- st_sf(geometry = st_sfc(
+#   st_polygon(x = list(cbind(c(-180, rep(180, 100), rep(-180, 100)),
+#                             c(-90, seq(-90, 83.64513, length = 100), 
+#                               seq(83.64513, -90, length = 100))))),
+#   crs = 'WGS84'))
+# 
+# worldBBox <- SpatialPolygons(list(Polygons(list(worldBBox), ID="a")), proj4string = CRS(projLongLat))
+# worldRobin <- fortify(st_transform(worldR, CRS(projRobin)))
+# worldWinTri <- fortify(st_transform(worldR, CRS(projWinTri)))
+# worldBBoxRobin <- st_transform(worldBBox, CRS(projRobin))
+# worldBBoxWinTri <- st_transform(worldBBox, CRS(projWinTri))
 ##########################################
 
 # ##########################################
@@ -257,8 +260,9 @@ citiesUse <- !is.na(cityAll.stats$trend.LST.slope) &
   !cityAll.stats$ISOURBID %in% c(cityDiffHOT, cityDiffCOLD, cityCoreHOT, cityCoreCOLD, citySDLo, citySDHi)
 
 
-# length(which(!cityAll.stats$ISOURBID %in% citiesUHI))
-length(which(is.na(cityAll.stats$trend.LST.slope)))
+length(which(!cityAll.stats$ISOURBID %in% citiesUHI)) # NOT CRITERIA, but good to know
+
+# length(which(is.na(cityAll.stats$trend.LST.slope)))
 length(which(cityAll.stats$n.pixels<1000))
 length(which(cityAll.stats$biome.prop<0.75))
 length(which(cityAll.stats$LST.sd<1))
@@ -272,6 +276,7 @@ length(cityCoreCOLD)
 length(citySDLo)
 length(citySDHi)
 
+length(which(citiesUse)) # Final number
 
 # UHI-only 
 # cityStatsAnaly <- cityAll.stats[which(citiesUse & cityAll.stats$ISOURBID %in% citiesUHI),]
@@ -312,7 +317,7 @@ StatsCombined <- merge(StatsCombined, cityLST, all=T)
 summary(StatsCombined)
 
 
-# Saving this combined & formatted dataset for collaborators or other sharing
+# **** Saving this combined & formatted dataset for collaborators or other sharing **** ----
 write.csv(StatsCombined, file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
 # SUPPLEMENTAL TABLE ----
 # Global + Biome:
@@ -325,13 +330,27 @@ mean(StatsCombined$LSTmodel.R2adj); median(StatsCombined$LSTmodel.R2adj)
 # test <- data.frame(worldR)
 # head(test)
 
+world_map = map_data("world") #%>% 
+  # filter(! long > 180)
+
+# countries = world_map %>% 
+#   distinct(region) %>% 
+#   rowid_to_column()
+library(mapproj)
+# ggplot(data=StatsCombined[,]) +
+#   geom_rect(xmin=-175, xmax=175, ymin=-75, ymax=75, fill="gray80") +
+#   geom_map(map=world[world$long>=-175 & world$long<=175 & world$lat>-75 & world$lat<75, ], data=world, aes( map_id = region), fill="gray30", size=0.1) +
+#   coord_map("moll") +
+#   expand_limits(x = world$long, y = world$lat) +
+#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=LSTmodel.R2adj), size=0.25, alpha=0.8) +
+#   theme_bw()
+
 MapModFits <- ggplot(data=StatsCombined[,]) +
-  geom_sf(data=worldBBoxRobin, fill="gray90", size=0.1) +
-  # geom_sf(data=worldR, fill="gray50", size=0.1) +
-  # geom_map(data=worldR, map=worldRobin, aes(x=long, y=lat, map_id=id), fill="gray50") +
-  geom_point(aes(x=xRobin, y=yRobin, color=LSTmodel.R2adj), size=0.25, alpha=0.8) +
-  scale_x_continuous(expand=c(0,0)) +
-  scale_y_continuous(expand=c(0,0)) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=LSTmodel.R2adj), size=0.25, alpha=0.8) +
   scale_color_stepsn(name="R2-adjusted", colors=grad.modfit) +
   theme(legend.position="top",
         legend.title=element_text(color="black", face="bold"),
@@ -391,9 +410,11 @@ StatsCombined$biomeCodeRev <- factor(StatsCombined$biomeCode, levels=rev(levels(
 
 
 mapLST <- ggplot(data=StatsCombined[,]) +
-  geom_sf(data=worldBBoxRobin, fill="gray90", size=0.1) +
-  # geom_map(data=worldRobin, map=worldRobin, aes(x=long, y=lat, map_id=id), fill="gray30") +
-  geom_point(aes(x=xRobin, y=yRobin, color=value.LST.diff), size=0.25, alpha=0.8) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=value.LST.diff), size=0.25, alpha=0.8) +
   scale_x_continuous(expand=c(0,0)) +
   scale_y_continuous(expand=c(0,0)) +
   scale_color_stepsn(colors=grad.lst, breaks=breaksLST) +
@@ -415,9 +436,11 @@ mapLST <- ggplot(data=StatsCombined[,]) +
         plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
 
 mapTree <- ggplot(data=StatsCombined[,]) +
-  geom_sf(data=worldBBoxRobin, fill="gray90", size=0.1) +
-  # geom_map(data=worldRobin, map=worldRobin, aes(x=long, y=lat, map_id=id), fill="gray30") +
-  geom_point(aes(x=xRobin, y=yRobin, color=value.tree.core), size=0.25) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=value.tree.core), size=0.25) +
   scale_color_stepsn(name="Tree\nCover (%)", colors=grad.tree, breaks=seq(0, 90, by=10)) +
   scale_x_continuous(expand=c(0,0)) +
   scale_y_continuous(expand=c(0,0)) +
@@ -436,9 +459,11 @@ mapTree <- ggplot(data=StatsCombined[,]) +
 
 
 mapOther <- ggplot(data=StatsCombined[,]) +
-  geom_sf(data=worldBBoxRobin, fill="gray90", size=0.1) +
-  # geom_map(data=worldRobin, map=worldRobin, aes(x=long, y=lat, map_id=id), fill="gray30") +
-  geom_point(aes(x=xRobin, y=yRobin, color=value.other.core), size=0.25) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=value.other.core), size=0.25) +
   scale_color_stepsn(name="Non-Tree\nCover (%)", colors=grad.other, breaks=seq(0, 90, by=10)) +
   scale_x_continuous(expand=c(0,0)) +
   scale_y_continuous(expand=c(0,0)) +
@@ -469,7 +494,7 @@ UHIBiome <- ggplot(data=StatsCombined[,],) +
         panel.background = element_rect(fill=NA, color="black"),
         panel.grid.major.x=element_blank(),
         panel.grid.minor.x=element_blank(),
-        panel.grid.major.y=element_line(color="black", size=0.1),
+        panel.grid.major.y=element_line(color="black", linewidth=0.1),
         axis.ticks.length = unit(-0.25, "lines"),
         axis.text.y=element_text(color="black", size=unit(8, "pt")),
         axis.text.x=element_text(color="black", size=unit(8, "pt")),
@@ -493,7 +518,7 @@ treeSlopeBiome <- ggplot(data=StatsCombined[,],) +
         panel.background = element_rect(fill=NA, color="black"),
         panel.grid.major.x=element_blank(),
         panel.grid.minor.x=element_blank(),
-        panel.grid.major.y=element_line(color="black", size=0.1),
+        panel.grid.major.y=element_line(color="black", linewidth=0.1),
         axis.ticks.length = unit(-0.25, "lines"),
         axis.text.y=element_text(color="black", size=unit(8, "pt")),
         axis.text.x=element_text(color="black", size=unit(8, "pt")),
@@ -515,7 +540,7 @@ otherSlopeBiome <- ggplot(data=StatsCombined[,],) +
         panel.background = element_rect(fill=NA, color="black"),
         panel.grid.major.x=element_blank(),
         panel.grid.minor.x=element_blank(),
-        panel.grid.major.y=element_line(color="black", size=0.1),
+        panel.grid.major.y=element_line(color="black", linewidth=0.1),
         axis.ticks.length = unit(-0.25, "lines"),
         axis.text.y=element_text(color="black", size=unit(8, "pt")),
         axis.text.x=element_text(color="black", size=unit(8, "pt")),
@@ -733,7 +758,7 @@ length(which(StatsCombined$value.tree.core>median(StatsCombined$TreeCoverTargetU
 nrow(StatsCombined)
 length(which(StatsCombined$value.tree.core>median(StatsCombined$TreeCoverTargetUHI, na.rm=T)))/nrow(StatsCombined)
 
-install.pacages("ungeviz")
+# install.packages("ungeviz")
 
 TreeCoverTarget <- ggplot(data=StatsCombined[citiesUHI,], aes(x=biomeCode, y=TreeCoverTargetUHI, fill="Biome Target", color="Biome Target")) +  
   geom_bar(stat="summary", fun="median") +
