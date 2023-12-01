@@ -2,7 +2,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=T
+overwrite=F
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
