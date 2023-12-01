@@ -2,7 +2,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -551,13 +551,13 @@ for(CITY in citiesAnalyze){
   trendYearTreeMean <-   lm(tree.mean ~ year, data=summaryYear)
   trendYearTreeSD <-   lm(tree.sd ~ year, data=summaryYear)
   cityStatsRegion[row.city, c("trendYear.tree.mean.slope", "trendYear.tree.mean.p")] <- summary(trendYearTreeMean)$coefficients["year", c("Estimate", "Pr(>|t|)")]
-  cityStatsRegion[row.city, c("trendYear.tree.sd.slope", "trendYear.sd.mean.p")] <- summary(trendYearTreeSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
+  cityStatsRegion[row.city, c("trendYear.tree.sd.slope", "trendYear.tree.sd.p")] <- summary(trendYearTreeSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
   
 
   trendYearVegMean <-   lm(veg.mean ~ year, data=summaryYear)
   trendYearVegSD <-   lm(veg.sd ~ year, data=summaryYear)
   cityStatsRegion[row.city, c("trendYear.veg.mean.slope", "trendYear.veg.mean.p")] <- summary(trendYearVegMean)$coefficients["year", c("Estimate", "Pr(>|t|)")]
-  cityStatsRegion[row.city, c("trendYear.veg.sd.slope", "trendYear.sd.mean.p")] <- summary(trendYearVegSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
+  cityStatsRegion[row.city, c("trendYear.veg.sd.slope", "trendYear.veg.sd.p")] <- summary(trendYearVegSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
   
   # cityStatsRegion[,c("trendYear.LST.mean.slope", "trendYear.LST.mean.p")] <- NA
   # cityStatsRegion[,c("trendYear.tree.mean.slope", "trendYear.tree.mean.p")] <- NA
