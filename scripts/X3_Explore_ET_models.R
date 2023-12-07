@@ -49,7 +49,7 @@ cities.test <- c(cities.cherry, cities.random)
 # lst4b <- gam(sqrt(ET.mean) ~ (tree.mean + veg.mean)*LST.mean + s(x,y) - tree.mean - veg.mean - LST.mean, data=dat.mod)
 # lst5 <- gam(sqrt(ET.mean) ~ s(LST.mean, tree.mean) + s(LST.mean, veg.mean) + s(x,y), data=dat.mod)
 # lst6 <- gam(sqrt(ET.mean) ~ tree.mean + veg.mean + s(LST.mean) + s(x,y) , data=dat.mod)
-# lst7 <- gam(sqrt(ET.mean) ~ s(tree.mean) + s(veg.mean) + s(LST.mean) + s(x,y)n, data=dat.mod)
+# lst7 <- gam(sqrt(ET.mean) ~ s(tree.mean) + s(veg.mean) + s(LST.mean) + s(x,y), data=dat.mod)
 
 
 
@@ -218,7 +218,7 @@ for(i in 1:length(cities.test)){
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst6"] <- AIC(lst6)
   mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst6"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst6)^2), na.rm=T)
   
-  lst7 <- gam(sqrt(ET.mean) ~ s(tree.mean) + s(veg.mean) + s(LST.mean) + s(x,y)n, data=dat.mod)
+  lst7 <- gam(sqrt(ET.mean) ~ s(tree.mean) + s(veg.mean) + s(LST.mean) + s(x,y), data=dat.mod)
   dat.mod$mod.lst7 <- as.vector(predict(lst7)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst7"] <- summary(lst7)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst7"] <- AIC(lst7)
