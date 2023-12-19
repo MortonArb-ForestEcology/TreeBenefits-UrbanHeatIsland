@@ -96,37 +96,39 @@ maskBBox <- ee$Geometry$BBox(-180, -60, 180, 75)
 # -----------
 # GLDAS2.1: https://developers.google.com/earth-engine/datasets/catalog/NASA_GLDAS_V021_NOAH_G025_T3H
 # -----------
-# .1 - Northern Hemisphere: July/August
-# JulAugList <- ee_manage_assetlist(path_asset = "users/crollinson/LST_JulAug_Clean/")
-GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
-GLDASJulAug <- GLDASJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
-ee_print(GLDASJulAug)
+# # .1 - Northern Hemisphere: July/August
+# # JulAugList <- ee_manage_assetlist(path_asset = "users/crollinson/LST_JulAug_Clean/")
+# GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
+# GLDASJulAug <- GLDASJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+# ee_print(GLDASJulAug)
+# 
+# # GLDASJulAug$first()$propertyNames()$getInfo()
+# # ee_print(GLDASJulAug$first())
+# # Map$addLayer(GLDASJulAug$first()$select('Tair_f_inst'), vizTempK, "Jul/Aug Temperature")
+# # Map$addLayer(GLDASJulAug$first()$select('Evap_tavg'), vizPrecip, "Jul/Aug ET")
+# # Map$addLayer(GLDASJulAug$first()$select('Rainf_f_tavg'), vizPrecip, "Jul/Aug PR")
+# 
+# GLDASJulAugAvg <- GLDASJulAug$reduce(ee$Reducer$mean())
+# 
+# projGLDAS = GLDASJulAugAvg$select('Rainf_f_tavg_mean')$projection()
+# projCRS = projGLDAS$crs()
+# projTransform <- unlist(projGLDAS$getInfo()$transform)
+# 
+# saveGLDASNH <- ee_image_to_asset(GLDASJulAugAvg, description="Save_GLDAS_NH", assetId=file.path(assetHome, "GLDAS21_Climatology_2001_2020_JulAug"), maxPixels = 10e9, scale=27829.87, region = bBoxN, crs=projCRS, crsTransform=projTransform, overwrite=T)
+# saveGLDASNH$start()
+# 
+# 
+# GLDASJanFeb <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(1,60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
+# GLDASJanFeb <- GLDASJanFeb$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+# # ee_print(GLDASJanFeb)
+# # Map$addLayer(GLDASJanFeb$first()$select('Evap_tavg'), vizPrecip, "Jan/Feb ET")
+# 
+# GLDASJanFebAvg <- GLDASJanFeb$reduce(ee$Reducer$mean())
+# saveGLDASSH <- ee_image_to_asset(GLDASJanFebAvg, description="Save_GLDAS_SH", assetId=file.path(assetHome, "GLDAS21_Climatology_2001_2020_JanFeb"), maxPixels = 10e9, scale=27829.87, region = bBoxS, crs=projCRS, crsTransform=projTransform, overwrite=T)
+# saveGLDASSH$start()
 
-# GLDASJulAug$first()$propertyNames()$getInfo()
-# ee_print(GLDASJulAug$first())
-# Map$addLayer(GLDASJulAug$first()$select('Tair_f_inst'), vizTempK, "Jul/Aug Temperature")
-# Map$addLayer(GLDASJulAug$first()$select('Evap_tavg'), vizPrecip, "Jul/Aug ET")
-# Map$addLayer(GLDASJulAug$first()$select('Rainf_f_tavg'), vizPrecip, "Jul/Aug PR")
-
-GLDASJulAugAvg <- GLDASJulAug$reduce(ee$Reducer$mean())
-
-projGLDAS = GLDASJulAugAvg$select('Rainf_f_tavg_mean')$projection()
-projCRS = projGLDAS$crs()
-projTransform <- unlist(projGLDAS$getInfo()$transform)
-
-saveGLDASNH <- ee_image_to_asset(GLDASJulAugAvg, description="Save_GLDAS_NH", assetId=file.path(assetHome, "GLDAS21_Climatology_2001_2020_JulAug"), maxPixels = 10e9, scale=27829.87, region = bBoxN, crs=projCRS, crsTransform=projTransform, overwrite=T)
-saveGLDASNH$start()
-
-
-GLDASJanFeb <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(1,60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
-GLDASJanFeb <- GLDASJanFeb$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
-# ee_print(GLDASJanFeb)
-# Map$addLayer(GLDASJanFeb$first()$select('Evap_tavg'), vizPrecip, "Jan/Feb ET")
-
-GLDASJanFebgAvg <- GLDASJanFeb$reduce(ee$Reducer$mean())
-saveGLDASNH <- ee_image_to_asset(GLDASJanFebgAvg, description="Save_GLDAS_SH", assetId=file.path(assetHome, "GLDAS21_Climatology_2001_2020_JanFeb"), maxPixels = 10e9, scale=27829.87, region = bBoxS, crs=projCRS, crsTransform=projTransform, overwrite=T)
-saveGLDASSH$start()
-
+GLDASJulAug <- ee$ImageCollection('users/crollinson/GLDAS21_Climatology_2001_2020_JulAug')
+GLDASJanFeb <- ee$ImageCollection('users/crollinson/GLDAS21_Climatology_2001_2020_JanFeb')
 ##################### 
 
 ##################### 
@@ -157,11 +159,11 @@ extractGLDAS <- function(CitySP, CityNames, GLDAS, GoogleFolderSave, overwrite=F
     # Map$addLayer(gldasCity$first()$select("Tair_f_inst"), vizTempK, 'Temperature')
     
     # For this, we're only really caring abotu the climatology, so lets just reduce it to the 20-year mean
-    gldasCityMeans <- gldasCity$reduce(ee$Reducer$mean())
+    # gldasCityMeans <- gldasCity$reduce(ee$Reducer$mean())
     # ee_print(gldasCityMeans)
     # Map$addLayer(gldasCityMeans$select("Tair_f_inst_mean"), vizTempK, 'Temperature')
     
-    exportGLDAS <- ee_image_to_drive(image=gldasCityMeans, description=paste0(cityID, "_GLDAS21"), fileNamePrefix=paste0(cityID, "_GLDAS21"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    exportGLDAS <- ee_image_to_drive(image=gldasCity, description=paste0(cityID, "_GLDAS21"), fileNamePrefix=paste0(cityID, "_GLDAS21"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     exportGLDAS$start()
     
     
