@@ -14,9 +14,9 @@ file.cityAll.stats <- file.path(path.cities, "city_stats_all.csv")
 # summary(file.cityAll.stats)
 
 # Adding info for the previous version so we can double check
-path.google2 <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v2")
-path.cities2 <- file.path(path.google2)
-file.cityAll.stats2 <- file.path(path.cities2, "city_stats_all.csv")
+# path.google2 <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v2")
+# path.cities2 <- file.path(path.google2)
+# file.cityAll.stats2 <- file.path(path.cities2, "city_stats_all.csv")
 
 
 path.figs <- file.path(path.google, "figures_exploratory")

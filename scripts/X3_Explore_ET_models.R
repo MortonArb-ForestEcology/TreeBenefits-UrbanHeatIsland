@@ -25,11 +25,16 @@ path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought
 path.out <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3/ETmodel_Testing")
 if(!dir.exists(path.out)) dir.create(path.out, recursive = T)
 
-cities.all <- dir(path.cities)
+
+cityAll.stats <- read.csv(file.path(path.cities, "..", "city_stats_all.csv"))
+summary(cityAll.stats)
+
 cities.cherry <- c("USA26687", "CAN16375", "DEU10109", "USA40447", "AUS66430", "CHL66311", "EGY44702", "CHN31890", "ZAF64524", "BRA63739") # 10 cherry-picked cities
+cities.all <- cityAll.stats$ISOURBID[!cityAll.stats$ISOURBID %in% cities.cherry & !is.na(cityAll.stats$ETmodel.R2adj)]
 set.seed(525)
-cities.random <- sample(cities.all[!cities.all %in% cities.cherry], round((length(cities.all)-length(cities.cherry))*.01, 0), replace = F) # Shoudl be 27
+cities.random <- sample(cities.all, round(length(cities.all)*.01, 0), replace = F) # Shoudl be 27
 cities.test <- c(cities.cherry, cities.random)
+cities.test
 # i=3
 
 # Fitting a series of models to ET to see how we can do
@@ -47,9 +52,10 @@ cities.test <- c(cities.cherry, cities.random)
 # lst3b <- gam(ET.mean ~ (tree.mean + veg.mean)*LST.mean + s(x,y) - tree.mean - veg.mean - LST.mean, data=dat.mod)
 # lst4 <- gam(sqrt(ET.mean) ~ (tree.mean + veg.mean)*LST.mean + s(x,y), data=dat.mod)
 # lst4b <- gam(sqrt(ET.mean) ~ (tree.mean + veg.mean)*LST.mean + s(x,y) - tree.mean - veg.mean - LST.mean, data=dat.mod)
-# lst5 <- gam(sqrt(ET.mean) ~ s(LST.mean, tree.mean) + s(LST.mean, veg.mean) + s(x,y), data=dat.mod)
+# lst5 <- gam(sqrt(ET.mean) ~ s(LST.mean, tree.mean) + s(LST.mean, veg.mean) + s(x,y), data=dat.mod) # # THis one is consistently best
 # lst6 <- gam(sqrt(ET.mean) ~ tree.mean + veg.mean + s(LST.mean) + s(x,y) , data=dat.mod)
-# lst7 <- gam(sqrt(ET.mean) ~ s(tree.mean) + s(veg.mean) + s(LST.mean) + s(x,y), data=dat.mod)
+# lst7 <- gam(sqrt(ET.mean) ~ s(tree.mean) + s(veg.mean) + s(LST.mean) + s(x,y), data=dat.mod) # This one is next best; this is easiest to model
+# lst8 <- gam(sqrt(ET.mean) ~ s(tree.mean) + s(veg.mean) + LST.mean + s(x,y), data=dat.mod) # 8 hits lower, but does pretty damn well too
 
 
 
@@ -235,7 +241,7 @@ for(i in 1:length(cities.test)){
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst9"] <- summary(lst9)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst9"] <- AIC(lst9)
   mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst9"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst9)^2, na.rm=T))
-  
+
   # mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- summary(lst5)$r.sq
   # mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- AIC(lst5)
   # mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst5)^2, na.rm=T))
@@ -293,6 +299,7 @@ aggregate(cbind(R2, RMSE, AIC) ~ model, data=mods.comp, FUN=median)
 # length(which(!is.na(mods.comp$AIC.diff7) & mods.comp$AIC.diff7>0))/length(which(!is.na(mods.comp$AIC.diff7)))
 # length(which(!is.na(mods.comp$AIC.diff7) & mods.comp$AIC.diff7<0))/length(which(!is.na(mods.comp$AIC.diff7)))
 
+
 write.csv(mods.comp, file.path(path.out, "ET_ModelSummaryStats.csv"), row.names=F)
 
 
@@ -339,6 +346,13 @@ ggplot(data=mods.comp) +
   theme(axis.text.x = element_text(angle=-45, hjust=0))
 
 
+# ggplot(data=mods.comp[mods.comp$model %in% c("lst4", "lst5", "lst7", "lst8"),]) +
+#   facet_wrap(~model) +
+#   geom_bar(aes(x=ISOURBID, y=AIC.diff, fill=model), stat="identity") +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle=-45, hjust=0))
+# 
+
 
 # Summarizing across models
 ggplot(data=mods.comp) +
@@ -372,3 +386,9 @@ ggplot(data=mods.comp) +
   geom_boxplot(aes(x=model, y=-RMSE.rank-1, fill=model)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle=-45, hjust=0))
+
+
+# ggplot(data=mods.comp[mods.comp$model %in% c("lst5", "lst7", "lst8"),]) +
+#   geom_boxplot(aes(x=model, y=AIC.diff, fill=model)) +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle=-45, hjust=0))
