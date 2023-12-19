@@ -53,12 +53,12 @@ cities.test <- c(cities.cherry, cities.random)
 
 
 
-mod.names <- c(paste0("mod", 1:8), paste0("lst", 1:7), paste0("lst", 3:4, "b"))
-metrics <- c("R2", "AIC", "MRSE")
-mods.comp <- data.frame(ISOURBID = rep(cities.test, each=length(mod.names)), model=mod.names, R2=NA, AIC=NA, MRSE=NA)
+mod.names <- c(paste0("mod", 1:8), paste0("lst", 1:9), paste0("lst", 3:4, "b"))
+metrics <- c("R2", "AIC", "RMSE")
+mods.comp <- data.frame(ISOURBID = rep(cities.test, each=length(mod.names)), model=mod.names, R2=NA, AIC=NA, RMSE=NA)
 mods.comp$model <- factor(mods.comp$model, levels=mod.names)
 mods.comp$ISOURBID <- factor(mods.comp$ISOURBID)
-# cityStats <- dtaa.frame(ISOURBID =, model=mod.names, R2=NA, AIC=NA, MRSE=NA)
+# cityStats <- dtaa.frame(ISOURBID =, model=mod.names, R2=NA, AIC=NA, RMSE=NA)
 
 for(i in 1:length(cities.test)){
   CITY <- cities.test[i]
@@ -117,65 +117,65 @@ for(i in 1:length(cities.test)){
   dat.mod$mod1 <- as.vector(predict(mod1))
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod1"] <- summary(mod1)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod1"] <- AIC(mod1)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod1"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod1)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod1"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod1)^2, na.rm=T))
   
   mod2 <- gam(sqrt(ET.mean) ~ tree.mean + veg.mean + s(x,y), data=dat.mod)
   dat.mod$mod2 <- as.vector(predict(mod2)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod2"] <- summary(mod2)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod2"] <- AIC(mod2)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod2"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod2)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod2"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod2)^2, na.rm=T))
   
-  mod3 <- gam(log(ET.mean) ~ tree.mean + veg.mean + s(x,y), data=dat.mod)
-  dat.mod$mod3 <- as.vector(exp(predict(mod3)))
-  mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod3"] <- summary(mod3)$r.sq
-  mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod3"] <- AIC(mod3)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod3"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod3)^2), na.rm=T)
-  
-  mod4 <- gam(ET.mean ~ log(tree.mean) + log(veg.mean) + s(x,y), data=dat.mod[dat.mod$tree.mean>0 & dat.mod$veg.mean>0,])
-  dat.mod$mod4[dat.mod$tree.mean>0 & dat.mod$veg.mean>0] <- as.vector(predict(mod4))
-  mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod4"] <- summary(mod4)$r.sq
-  mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod4"] <- AIC(mod4)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod4"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod4)^2), na.rm=T)
+  # mod3 <- gam(log(ET.mean) ~ tree.mean + veg.mean + s(x,y), data=dat.mod)
+  # dat.mod$mod3 <- as.vector(exp(predict(mod3)))
+  # mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod3"] <- summary(mod3)$r.sq
+  # mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod3"] <- AIC(mod3)
+  # mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod3"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod3)^2, na.rm=T))
+  # 
+  # mod4 <- gam(ET.mean ~ log(tree.mean) + log(veg.mean) + s(x,y), data=dat.mod[dat.mod$tree.mean>0 & dat.mod$veg.mean>0,])
+  # dat.mod$mod4[dat.mod$tree.mean>0 & dat.mod$veg.mean>0] <- as.vector(predict(mod4))
+  # mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod4"] <- summary(mod4)$r.sq
+  # mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod4"] <- AIC(mod4)
+  # mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod4"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod4)^2, na.rm=T))
   
   
   mod5 <- gam(ET.mean ~ sqrt(tree.mean) + sqrt(veg.mean) + s(x,y), data=dat.mod)
   dat.mod$mod5 <- as.vector(predict(mod5))
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod5"] <- summary(mod5)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod5"] <- AIC(mod5)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod5"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod5)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod5"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod5)^2, na.rm=T))
   
   mod6 <- gam(sqrt(ET.mean) ~ sqrt(tree.mean) + sqrt(veg.mean) + s(x,y), data=dat.mod)
   dat.mod$mod6 <- as.vector(predict(mod6)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod6"] <- summary(mod6)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod6"] <- AIC(mod6)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod6"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod6)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod6"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod6)^2, na.rm=T))
   
   mod7 <- gam(ET.mean ~ tree.mean*veg.mean + s(x,y), data=dat.mod)
   dat.mod$mod7 <- as.vector(predict(mod7))
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod7"] <- summary(mod7)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod7"] <- AIC(mod7)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod7"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod7)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod7"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod7)^2, na.rm=T))
   
   
   mod8 <- gam(sqrt(ET.mean) ~ tree.mean*veg.mean + s(x,y), data=dat.mod)
   dat.mod$mod8 <- as.vector(predict(mod8)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="mod8"] <- summary(mod8)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="mod8"] <- AIC(mod8)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod8"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod8)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="mod8"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod8)^2, na.rm=T))
   
   lst1 <- gam(ET.mean ~ tree.mean + veg.mean + LST.mean + s(x,y), data=dat.mod)
   dat.mod$mod.lst1 <- as.vector(predict(lst1))
   # summary(lst1)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst1"] <- summary(lst1)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst1"] <- AIC(lst1)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst1"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst1)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst1"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst1)^2, na.rm=T))
   
   
   lst2 <- gam(sqrt(ET.mean) ~ tree.mean + veg.mean + LST.mean + s(x,y), data=dat.mod)
   dat.mod$mod.lst2 <- as.vector(predict(lst2)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst2"] <- summary(lst2)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst2"] <- AIC(lst2)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst2"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst2)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst2"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst2)^2, na.rm=T))
   
   # summary(lst2)
   
@@ -183,50 +183,62 @@ for(i in 1:length(cities.test)){
   dat.mod$mod.lst3 <- as.vector(predict(lst3))
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3"] <- summary(lst3)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3"] <- AIC(lst3)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst3)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst3)^2, na.rm=T))
   
   
-  lst3b <- gam(ET.mean ~ (tree.mean + veg.mean)*LST.mean + s(x,y) - tree.mean - veg.mean - LST.mean, data=dat.mod)
-  dat.mod$mod.lst3b <- as.vector(predict(lst3b))
-  mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3b"] <- summary(lst3b)$r.sq
-  mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3b"] <- AIC(lst3b)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3b"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst3b)^2), na.rm=T)
-  
-  
+  # lst3b <- gam(ET.mean ~ (tree.mean + veg.mean)*LST.mean + s(x,y) - tree.mean - veg.mean - LST.mean, data=dat.mod)
+  # dat.mod$mod.lst3b <- as.vector(predict(lst3b))
+  # mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3b"] <- summary(lst3b)$r.sq
+  # mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3b"] <- AIC(lst3b)
+  # mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst3b"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst3b)^2, na.rm=T))
+  # 
+  # 
   lst4 <- gam(sqrt(ET.mean) ~ (tree.mean + veg.mean)*LST.mean + s(x,y), data=dat.mod)
   dat.mod$mod.lst4 <- as.vector(predict(lst4)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4"] <- summary(lst4)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4"] <- AIC(lst4)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst4)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst4)^2, na.rm=T))
   
   
-  lst4b <- gam(sqrt(ET.mean) ~ (tree.mean + veg.mean)*LST.mean + s(x,y) - tree.mean - veg.mean - LST.mean, data=dat.mod)
-  dat.mod$mod.lst4b <- as.vector(predict(lst4b)^2)
-  mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4b"] <- summary(lst4b)$r.sq
-  mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4b"] <- AIC(lst4b)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4b"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst4b)^2), na.rm=T)
-
+  # lst4b <- gam(sqrt(ET.mean) ~ (tree.mean + veg.mean)*LST.mean + s(x,y) - tree.mean - veg.mean - LST.mean, data=dat.mod)
+  # dat.mod$mod.lst4b <- as.vector(predict(lst4b)^2)
+  # mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4b"] <- summary(lst4b)$r.sq
+  # mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4b"] <- AIC(lst4b)
+  # mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst4b"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst4b)^2, na.rm=T))
+  # 
   lst5 <- gam(sqrt(ET.mean) ~ s(LST.mean, tree.mean) + s(LST.mean, veg.mean) + s(x,y), data=dat.mod)
   dat.mod$mod.lst5 <- as.vector(predict(lst5)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- summary(lst5)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- AIC(lst5)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst5)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst5)^2, na.rm=T))
   
   lst6 <- gam(sqrt(ET.mean) ~ tree.mean + veg.mean + s(LST.mean) + s(x,y) , data=dat.mod)
   dat.mod$mod.lst6 <- as.vector(predict(lst6)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst6"] <- summary(lst6)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst6"] <- AIC(lst6)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst6"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst6)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst6"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst6)^2, na.rm=T))
   
   lst7 <- gam(sqrt(ET.mean) ~ s(tree.mean) + s(veg.mean) + s(LST.mean) + s(x,y), data=dat.mod)
   dat.mod$mod.lst7 <- as.vector(predict(lst7)^2)
   mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst7"] <- summary(lst7)$r.sq
   mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst7"] <- AIC(lst7)
-  mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst7"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst7)^2), na.rm=T)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst7"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst7)^2, na.rm=T))
+  
+  lst8 <- gam(sqrt(ET.mean) ~ s(tree.mean, k=3) + s(veg.mean, k=3) + s(LST.mean, k=3) + s(x,y), data=dat.mod)
+  dat.mod$mod.lst8 <- as.vector(predict(lst8)^2)
+  mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst8"] <- summary(lst8)$r.sq
+  mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst8"] <- AIC(lst8)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst8"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst8)^2, na.rm=T))
+  
+  lst9 <- gam(sqrt(ET.mean) ~ s(tree.mean, k=4) + s(veg.mean, k=4) + s(LST.mean, k=4) + s(x,y), data=dat.mod)
+  dat.mod$mod.lst9 <- as.vector(predict(lst9)^2)
+  mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst9"] <- summary(lst9)$r.sq
+  mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst9"] <- AIC(lst9)
+  mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst9"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst9)^2, na.rm=T))
   
   # mods.comp$R2[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- summary(lst5)$r.sq
   # mods.comp$AIC[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- AIC(lst5)
-  # mods.comp$MRSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- mean(sqrt((dat.mod$ET.mean - dat.mod$mod.lst5)^2), na.rm=T)
+  # mods.comp$RMSE[mods.comp$ISOURBID==CITY & mods.comp$model=="lst5"] <- sqrt(mean((dat.mod$ET.mean - dat.mod$mod.lst5)^2, na.rm=T))
   
   
   summary(dat.mod)
@@ -256,23 +268,44 @@ for(i in 1:length(cities.test)){
 }
 
 summary(mods.comp)
+# mods.comp$RMSE <- mods.comp$MRSE
 
 # Doing some standardization to help evaluate patterns
 for(CITY in unique(mods.comp$ISOURBID)){
   rows.city <- which(mods.comp$ISOURBID==CITY)
   mods.comp[rows.city,"R2.diff"] <- mods.comp$R2[rows.city] - mean(mods.comp$R2[rows.city], na.rm=T)
   mods.comp[rows.city,"AIC.diff"] <- mods.comp$AIC[rows.city] - mean(mods.comp$AIC[rows.city], na.rm=T)
-  mods.comp[rows.city,"MRSE.diff"] <- mods.comp$MRSE[rows.city] - mean(mods.comp$MRSE[rows.city], na.rm=T)
+  mods.comp[rows.city,"RMSE.diff"] <- mods.comp$RMSE[rows.city] - mean(mods.comp$RMSE[rows.city], na.rm=T)
+
+  mods.comp[rows.city,"AIC.diff7"] <- mods.comp$AIC[which(mods.comp$ISOURBID==CITY & mods.comp$model=="lst7")] - mods.comp$AIC[which(mods.comp$ISOURBID==CITY)]
+  mods.comp[rows.city,"R2.diff7"] <- mods.comp$R2[which(mods.comp$ISOURBID==CITY & mods.comp$model=="lst7")] - mods.comp$R2[which(mods.comp$ISOURBID==CITY)]
+  mods.comp[rows.city,"RMSE.diff7"] <- mods.comp$RMSE[which(mods.comp$ISOURBID==CITY & mods.comp$model=="lst7")] - mods.comp$RMSE[which(mods.comp$ISOURBID==CITY)]
   
+    
   mods.comp[rows.city, "R2.rank"] <- length(rows.city) - rank(mods.comp$R2[rows.city]) +1 # math makes lower Better
   mods.comp[rows.city, "AIC.rank"] <- rank(mods.comp$AIC[rows.city]) # Lower better
-  mods.comp[rows.city, "MRSE.rank"] <- rank(mods.comp$MRSE[rows.city]) # Lower better
+  mods.comp[rows.city, "RMSE.rank"] <- rank(mods.comp$RMSE[rows.city]) # Lower better
 }
 summary(mods.comp)
-aggregate(cbind(R2, MRSE) ~ model, data=mods.comp, FUN=mean)
-aggregate(cbind(R2, MRSE) ~ model, data=mods.comp, FUN=median)
+aggregate(cbind(R2, RMSE) ~ model, data=mods.comp, FUN=mean)
+aggregate(cbind(R2, RMSE, AIC) ~ model, data=mods.comp, FUN=median)
+
+# length(which(!is.na(mods.comp$AIC.diff7) & mods.comp$AIC.diff7>0))/length(which(!is.na(mods.comp$AIC.diff7)))
+# length(which(!is.na(mods.comp$AIC.diff7) & mods.comp$AIC.diff7<0))/length(which(!is.na(mods.comp$AIC.diff7)))
 
 write.csv(mods.comp, file.path(path.out, "ET_ModelSummaryStats.csv"), row.names=F)
+
+
+mods.comp <- read.csv(file.path(path.out, "ET_ModelSummaryStats.csv"))
+
+mods.comp$AIC[abs(mods.comp$AIC)==Inf] <- NA
+mods.comp$AIC.diff[abs(mods.comp$AIC.diff)==Inf] <- NA
+summary(mods.comp)
+
+summary(mods.comp[mods.comp$model=="mod1",])
+summary(mods.comp[mods.comp$model=="lst7",])
+summary(mods.comp[mods.comp$model=="lst8",])
+summary(mods.comp[mods.comp$model=="lst9",])
 
 ggplot(data=mods.comp) +
   facet_wrap(~ISOURBID) +
@@ -282,7 +315,7 @@ ggplot(data=mods.comp) +
 
 ggplot(data=mods.comp) +
   facet_wrap(~ISOURBID) +
-  geom_bar(aes(x=model, y=MRSE, fill=model), stat="identity") +
+  geom_bar(aes(x=model, y=RMSE, fill=model), stat="identity") +
   theme_bw() +
   theme(axis.text.x = element_text(angle=-45, hjust=0))
 
@@ -301,7 +334,7 @@ ggplot(data=mods.comp) +
 
 ggplot(data=mods.comp) +
   facet_wrap(~model) +
-  geom_bar(aes(x=ISOURBID, y=MRSE.diff, fill=model), stat="identity") +
+  geom_bar(aes(x=ISOURBID, y=RMSE.diff, fill=model), stat="identity") +
   theme_bw() +
   theme(axis.text.x = element_text(angle=-45, hjust=0))
 
@@ -319,12 +352,12 @@ ggplot(data=mods.comp) +
   theme(axis.text.x = element_text(angle=-45, hjust=0))
 
 ggplot(data=mods.comp) +
-  geom_boxplot(aes(x=model, y=MRSE.diff, fill=model)) +
+  geom_boxplot(aes(x=model, y=RMSE.diff, fill=model)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle=-45, hjust=0))
 
 ggplot(data=mods.comp) +
-  geom_boxplot(aes(x=model, y=MRSE.diff/MRSE, fill=model)) +
+  geom_boxplot(aes(x=model, y=RMSE.diff/RMSE, fill=model)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle=-45, hjust=0))
 
@@ -336,6 +369,6 @@ ggplot(data=mods.comp) +
 
 # Graph higher is better better
 ggplot(data=mods.comp) +
-  geom_boxplot(aes(x=model, y=-MRSE.rank-1, fill=model)) +
+  geom_boxplot(aes(x=model, y=-RMSE.rank-1, fill=model)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle=-45, hjust=0))
