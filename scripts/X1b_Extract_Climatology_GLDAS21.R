@@ -89,13 +89,13 @@ vizPrecip <- list(
 ##################### 
 # Load in base GLDAS ----
 ##################### 
-bBoxS = ee$Geometry$BBox(-180, -60, 180, 5);
-bBoxN = ee$Geometry$BBox(-180, -5, 180, 75);
-maskBBox <- ee$Geometry$BBox(-180, -60, 180, 75)
-
 # -----------
 # GLDAS2.1: https://developers.google.com/earth-engine/datasets/catalog/NASA_GLDAS_V021_NOAH_G025_T3H
 # -----------
+# bBoxS = ee$Geometry$BBox(-180, -60, 180, 5);
+# bBoxN = ee$Geometry$BBox(-180, -5, 180, 75);
+# maskBBox <- ee$Geometry$BBox(-180, -60, 180, 75)
+# 
 # # .1 - Northern Hemisphere: July/August
 # # JulAugList <- ee_manage_assetlist(path_asset = "users/crollinson/LST_JulAug_Clean/")
 # GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
@@ -127,8 +127,15 @@ maskBBox <- ee$Geometry$BBox(-180, -60, 180, 75)
 # saveGLDASSH <- ee_image_to_asset(GLDASJanFebAvg, description="Save_GLDAS_SH", assetId=file.path(assetHome, "GLDAS21_Climatology_2001_2020_JanFeb"), maxPixels = 10e9, scale=27829.87, region = bBoxS, crs=projCRS, crsTransform=projTransform, overwrite=T)
 # saveGLDASSH$start()
 
-GLDASJulAug <- ee$ImageCollection('users/crollinson/GLDAS21_Climatology_2001_2020_JulAug')
-GLDASJanFeb <- ee$ImageCollection('users/crollinson/GLDAS21_Climatology_2001_2020_JanFeb')
+GLDASJulAug <- ee$Image('users/crollinson/GLDAS21_Climatology_2001_2020_JulAug')
+ee_print(GLDASJulAug)
+# Map$addLayer(GLDASJulAug$select('Tair_f_inst_mean'), vizTempK, "Jul/Aug Temperature")
+# Map$addLayer(GLDASJulAug$select('Evap_tavg_mean'), vizPrecip, "Jul/Aug ET")
+# Map$addLayer(GLDASJulAug$select('Rainf_f_tavg_mean'), vizPrecip, "Jul/Aug PR")
+
+
+GLDASJanFeb <- ee$Image('users/crollinson/GLDAS21_Climatology_2001_2020_JanFeb')
+ee_print(GLDASJanFeb)
 ##################### 
 
 ##################### 
@@ -152,21 +159,14 @@ extractGLDAS <- function(CitySP, CityNames, GLDAS, GoogleFolderSave, overwrite=F
     # Extracting Data for the whole region
     #-------
     # Start Tree Cover Layer
-    gldasCity <- GLDAS$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"))$map(function(img){
-      return(img$clip(cityNow))
-    })
+    gldasCity <- GLDAS$clip(cityNow)
     # ee_print(gldasCity)
-    # Map$addLayer(gldasCity$first()$select("Tair_f_inst"), vizTempK, 'Temperature')
-    
-    # For this, we're only really caring abotu the climatology, so lets just reduce it to the 20-year mean
-    # gldasCityMeans <- gldasCity$reduce(ee$Reducer$mean())
-    # ee_print(gldasCityMeans)
-    # Map$addLayer(gldasCityMeans$select("Tair_f_inst_mean"), vizTempK, 'Temperature')
+    # Map$addLayer(gldasCity$select("Tair_f_inst_mean"), vizTempK, 'Temperature')
+    # Map$addLayer(gldasCity$select('Evap_tavg_mean'), vizPrecip, "Jul/Aug ET")
+    # Map$addLayer(gldasCity$select('Rainf_f_tavg_mean'), vizPrecip, "Jul/Aug PR")
     
     exportGLDAS <- ee_image_to_drive(image=gldasCity, description=paste0(cityID, "_GLDAS21"), fileNamePrefix=paste0(cityID, "_GLDAS21"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     exportGLDAS$start()
-    
-    
   }  
 }
 ##################### 
@@ -189,10 +189,10 @@ length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
 cityRemove <- vector()
 if(!overwrite){
   ### Filter out sites that have been done!
-  PR.done <- dir(file.path(path.google, GoogleFolderSave), "GLDAS-Precipitation.tif")
+  gldas.done <- dir(file.path(path.google, GoogleFolderSave), "GLDAS")
   
   # Check to make sure a city has all three layers; if it doesn't do it again
-  cityRemove <- unlist(lapply(strsplit(tree.done, "_"), function(x){x[1]}))
+  cityRemove <- unlist(lapply(strsplit(gldas.done, "_"), function(x){x[1]}))
   
   cityIdS <- cityIdS[!cityIdS %in% cityRemove]
   cityIdNW <- cityIdNW[!cityIdNW %in% cityRemove]
@@ -211,23 +211,25 @@ length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
 
 
 if(length(cityIdS)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdS, GLDAS=GLDASJanFeb, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractGLDAS(CitySP=citiesUse, CityNames = cityIdS, GLDAS=GLDASJanFeb, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 
 if(length(cityIdNW)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNW, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractGLDAS(CitySP=citiesUse, CityNames = cityIdNW, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE1)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNE1, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractGLDAS(CitySP=citiesUse, CityNames = cityIdNE1, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE2)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNE2, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractGLDAS(CitySP=citiesUse, CityNames = cityIdNE2, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 ##################### 
 
 # Checking a test case
-test <- raster(file.path(GoogleFolderSave, "USA2135_GLDAS21.tif"))
+test <- stack(file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v3/", "GBR4139_GLDAS21.tif"))
+plot(test)
+test
