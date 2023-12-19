@@ -103,8 +103,8 @@ for(CITY in citiesAnalyze){
   # CITY="AUS66430"; CITY="USA26687"
   row.city <- which(cityStatsET$ISOURBID==CITY)
   print(CITY)
-  citySP <- sdei.urb[sdei.urb$ISOURBID==CITY, ]
-  cityBuff <- st_buffer(citySP, dist=10e3)
+  # citySP <- sdei.urb[sdei.urb$ISOURBID==CITY, ]
+  # cityBuff <- st_buffer(citySP, dist=10e3)
   
   # length(files.elev); length(files.lst); length(files.tree); length(files.veg); length(files.mask)
   # Circuitous coding, but it will be more resilient to multiple versions
