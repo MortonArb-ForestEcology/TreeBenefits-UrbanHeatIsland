@@ -12,6 +12,7 @@ library(ggplot2); library(RColorBrewer); library(cowplot)
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google)
+path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v3/")
 
 
 # Adding info for the previous version so we can double check
@@ -93,40 +94,94 @@ summary(cityAll.stats)
 # Reading in our ET dataset
 cityAll.ET <- read.csv(file.path(path.cities, "city_stats_all_ET.csv"))
 cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
-cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj),]
+cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj) & cityAll.ET$ETobs.max>1,] # get rid of anything we didn't model or that has a very low range of ET
 summary(cityAll.ET)
 
 cityAll.stats <- cityAll.stats[cityAll.stats$ISOURBID %in% cityAll.ET$ISOURBID[!is.na(cityAll.ET$ETmodel.R2adj)],]
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),9:25])
 summary(cityAll.stats)
 
-# Reading in the climate dataset (Terraclimate)
-# Units:
-#  - temperature (tmax, tmin) - C (month mean)
-#  - preciptiation (ppt) - mm/month (total)
-#  - evapotranspriation (aet, pet) - mm/month (total)
-#  - vapor pressure deficit (def) - kPA (month mean)
-#  - soil moisture (soil) - mm (total column; end of month)
-cityClim <- read.csv(file.path(path.cities, "city_climatology.csv"))
-cityClim$TIME <- as.factor(cityClim$TIME)
-summary(cityClim)
-
-# Convert monthly totals to daily means
-cityClim[cityClim$LATITUDE<0,c("ppt", "aet", "pet")] <- cityClim[cityClim$LATITUDE<0,c("ppt", "aet", "pet")]/sum(lubridate::days_in_month(1:2))
-cityClim[cityClim$LATITUDE>0,c("ppt", "aet", "pet")] <- cityClim[cityClim$LATITUDE>0,c("ppt", "aet", "pet")]/sum(lubridate::days_in_month(7:8))
-summary(cityClim)
-
-cityClim <- cityClim[cityClim$TIME=="current" & cityClim$ISOURBID %in% cityAll.ET$ISOURBID,]
-summary(cityClim)
-
-# Merge some (current) climate data into the ET estimates
-cityAll.ET <- merge(cityAll.ET, cityClim[,c("ISOURBID", "tmin", "tmax", "ppt", "aet")], all.x=T)
-cityAll.ET$ppt[cityAll.ET$ppt==0] <- NA
-cityAll.ET$et.ppt <- cityAll.ET$ETpred.mean/cityAll.ET$ppt #>1 means more water than comes from the sky during that time
-cityAll.ET$aet.ppt <- cityAll.ET$aet/cityAll.ET$ppt #>1 means more water than comes from the sky during that time
+cityAll.ET <- merge(cityAll.ET, cityAll.stats[,c("ISOURBID", "biome", "biomeName")], all.x=T, all.y=F)
 summary(cityAll.ET)
 
+# Reading in the climate datasets -- GLDAS
+# Units:
+#  - temperature (Tair_f_inst_mean) - K  --> save as C to jive with MODIS data; note: is mean daily air temp; not day surface temp
+#  - precipitation (Evap_tavg_mean) - kg/m2/s (= mm/s) --> save as mm/day to jive with MODIS data
+#  - evapotranspriation (Rainf_f_tavg_mean) - kg/m2/s (= mm/s) --> save as mm/day to jive with MODIS data
+
+# Setting up some dummy columns for GLDAS data; story
+cityAll.ET[,c("ET.GLDAS", "Tmean.GLDAS", "Precip.GLDAS")] <- NA
+
+f.gldas <- dir(path.raw, "GLDAS")
+head(f.gldas)
+
+pb <- txtProgressBar(0, nrow(cityAll.ET), style=3)
+for(i in 1:nrow(cityAll.ET)){
+  setTxtProgressBar(pb, i)
+  
+  CITY <- cityAll.ET$ISOURBID[i]
+  fCity <- grep(CITY, f.gldas)
+  
+  if(length(fCity)==0) next 
+  
+  cityClim <- stack(file.path(path.raw, f.gldas[fCity]))
+  # plot(cityClim)
+  
+  etNow <- getValues(cityClim[["Evap_tavg_mean"]])*60*60*24
+  precipNow <- getValues(cityClim[["Rainf_f_tavg_mean"]])*60*60*24
+  tempNow <- getValues(cityClim[["Tair_f_inst_mean"]])-273.15
+  
+  etNow <- etNow[!is.na(etNow)]
+  precipNow <- precipNow[!is.na(precipNow)]
+  tempNow <- tempNow[!is.na(tempNow)]
+  
+  if(length(etNow)==0) next
+  
+  if(length(etNow)==1){
+    cityAll.ET$ET.GLDAS[i] <- etNow
+    cityAll.ET$Precip.GLDAS[i] <- precipNow
+    cityAll.ET$Tmean.GLDAS[i] <- tempNow
+  } else {
+    cityAll.ET$ET.GLDAS[i] <- mean(etNow)
+    cityAll.ET$Precip.GLDAS[i] <- mean(precipNow)
+    cityAll.ET$Tmean.GLDAS[i] <- mean(tempNow)
+  }
+  
+  rm(cityClim)
+  
+}
+summary(cityAll.ET)
+head(cityAll.ET[is.na(cityAll.ET$ET.GLDAS),])
+
+# Comparing our predicted and Observed ET vs precip
+cityAll.ET$ETpred.Precip <- cityAll.ET$ETpred.mean/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
+cityAll.ET$ETgldas.Precip <- cityAll.ET$ET.GLDAS/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
+summary(cityAll.ET)
+nee
+write.csv(cityAll.ET, file.path(path.cities, "city_stats_all_ET-Clim.csv"), row.names=F)
+# ##########################################
+
+
+# ##########################################
+# Do some data exploration ----
+# ##########################################
+cityAll.ET <- read.csv(file.path(path.cities, "city_stats_all_ET-Clim.csv"))
+
 plot(ETobs.mean ~ ETpred.mean, data=cityAll.ET); abline(a=0, b=1, col="red")
-plot(ETobs.mean ~ aet, data=cityAll.ET); abline(a=0, b=1, col="red")
-plot(ETpred.mean ~ aet, data=cityAll.ET); abline(a=0, b=1, col="red")
-plot(LST.ET.mean ~ tmax, data=cityAll.ET); abline(a=0, b=1, col="red")
+plot(ETobs.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
+plot(ETpred.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
+plot(LST.ET.mean ~ Tmean.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
+
+ggplot(data=cityAll.ET) +
+  # coord_equal() +
+  geom_point(aes(x=ETpred.mean, y=ET.GLDAS, color=biomeName)) +
+  geom_abline(slope=1, intercept=0) +
+  scale_color_manual(values=biome.pall.all) +
+  theme_bw() +
+  theme(legend.position="top")
+  
+  
+# How frequently doe
+length(which(cityAll.ET$ETpred.Precip<1))/length(which(!is.na(cityAll.ET$ETpred.Precip)))
+length(which(cityAll.ET$ETgldas.Precip<1))/length(which(!is.na(cityAll.ET$ETgldas.Precip)))
