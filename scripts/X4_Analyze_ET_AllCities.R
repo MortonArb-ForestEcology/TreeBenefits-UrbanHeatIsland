@@ -291,6 +291,12 @@ for(CITY in citiesAnalyze){
     next
   }
   
+  if(max(valsCity$ET, na.rm=T)<0.1){
+    print(warning("ET too low to model; skip city"))
+    print("") # Just give a clean return before moving on
+    cityStatsET$ETmodel.R2adj[row.city] <- -9999
+    next
+  }
   
   
   # Don't bother creating a folder for a city until we'll have at least something to save!
