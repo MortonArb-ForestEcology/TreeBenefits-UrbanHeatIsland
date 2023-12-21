@@ -13,15 +13,7 @@ GoogleFolderSave <- "UHI_Analysis_Output_Final_v3"
 if(!file.exists(file.path(path.google, GoogleFolderSave))) dir.create(file.path(path.google, GoogleFolderSave), recursive = T)
 
 assetHome <- ee_get_assethome()
-
-##################### 
-# 0. Set up some choices for data quality thresholds
-##################### 
-thresh.sigma <- 6 # Use 6-sigma outliers for the data filtering\
-thresh.pts <- 50
-thresh.prop <- 0.5 # The proportion of data needed for a time point to be "good"; currenlty 0.5
 overwrite=F
-##################### 
 
 
 ##################### 
@@ -116,7 +108,7 @@ vizPrecip <- list(
 # 
 # saveGLDASNH <- ee_image_to_asset(GLDASJulAugAvg, description="Save_GLDAS_NH", assetId=file.path(assetHome, "GLDAS21_Climatology_2001_2020_JulAug"), maxPixels = 10e9, scale=27829.87, region = bBoxN, crs=projCRS, crsTransform=projTransform, overwrite=T)
 # saveGLDASNH$start()
-# 
+#
 # 
 # GLDASJanFeb <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(1,60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
 # GLDASJanFeb <- GLDASJanFeb$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
