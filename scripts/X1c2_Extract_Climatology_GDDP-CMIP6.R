@@ -13,6 +13,7 @@ GoogleFolderSave <- "UHI_Analysis_Output_GDDP-CMIP6"
 if(!file.exists(file.path(path.google, GoogleFolderSave))) dir.create(file.path(path.google, GoogleFolderSave), recursive = T)
 
 assetHome <- ee_get_assethome()
+overwrite=F
 
 ##################### 
 # 0. Set up helper functions
@@ -145,8 +146,8 @@ length(cityIdS.Hist); length(cityIdNW.Hist); length(cityIdNE1.Hist); length(city
 # Running a test case
 # CITY = "SWE3477"
 # extractCMIP6(CitySP=citiesUse, CityNames = CITY, collName="GDDP-CMIP6_JulAug", scenario="historical", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-test <- stack(file.path(path.google, GoogleFolderSave, paste(CITY, "GDDP-CMIP6", scenario, YRLAB,  "pr.tif", sep="_")))
-plot(test)
+# test <- stack(file.path(path.google, GoogleFolderSave, paste(CITY, "GDDP-CMIP6", scenario, YRLAB,  "tas.tif", sep="_")))
+# plot(test[[30:32]])
 
 
 if(length(cityIdS)>0){
