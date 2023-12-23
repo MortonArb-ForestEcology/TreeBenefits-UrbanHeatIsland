@@ -190,16 +190,16 @@ if(!overwrite){
 length(cityIdS.45.2020); length(cityIdNW.45.2020); length(cityIdNE1.45.2020); length(cityIdNE2.45.2020)
 
 
-if(length(cityIdS.45.2020)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.45.2020, collName="GDDP-CMIP6_JanFeb", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdS.45.2020)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.45.2020, collName="GDDP-CMIP6_JanFeb", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
 
-if(length(cityIdNW.45.2020)>0){
+if(length(cityIdNW.45.2020)>0){ # partially run
   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.45.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
-if(length(cityIdNE1.45.2020)>0){
+if(length(cityIdNE1.45.2020)>0){ # Partially run
   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.45.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
