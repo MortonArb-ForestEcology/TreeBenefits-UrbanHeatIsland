@@ -66,7 +66,8 @@ extractCMIP6 <- function(CitySP, CityNames, collName, scenario, timeframe, Googl
   modNow <- ee$List(GDDP$aggregate_array("model"))
   
   # Ugly hack, but I feel better having the years as labels rather than my timeframes
-  YRLAB <- ifelse(timeframe=="current", "2001-2020", elseif(timeframe=="midcentury", "2031-2050", "2081-2100"))
+  if(!timeframe %in% c("current", "midcentury", "endcentury")) stop("timeframe label not right!")
+  YRLAB <- ifelse(timeframe=="current", "2001-2020", ifelse(timeframe=="midcentury", "2031-2050", "2081-2100"))
   
   # CITIES needs to be a list
   # Vegetation should be the reprojected MODIS44b product with year added in
@@ -194,18 +195,18 @@ length(cityIdS.45.2020); length(cityIdNW.45.2020); length(cityIdNE1.45.2020); le
 #   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.45.2020, collName="GDDP-CMIP6_JanFeb", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 # }
 
+# 
+# if(length(cityIdNW.45.2020)>0){ # partially run
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.45.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
+# 
+# if(length(cityIdNE1.45.2020)>0){ # Partially run
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.45.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
-if(length(cityIdNW.45.2020)>0){ # partially run
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.45.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
-
-if(length(cityIdNE1.45.2020)>0){ # Partially run
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.45.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
-
-if(length(cityIdNE2.45.2020)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.45.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNE2.45.2020)>0){ # Partially run
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.45.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 #######
 
 
@@ -229,12 +230,6 @@ if(!overwrite){
 } # End remove cities loop
 length(cityIdS.45.2050); length(cityIdNW.45.2050); length(cityIdNE1.45.2050); length(cityIdNE2.45.2050)
 
-
-# Running a test case
-# CITY = "SWE3477"
-# extractVeg(CitySP=citiesUse, CityNames = CITY, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-# testTree <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_Vegetation_PercentTree.tif")))
-# plot(testTree[[1]])
 
 
 if(length(cityIdS.45.2050)>0){
@@ -324,12 +319,6 @@ if(!overwrite){
 length(cityIdS.85.2020); length(cityIdNW.85.2020); length(cityIdNE1.85.2020); length(cityIdNE2.85.2020)
 
 
-# Running a test case
-# CITY = "SWE3477"
-# extractVeg(CitySP=citiesUse, CityNames = CITY, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-# testTree <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_Vegetation_PercentTree.tif")))
-# plot(testTree[[1]])
-
 
 if(length(cityIdS.85.2020)>0){
   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.85.2020, collName="GDDP-CMIP6_JanFeb", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
@@ -371,12 +360,6 @@ if(!overwrite){
 length(cityIdS.85.2050); length(cityIdNW.85.2050); length(cityIdNE1.85.2050); length(cityIdNE2.85.2050)
 
 
-# Running a test case
-# CITY = "SWE3477"
-# extractVeg(CitySP=citiesUse, CityNames = CITY, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-# testTree <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_Vegetation_PercentTree.tif")))
-# plot(testTree[[1]])
-
 
 if(length(cityIdS.85.2050)>0){
   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.85.2050, collName="GDDP-CMIP6_JanFeb", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
@@ -416,13 +399,6 @@ if(!overwrite){
   
 } # End remove cities loop
 length(cityIdS.85.2100); length(cityIdNW.85.2100); length(cityIdNE1.85.2100); length(cityIdNE2.85.2100)
-
-
-# Running a test case
-# CITY = "SWE3477"
-# extractVeg(CitySP=citiesUse, CityNames = CITY, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-# testTree <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_Vegetation_PercentTree.tif")))
-# plot(testTree[[1]])
 
 
 if(length(cityIdS.85.2100)>0){
