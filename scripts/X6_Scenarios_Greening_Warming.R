@@ -94,7 +94,7 @@ summary(cmip6)
 
 cmip6$tas.diff <- cmip6$tas-cmip6$tas.ref
 cmip6$pr.diff <- cmip6$pr-cmip6$pr.ref
-cmip6$pr.per <- cmip6$pr/cmip6$pr.ref-1
+cmip6$pr.per <- cmip6$pr/cmip6$pr.ref
 summary(cmip6)
 
 cmip6Agg <- aggregate(cbind(pr, tas, tas.ref, pr.ref, tas.diff, pr.diff, pr.per) ~ ISOURBID + NAME + LATITUDE + LONGITUDE + Scenario + Time, data=cmip6, FUN=mean)
@@ -109,7 +109,7 @@ ggplot(data=cmip6Agg[cmip6Agg$Time!=2020,]) +
   facet_grid(Time~Scenario)+
   geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
   geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
-  coord_map("merc") +
+  coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=tas.diff), size=0.25, alpha=0.8) +
   scale_color_stepsn(name="Temp Change", colors=grad.temp, limits=c(-4.5, 4.5), n.breaks=13) +
@@ -117,7 +117,7 @@ ggplot(data=cmip6Agg[cmip6Agg$Time!=2020,]) +
         legend.title=element_text(color="black", face="bold"),
         legend.text=element_text(color="black"),
         legend.background=element_blank(),
-        legend.key.width = unit(2, "lines"),
+        legend.key.width = unit(4, "lines"),
         # legend.key.height = unit(1.5, "lines"),
         axis.ticks=element_blank(),
         axis.text=element_blank(),
@@ -132,9 +132,8 @@ ggplot(data=cmip6Agg[cmip6Agg$Time!=2020,]) +
   geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
   # coord_map("merc") +
   coord_map("moll") +
-  
   expand_limits(x = world$long, y = world$lat) +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=pr.per), size=0.25, alpha=0.8) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=pr.per-1), size=0.25, alpha=0.8) +
   scale_color_stepsn(name="Precip Change", colors=grad.prcp, limits=c(-0.8, 0.8), n.breaks=13) + # Using breaks from IPCC AR6 figures
   theme(legend.position="top",
         legend.title=element_text(color="black", face="bold"),
