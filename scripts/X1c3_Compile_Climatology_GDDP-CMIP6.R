@@ -3,13 +3,13 @@
 library(raster)
 library(ggplot2); library(RColorBrewer); library(cowplot)
 
-
+overwrite=T
 ###########################################
 # Establish file paths etc ----
 ###########################################
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
-path.cities <- file.path(path.google)
+# path.cities <- file.path(path.google)
 path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_GDDP-CMIP6")
 
 
@@ -40,7 +40,7 @@ world <- map_data("world")
 # Read in Data; do some cleanup ----
 # ##########################################
 # Reading in our old, full dataset
-cityAll.stats <- read.csv(file.path(path.cities, "city_stats_all.csv"))
+cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
 summary(as.factor(cityAll.stats$biome))
 
 cityAll.stats$biomeName <- car::recode(cityAll.stats$biome, 
@@ -68,8 +68,8 @@ modsCMIP6 = c('ACCESS-CM2', 'ACCESS-ESM1-5', 'BCC-CSM2-MR', 'CESM2', 'CESM2-WACC
 modsCMIP6 <- gsub("-", ".", modsCMIP6)
 
 climCombos <- data.frame(Var1=c("tas", "pr"), Var2="historical", Var3=2014)
-climCombos <- rbind(climCombos, expand.grid(c("tas", "pr"), c("ssp45", "ssp85"), c("2020", "2050", "2100")))
-names(climCombos) <- c("Var", "Sceanrio", "Time")
+climCombos <- rbind(climCombos, expand.grid(c("tas", "pr"), c("ssp245", "ssp585"), c("2020", "2050", "2100")))
+names(climCombos) <- c("Var", "Scenario", "Time")
 cityAllCMIP6 <- merge(cityAll.stats[,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE")], climCombos, all=T)
 cityAllCMIP6[,modsCMIP6] <- NA
 dim(cityAllCMIP6)
@@ -78,6 +78,12 @@ head(cityAllCMIP6)
 
 f.cmip6 <- dir(path.raw, "CMIP6")
 head(f.cmip6)
+
+if(overwrite=F) cityAllCMIP6 <- read.csv(file.path(path.cities, "city_stats_all_CMIP6_wide.csv"));
+cityAllCMIP6$Var <- as.factor(cityAllCMIP6$Var)
+cityAllCMIP6$Scenario <- as.factor(cityAllCMIP6$Scenario)
+cityAllCMIP6$Time <- as.factor(cityAllCMIP6$Time)
+summary(cityAllCMIP6)
 
 pb <- txtProgressBar(0, nrow(cityAllCMIP6), style=3)
 pbInd = 0
@@ -89,6 +95,9 @@ for(CITY in unique(cityAllCMIP6$ISOURBID)){
   if(length(fCity)==0) next 
   
   for(j in 1:length(fCity)){
+    pbInd = pbInd+1
+    setTxtProgressBar(pb, pbInd)
+    
     fNow <- fCity[j]
     fsplit <- strsplit(fNow, "_")[[1]]
     scenNow <- fsplit[3]
@@ -96,11 +105,14 @@ for(CITY in unique(cityAllCMIP6$ISOURBID)){
     varNow <- strsplit(fsplit[5], "[.]")[[1]][1]
     if(scenNow=="historical") yrNow = 2014
     
-    rowInd <- which(cityAllCMIP6$ISOURBID==CITY & cityAllCMIP6$Var==varNow & cityAllCMIP6$Sceanrio==scenNow & cityAllCMIP6$Time==yrNow)
+    rowInd <- which(cityAllCMIP6$ISOURBID==CITY & cityAllCMIP6$Var==varNow & cityAllCMIP6$Scenario==scenNow & cityAllCMIP6$Time==yrNow)
+    
+    if(length(rowInd)==0) next
+    if(any(!is.na(cityAllCMIP6[rowInd,modsCMIP6]))) next
     
     cityClim <- raster::stack(file.path(path.raw, fNow))
     gcmNames <- names(cityClim)
-    gcmMeans <- apply(as.array(cityClim), 3, FUN=mean)
+    gcmMeans <- apply(as.array(cityClim), 3, FUN=mean, na.rm=T)
     names(gcmMeans) <- gcmNames
     # gcmMeans
     
@@ -111,8 +123,8 @@ for(CITY in unique(cityAllCMIP6$ISOURBID)){
     
     rm(cityClim)
     
-    pbInd = pbInd+1
-    setTxtProgressBar(pb, pbInd)
+    write.csv(cityAllCMIP6, file.path(path.google, "city_stats_all_CMIP6_wide.csv"), row.names=F)
+
   }
   # plot(cityClim)
   
@@ -123,5 +135,3 @@ for(CITY in unique(cityAllCMIP6$ISOURBID)){
 summary(cityAllCMIP6)
 head(cityAllCMIP6)
 
-
-write.csv(cityAllCMIP6, file.path(path.cities, "city_stats_all_ET-Clim.csv"), row.names=F)
