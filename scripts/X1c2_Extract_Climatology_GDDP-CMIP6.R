@@ -127,23 +127,23 @@ length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
 # historical; current ----
 #######
 # # If we're not trying to overwrite our files, remove files that were already done
-# cityRemove <- vector()
-# if(!overwrite){
-#   ### Filter out sites that have been done!
-#   gldas.done <- dir(file.path(path.google, GoogleFolderSave), "CMIP6_historical_2001")
-#   
-#   # Check to make sure a city has all three layers; if it doesn't do it again
-#   cityRemove <- unlist(lapply(strsplit(gldas.done, "_"), function(x){x[1]}))
-#   
-#   cityIdS.Hist <- cityIdS[!cityIdS %in% cityRemove]
-#   cityIdNW.Hist <- cityIdNW[!cityIdNW %in% cityRemove]
-#   cityIdNE1.Hist <- cityIdNE1[!cityIdNE1 %in% cityRemove]
-#   cityIdNE2.Hist <- cityIdNE2[!cityIdNE2 %in% cityRemove]
-#   
-# } # End remove cities loop
-# length(cityIdS.Hist); length(cityIdNW.Hist); length(cityIdNE1.Hist); length(cityIdNE2.Hist)
-# # grep("ISL1285", cityRemove)
-# # grep("ISL1285", cityIdS.Hist)
+cityRemove <- vector()
+if(!overwrite){
+  ### Filter out sites that have been done!
+  gldas.done <- dir(file.path(path.google, GoogleFolderSave), "CMIP6_historical_2001")
+
+  # Check to make sure a city has all three layers; if it doesn't do it again
+  cityRemove <- unlist(lapply(strsplit(gldas.done, "_"), function(x){x[1]}))
+
+  cityIdS.Hist <- cityIdS[!cityIdS %in% cityRemove]
+  cityIdNW.Hist <- cityIdNW[!cityIdNW %in% cityRemove]
+  cityIdNE1.Hist <- cityIdNE1[!cityIdNE1 %in% cityRemove]
+  cityIdNE2.Hist <- cityIdNE2[!cityIdNE2 %in% cityRemove]
+
+} # End remove cities loop
+length(cityIdS.Hist); length(cityIdNW.Hist); length(cityIdNE1.Hist); length(cityIdNE2.Hist)
+# grep("ISL1285", cityRemove)
+# grep("ISL1285", cityIdS.Hist)
 # 
 # # Running a test case
 # # CITY = "SWE3477"
@@ -231,23 +231,22 @@ if(!overwrite){
 length(cityIdS.45.2050); length(cityIdNW.45.2050); length(cityIdNE1.45.2050); length(cityIdNE2.45.2050)
 
 
+# if(length(cityIdS.45.2050)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.45.2050, collName="GDDP-CMIP6_JanFeb", scenario="ssp245", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
-if(length(cityIdS.45.2050)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.45.2050, collName="GDDP-CMIP6_JanFeb", scenario="ssp245", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
 
+# if(length(cityIdNW.45.2050)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.45.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
-if(length(cityIdNW.45.2050)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.45.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNE1.45.2050)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.45.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
-if(length(cityIdNE1.45.2050)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.45.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
-
-if(length(cityIdNE2.45.2050)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.45.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNE2.45.2050)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.45.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 #######
 
 
@@ -272,29 +271,22 @@ if(!overwrite){
 length(cityIdS.45.2100); length(cityIdNW.45.2100); length(cityIdNE1.45.2100); length(cityIdNE2.45.2100)
 
 
-# Running a test case
-# CITY = "SWE3477"
-# extractVeg(CitySP=citiesUse, CityNames = CITY, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-# testTree <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_Vegetation_PercentTree.tif")))
-# plot(testTree[[1]])
+# if(length(cityIdS.45.2100)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.45.2100, collName="GDDP-CMIP6_JanFeb", scenario="ssp245", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
 
-if(length(cityIdS.45.2100)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.45.2100, collName="GDDP-CMIP6_JanFeb", scenario="ssp245", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNW.45.2100)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.45.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
-
-if(length(cityIdNW.45.2100)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.45.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
-
-if(length(cityIdNE1.45.2100)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.45.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
-
-if(length(cityIdNE2.45.2100)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.45.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNE1.45.2100)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.45.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
+# 
+# if(length(cityIdNE2.45.2100)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.45.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp245", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 #######
 
 
@@ -320,22 +312,22 @@ length(cityIdS.85.2020); length(cityIdNW.85.2020); length(cityIdNE1.85.2020); le
 
 
 
-if(length(cityIdS.85.2020)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.85.2020, collName="GDDP-CMIP6_JanFeb", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdS.85.2020)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.85.2020, collName="GDDP-CMIP6_JanFeb", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
 
-if(length(cityIdNW.85.2020)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.85.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
-
-if(length(cityIdNE1.85.2020)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.85.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
-
-if(length(cityIdNE2.85.2020)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.85.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNW.85.2020)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.85.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
+# 
+# if(length(cityIdNE1.85.2020)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.85.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
+# 
+# if(length(cityIdNE2.85.2020)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.85.2020, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="current", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 #######
 
 
@@ -361,22 +353,22 @@ length(cityIdS.85.2050); length(cityIdNW.85.2050); length(cityIdNE1.85.2050); le
 
 
 
-if(length(cityIdS.85.2050)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.85.2050, collName="GDDP-CMIP6_JanFeb", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdS.85.2050)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.85.2050, collName="GDDP-CMIP6_JanFeb", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
 
-if(length(cityIdNW.85.2050)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.85.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNW.85.2050)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.85.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
-if(length(cityIdNE1.85.2050)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.85.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNE1.85.2050)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.85.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
-if(length(cityIdNE2.85.2050)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.85.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNE2.85.2050)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.85.2050, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="midcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 #######
 
 
@@ -401,18 +393,18 @@ if(!overwrite){
 length(cityIdS.85.2100); length(cityIdNW.85.2100); length(cityIdNE1.85.2100); length(cityIdNE2.85.2100)
 
 
-if(length(cityIdS.85.2100)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.85.2100, collName="GDDP-CMIP6_JanFeb", scenario="ssp585", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdS.85.2100)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdS.85.2100, collName="GDDP-CMIP6_JanFeb", scenario="ssp585", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
 
-if(length(cityIdNW.85.2100)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.85.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNW.85.2100)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNW.85.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
-if(length(cityIdNE1.85.2100)>0){
-  extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.85.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-}
+# if(length(cityIdNE1.85.2100)>0){
+#   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE1.85.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# }
 
 if(length(cityIdNE2.85.2100)>0){
   extractCMIP6(CitySP=citiesUse, CityNames = cityIdNE2.85.2100, collName="GDDP-CMIP6_JulAug", scenario="ssp585", timeframe="endcentury", GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
