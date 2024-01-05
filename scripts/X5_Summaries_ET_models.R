@@ -3,6 +3,7 @@ library(ggplot2)
 
 # Script to synthesize the results from all of the individual city models ----
 library(ggplot2); library(RColorBrewer); library(cowplot)
+library(raster)
 # path.figs <- "../figures/v6_vegonly"
 
 
@@ -158,15 +159,15 @@ head(cityAll.ET[is.na(cityAll.ET$ET.GLDAS),])
 cityAll.ET$ETpred.Precip <- cityAll.ET$ETpred.mean/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
 cityAll.ET$ETgldas.Precip <- cityAll.ET$ET.GLDAS/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
 summary(cityAll.ET)
-nee
-write.csv(cityAll.ET, file.path(path.cities, "city_stats_all_ET-Clim.csv"), row.names=F)
+
+write.csv(cityAll.ET, file.path(path.cities, "city_stats_all_ET-GLDAS.csv"), row.names=F)
 # ##########################################
 
 
 # ##########################################
 # Do some data exploration ----
 # ##########################################
-cityAll.ET <- read.csv(file.path(path.cities, "city_stats_all_ET-Clim.csv"))
+cityAll.ET <- read.csv(file.path(path.cities, "city_stats_all_ET-GLDAS.csv"))
 
 plot(ETobs.mean ~ ETpred.mean, data=cityAll.ET); abline(a=0, b=1, col="red")
 plot(ETobs.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
@@ -185,3 +186,4 @@ ggplot(data=cityAll.ET) +
 # How frequently doe
 length(which(cityAll.ET$ETpred.Precip<1))/length(which(!is.na(cityAll.ET$ETpred.Precip)))
 length(which(cityAll.ET$ETgldas.Precip<1))/length(which(!is.na(cityAll.ET$ETgldas.Precip)))
+
