@@ -4,7 +4,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -288,7 +288,7 @@ for(CITY in citiesAnalyze){
   
   # Doing some conversion etc
   valsCity$year <- as.numeric(substr(valsCity$year, 3, 6))
-  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & !is.na(valsCity$ET),] # NOTE: getting rid of years >2014
+  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & valsCity$year<=max(valsCity$year[!is.na(valsCity$ET)]),] # NOTE: getting rid of years >2014
   summary(valsCity)
   
   if(length(unique(valsCity$location[!is.na(valsCity$ET)]))<50){
