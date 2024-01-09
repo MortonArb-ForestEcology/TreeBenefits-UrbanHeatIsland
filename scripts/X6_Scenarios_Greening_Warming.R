@@ -17,6 +17,7 @@ library(tidyr)
 library(ggplot2); library(RColorBrewer); library(cowplot)
 library(ggalt); library(sf)
 library(mapproj)
+library(scales)
 
 path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google, "data_processed_final")
@@ -57,7 +58,10 @@ summary(StatsCombined)
 
 cityAll.ET <- read.csv(file.path(path.google, "city_stats_all_ET-GLDAS.csv"))
 cityAll.ET$ETpixels.prop <- cityAll.ET$n.pixels.ET/cityAll.ET$n.pixels
+cityAll.ET$ET.cv <- cityAll.ET$ETobs.sd/(cityAll.ET$ETobs.max - cityAll.ET$ETobs.min)
+summary(cityAll.ET)
 
+plot(ETmodel.R2adj ~ ET.cv, data=cityAll.ET)
 
 biome.order <- aggregate(Tmean.GLDAS ~ biomeName, data=cityAll.ET, FUN=mean)
 biome.order <- biome.order[order(biome.order$Tmean.GLDAS),]
@@ -76,9 +80,38 @@ nrow(cityAll.ET); nrow(StatsCombined)
 hist(cityAll.ET$ETpixels.prop)
 
 
+summary(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2,])
+head(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="USA",])
+head(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
+tail(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
+
 length(which(cityAll.ET$ETpred.Precip<2))
 nrow(cityAll.ET)
 hist(cityAll.ET$ETpred.Precip[cityAll.ET$ETpred.Precip<2])
+
+world <- map_data("world"); 
+world <- world[!world$long>180,]
+grad.modfit <- c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177", "#49006a")
+
+ggplot(data=cityAll.ET[,]) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  # coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=ETmodel.R2adj), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="ET model R2-adj", colors=grad.modfit, n.breaks=13, oob=squish) +
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
 
 etR2 <- ggplot(data=cityAll.ET[,]) +
   geom_histogram(aes(x=ETmodel.R2adj, fill=biomeName)) +
