@@ -98,6 +98,20 @@ cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
 cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj) & cityAll.ET$ETobs.max>1,] # get rid of anything we didn't model or that has a very low range of ET
 summary(cityAll.ET)
 
+# Original dataset without the year intercept
+cityAll.ETOrig <- read.csv(file.path(path.cities, "city_stats_all_ET_v1_2023-12-20.csv"))
+# cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
+cityAll.ETOrig <- cityAll.ETOrig[cityAll.ETOrig$ISOURBID %in% cityAll.ET$ISOURBID,] # get rid of anything we didn't model or that has a very low range of ET
+summary(cityAll.ETOrig)
+
+summary(cityAll.ETOrig[,c("ISOURBID", "ETmodel.R2adj", "ETmodel.RMSE")])
+summary(cityAll.ET[,c("ISOURBID", "ETmodel.R2adj", "ETmodel.RMSE")])
+plot(cityAll.ET$ETmodel.R2adj ~ cityAll.ETOrig$ETmodel.R2adj); abline(a=0, b=1, col="red2")
+
+par(mfrow=c(2,2))
+hist(cityAll.ETOrig$ETmodel.R2adj, xlim=c(0,1), main="Original R2"); hist(cityAll.ETOrig$ETmodel.RMSE, xlim=c(0,1.5), main="Original RMSE")
+hist(cityAll.ET$ETmodel.R2adj, xlim=c(0,1), main="New R2"); hist(cityAll.ET$ETmodel.RMSE,  xlim=c(0,1.5), main="New RMSE"); par(mfrow=c(1,1))
+
 cityAll.stats <- cityAll.stats[cityAll.stats$ISOURBID %in% cityAll.ET$ISOURBID[!is.na(cityAll.ET$ETmodel.R2adj)],]
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),9:25])
 summary(cityAll.stats)
