@@ -4,13 +4,13 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3/ET_models")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3/ET_models_v2")
 
 if(!dir.exists(path.cities)) dir.create(path.cities, recursive=T, showWarnings = F)
 file.cityStatsET <- file.path(path.cities, "../city_stats_all_ET.csv")
@@ -101,6 +101,9 @@ length(citiesAnalyze)
 for(CITY in citiesAnalyze){
   # # Good Test Cities: Sydney (AUS66430)
   # CITY="AUS66430"; CITY="USA26687"
+  # # Cities with poor R2: USA34146; IND55394; IND44003
+  # CITY="USA34146"
+  
   row.city <- which(cityStatsET$ISOURBID==CITY)
   print(CITY)
   # citySP <- sdei.urb[sdei.urb$ISOURBID==CITY, ]
@@ -122,6 +125,9 @@ for(CITY in citiesAnalyze){
   treeCity <- brick(file.path(path.EEout, fTREE[length(fTREE)]))
   vegCity <- brick(file.path(path.EEout, fVEG[length(fVEG)]))
   etCity <- brick(file.path(path.EEout, fET[length(fET)]))/8
+  
+  # Calculating some additional
+  
   
   # par(mfrow=c(1,2))
   # plot(elevCity); plot(maskCity)
@@ -278,10 +284,11 @@ for(CITY in citiesAnalyze){
   }
   
   summary(valsCity)
+
   
   # Doing some conversion etc
   valsCity$year <- as.numeric(substr(valsCity$year, 3, 6))
-  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree),]
+  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & valsCity$year<=max(valsCity$year[!is.na(valsCity$ET)]),] # NOTE: getting rid of years >2014
   summary(valsCity)
   
   if(length(unique(valsCity$location[!is.na(valsCity$ET)]))<50){
@@ -332,9 +339,34 @@ for(CITY in citiesAnalyze){
   
   
   # having the year factor means we can't predict ET without knowing a regional mean --> 
-  modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(LST_Day) + s(x,y), data=valsCity)
+  modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(LST_Day) + s(x,y) + as.factor(year)-1, data=valsCity)
   sum.modETCity <- summary(modETCity)
-
+  # sum.modETCity$p.coeff
+  # sum.modETCity
+  # par(mfrow=c(2,2))
+  # plot(modETCity)
+  # par(mfrow=c(1,1))
+  
+  # modETCity0 <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(LST_Day) + s(x,y), data=valsCity)
+  # sum.modETCity0 <- summary(modETCity0)
+  # sum.modETCity0
+  # par(mfrow=c(2,2))
+  # plot(modETCity0)
+  # par(mfrow=c(1,1))
+  
+  
+  # Also testing things on the aggregated values; lets save this just in case
+  aggCity <- aggregate(cbind(ET, cover.tree, cover.veg, LST_Day) ~ x + y, data=valsCity, FUN=mean, na.rm=T)
+  
+  modETCityAgg <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(LST_Day) + s(x,y), data=aggCity)
+  sum.modETCityAgg <- summary(modETCityAgg)
+  # sum.modETCityAgg
+  # par(mfrow=c(2,2))
+  # plot(modETCityAgg)
+  # par(mfrow=c(1,1))
+  
+  
+  
   valsCity$ET.pred <- predict(modETCity, newdata=valsCity)^2 # Shifting to the newdata version to predict for where we have missing data
   valsCity$ET.resid <- valsCity$ET - valsCity$ET.pred # Hand-calculating te residuals... gives the same thing, but hopefully a bit faster
   
@@ -351,7 +383,14 @@ for(CITY in citiesAnalyze){
   cityStatsET$ETmodel.RMSE[row.city] <- sqrt(mean(valsCity$ET.resid^2, na.rm=T))
   
   
-  save(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_gam.RData")))
+  saveRDS(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))
+  saveRDS(sum.modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))
+  
+  # Save the aggreagte model as well just in case
+  write.csv(aggCity, file=file.path(path.cities, CITY, paste0(CITY, "_ET_means.csv")), row.names=F)
+  saveRDS(modETCityAgg, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_means_gam.rds")))
+  saveRDS(sum.modETCityAgg, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_means_gam-summary.rds")))
+  
   # par(mfrow=c(1,1)); plot(modETCity)
   
   png(file.path(path.cities, CITY, paste0(CITY, "ET_GAM_qaqc.png")), height=6, width=9, units="in", res=120)
