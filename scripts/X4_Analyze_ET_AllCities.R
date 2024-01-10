@@ -288,7 +288,16 @@ for(CITY in citiesAnalyze){
   
   # Doing some conversion etc
   valsCity$year <- as.numeric(substr(valsCity$year, 3, 6))
-  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & valsCity$year %in% unique(valsCity$year[!is.na(valsCity$ET)]),] # NOTE: getting rid of years >2014
+  
+  yrsCityET <- unique(valsCity$year[!is.na(valsCity$ET)])
+  if(length(yrsCityET)<5){
+    # # (Note all cities before NGA56716 alphabetically need to be checked for this criteria
+    print(warning("ET data available for fewer than 5 years, Need to skip it.") )
+    cityStatsET$ETmodel.R2adj[row.city] <- -9999
+     
+    next 
+  }
+  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & valsCity$year %in% yrsCityET,] # NOTE: getting rid of years >2014
   summary(valsCity)
   
   if(length(unique(valsCity$location[!is.na(valsCity$ET)]))<50){
