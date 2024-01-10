@@ -288,7 +288,7 @@ for(CITY in citiesAnalyze){
   
   # Doing some conversion etc
   valsCity$year <- as.numeric(substr(valsCity$year, 3, 6))
-  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & valsCity$year<=max(valsCity$year[!is.na(valsCity$ET)]),] # NOTE: getting rid of years >2014
+  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & valsCity$year %in% unique(valsCity$year[!is.na(valsCity$ET)]),] # NOTE: getting rid of years >2014
   summary(valsCity)
   
   if(length(unique(valsCity$location[!is.na(valsCity$ET)]))<50){
