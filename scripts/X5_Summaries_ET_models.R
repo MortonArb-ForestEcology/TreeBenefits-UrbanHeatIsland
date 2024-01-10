@@ -3,7 +3,7 @@ library(ggplot2)
 
 # Script to synthesize the results from all of the individual city models ----
 library(ggplot2); library(RColorBrewer); library(cowplot)
-library(raster)
+library(raster); library(tidyr); library(scales)
 # path.figs <- "../figures/v6_vegonly"
 
 
@@ -93,8 +93,8 @@ summary(cityAll.stats)
 
 
 # Reading in our ET dataset
-# cityAll.ET <-  read.csv(file.path(path.google, "city_stats_all_ET.csv"))
-cityAll.ET <- read.csv("~/Desktop/city_stats_all_ET.csv") # read.csv(file.path(path.google, "city_stats_all_ET.csv"))
+cityAll.ET <-  read.csv(file.path(path.google, "city_stats_all_ET.csv"))
+# cityAll.ET <- read.csv("~/Desktop/city_stats_all_ET.csv") # read.csv(file.path(path.google, "city_stats_all_ET.csv"))
 cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
 cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj) & cityAll.ET$ETobs.max>1,] # get rid of anything we didn't model or that has a very low range of ET
 summary(cityAll.ET)
@@ -107,12 +107,21 @@ summary(cityAll.ETOrig)
 
 summary(cityAll.ETOrig[,c("ISOURBID", "ETmodel.R2adj", "ETmodel.RMSE")])
 summary(cityAll.ET[,c("ISOURBID", "ETmodel.R2adj", "ETmodel.RMSE")])
+summary(cityAll.ET$ETmodel.R2adj - cityAll.ETOrig$ETmodel.R2adj)
+hist(cityAll.ET$ETmodel.R2adj - cityAll.ETOrig$ETmodel.R2adj)
+hist(cityAll.ET$ETmodel.RMSE - cityAll.ETOrig$ETmodel.RMSE)
+
 plot(cityAll.ET$ETmodel.R2adj ~ cityAll.ETOrig$ETmodel.R2adj); abline(a=0, b=1, col="red2")
 plot(cityAll.ET$ETmodel.RMSE ~ cityAll.ETOrig$ETmodel.RMSE); abline(a=0, b=1, col="red2")
 
 par(mfrow=c(2,2))
 hist(cityAll.ETOrig$ETmodel.R2adj, xlim=c(0,1), main="Original R2"); hist(cityAll.ETOrig$ETmodel.RMSE, xlim=c(0,1.5), main="Original RMSE")
 hist(cityAll.ET$ETmodel.R2adj, xlim=c(0,1), main="New R2"); hist(cityAll.ET$ETmodel.RMSE,  xlim=c(0,1.5), main="New RMSE"); par(mfrow=c(1,1))
+
+length(which(cityAll.ET$ETmodel.R2adj<0.33))/nrow(cityAll.ET); length(which(cityAll.ETOrig$ETmodel.R2adj<0.33))/nrow(cityAll.ETOrig)
+length(which(cityAll.stats$LSTmodel.R2adj<0.33))/nrow(cityAll.stats)
+summary(cityAll.stats[,c("ISOURBID", "LSTmodel.R2adj")])
+
 
 cityAll.stats <- cityAll.stats[cityAll.stats$ISOURBID %in% cityAll.ET$ISOURBID[!is.na(cityAll.ET$ETmodel.R2adj)],]
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),9:25])
@@ -139,6 +148,147 @@ write.csv(cityAll.ET, file.path(path.google, "city_stats_all_ET-GLDAS.csv"), row
 # Do some data exploration ----
 # ##########################################
 cityAll.ET <- read.csv(file.path(path.google, "city_stats_all_ET-GLDAS.csv"))
+
+
+length(which(cityAll.ET$Precip.GLDAS<0.01))
+length(which(cityAll.ET$ETpixels.prop<0.75))
+
+cityAll.ET <- cityAll.ET[cityAll.ET$ISOURBID %in% StatsCombined$ISOURBID & cityAll.ET$Precip.GLDAS>=0.01 & cityAll.ET$ETpixels.prop>=0.75,]
+summary(cityAll.ET)
+nrow(cityAll.ET); nrow(StatsCombined)
+
+hist(cityAll.ET$ETpixels.prop)
+
+
+summary(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2,])
+head(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="USA",])
+head(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
+tail(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
+
+length(which(cityAll.ET$ETpred.Precip<2))
+nrow(cityAll.ET)
+hist(cityAll.ET$ETpred.Precip[cityAll.ET$ETpred.Precip<2])
+
+
+world <- map_data("world"); 
+world <- world[!world$long>180,]
+grad.modfit <- c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177", "#49006a")
+
+ggplot(data=cityAll.ET[,]) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=ETmodel.R2adj), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="ET model R2-adj", colors=grad.modfit, n.breaks=13, oob=squish) +
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+
+etR2 <- ggplot(data=cityAll.ET[,]) +
+  geom_histogram(aes(x=ETmodel.R2adj, fill=biomeName)) +
+  scale_fill_manual(values=biome.pall.all) +
+  guides(fill="none") +
+  theme_bw()
+
+etR2
+
+etRMSE <- ggplot(data=cityAll.ET[,]) +
+  geom_histogram(aes(x=ETmodel.RMSE, fill=biomeName)) +
+  scale_fill_manual(values=biome.pall.all) +
+  guides(fill="none") +
+  theme_bw() 
+etRMSE
+
+# ############## 
+# Trying to better contextualize our RMSE 
+# https://www.marinedatascience.co/blog/2019/01/07/normalizing-the-rmse/
+# ############## 
+# THis *might* be called a "scatter index" --> metric of RMSE relative to mean value
+# https://www.marinedatascience.co/blog/2019/01/07/normalizing-the-rmse/
+etRMSEmean <- ggplot(data=cityAll.ET[,]) +
+  geom_histogram(aes(x=ETmodel.RMSE/ETobs.mean, fill=biomeName)) +
+  scale_fill_manual(values=biome.pall.all) +
+  guides(fill="none") +
+  theme_bw() 
+etRMSEmean
+
+# If the NRMSE is further categorized into let’s say low, medium or high performance, using the standard deviation to normalize could be a good option for the following reason: The sd-based NRMSE represent the ratio between the variation not explained by the regression vs the overall variation in Y. If the regression explains all of the variation in Y, nothing gets unexplained and the RMSE, and consequently NRMSE is zero. **If the regression explains some part and leaves some other unexplained, which is at a similar scale than the overall variation, the ratio will be around 1.** Anything beyond will indicate a much greater variation or noise than in the variable itself and consequently a low predictability.
+etRMSEsd <- ggplot(data=cityAll.ET[,]) +
+  geom_histogram(aes(x=ETmodel.RMSE/ETobs.sd, fill=biomeName)) +
+  scale_fill_manual(values=biome.pall.all) +
+  guides(fill="none") +
+  theme_bw() 
+etRMSEsd
+# ############## 
+png(file.path(path.figs, "ETmodel_PerformanceSummaries.png"), height=8, width=8, units="in", res=320)
+cowplot::plot_grid(etR2, etRMSE, etRMSEmean, etRMSEsd, ncol=2)
+dev.off()
+
+modisET <- ggplot(data=cityAll.ET) +
+  # coord_equal() +
+  geom_point(aes(x=ETpred.mean, y=ETobs.mean, color=biomeName)) +
+  geom_abline(slope=1, intercept=0) +
+  annotate(geom="text", x=c(0.25, 4.75), y=c(4.5, 0.5), label=c("Observed (MODIS) higher", "Predicted higher"), hjust=c(0, 1)) +
+  scale_color_manual(values=biome.pall.all) +
+  theme_bw() +
+  theme(legend.position="top")
+
+gldasET <- ggplot(data=cityAll.ET) +
+  # coord_equal() +
+  geom_point(aes(x=ETpred.mean, y=ET.GLDAS, color=biomeName)) +
+  geom_abline(slope=1, intercept=0) +
+  annotate(geom="text", x=c(0.25, 4.75), y=c(4.5, 0.5), label=c("GLDAS (27 km) higher", "Predicted (1 km) higher"), hjust=c(0, 1)) +
+  scale_color_manual(values=biome.pall.all) +
+  theme_bw() +
+  theme(legend.position="top")
+
+png(file.path(path.figs, "ETmodel_ValidationSummaries.png"), height=8, width=8, units="in", res=320)
+cowplot::plot_grid(modisET, gldasET, ncol=1)
+dev.off()
+
+
+
+plotET <- ggplot(data=cityAll.ET[,]) +
+  geom_violin(aes(x=biomeName, y=ETpred.mean, fill=biomeName), scale="width") +
+  scale_fill_manual(values=biome.pall.all) +
+  labs(y="Estimated ET (kg/m2/day)", x="Biome") +
+  guides(fill="none") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
+plotPrecip <-  ggplot(data=cityAll.ET[,]) +
+  geom_violin(aes(x=biomeName, y=Precip.GLDAS, fill=biomeName), scale="width") +
+  scale_fill_manual(values=biome.pall.all) +
+  labs(y="GLDAS Precip (kg/m2/day)", x="Biome") +
+  guides(fill="none") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
+plotRatio <- ggplot(data=cityAll.ET[,]) +
+  coord_cartesian(ylim=c(0,2.5), expand=0) +
+  geom_violin(aes(x=biomeName, y=ETpred.Precip, fill=biomeName), scale="width") +
+  geom_hline(yintercept=1, linetype="dashed") +
+  annotate(geom="text", x=1.25, y=c(0.1, 1.9), label=c("Precip Surplus", "Precip Deficit"), hjust=0) +
+  scale_fill_manual(values=biome.pall.all) +
+  labs(y="ET/Precip", x="Biome") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
+plotInputs <- cowplot::plot_grid(plotET, plotPrecip, ncol=1)
+
+png(file.path(path.figs, "ETmodel_ET_vs_Precip_Current.png"), height=8, width=10, units="in", res=320)
+cowplot::plot_grid(plotInputs, plotRatio, ncol=2, rel_widths=c(0.25, 0.75))
+dev.off()
 
 plot(ETobs.mean ~ ETpred.mean, data=cityAll.ET); abline(a=0, b=1, col="red")
 plot(ETobs.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
