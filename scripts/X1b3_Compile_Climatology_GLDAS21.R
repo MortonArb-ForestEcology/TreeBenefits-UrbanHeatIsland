@@ -25,11 +25,11 @@ summary(cityAllClim)
 f.gldas <- dir(path.raw, "GLDAS")
 head(f.gldas)
 
-pb <- txtProgressBar(0, nrow(CityAllClim), style=3)
-for(i in 1:nrow(CityAllClim)){
+pb <- txtProgressBar(0, nrow(cityAllClim), style=3)
+for(i in 1:nrow(cityAllClim)){
   setTxtProgressBar(pb, i)
   
-  CITY <- CityAllClim$ISOURBID[i]
+  CITY <- cityAllClim$ISOURBID[i]
   fCity <- grep(CITY, f.gldas)
   
   if(length(fCity)==0) next 
@@ -48,24 +48,19 @@ for(i in 1:nrow(CityAllClim)){
   if(length(etNow)==0) next
   
   if(length(etNow)==1){
-    CityAllClim$ET.GLDAS[i] <- etNow
-    CityAllClim$Precip.GLDAS[i] <- precipNow
-    CityAllClim$Tmean.GLDAS[i] <- tempNow
+    cityAllClim$ET.GLDAS[i] <- etNow
+    cityAllClim$Precip.GLDAS[i] <- precipNow
+    cityAllClim$Tmean.GLDAS[i] <- tempNow
   } else {
-    CityAllClim$ET.GLDAS[i] <- mean(etNow)
-    CityAllClim$Precip.GLDAS[i] <- mean(precipNow)
-    CityAllClim$Tmean.GLDAS[i] <- mean(tempNow)
+    cityAllClim$ET.GLDAS[i] <- mean(etNow)
+    cityAllClim$Precip.GLDAS[i] <- mean(precipNow)
+    cityAllClim$Tmean.GLDAS[i] <- mean(tempNow)
   }
   
   rm(cityClim)
   
 }
-summary(CityAllClim)
-head(CityAllClim[is.na(CityAllClim$ET.GLDAS),])
+summary(cityAllClim)
+head(cityAllClim[is.na(cityAllClim$ET.GLDAS),])
 
-# Comparing our predicted and Observed ET vs precip
-CityAllClim$ETpred.Precip <- CityAllClim$ETpred.mean/CityAllClim$Precip.GLDAS # less than 1 means more precip than used by veg
-CityAllClim$ETgldas.Precip <- CityAllClim$ET.GLDAS/CityAllClim$Precip.GLDAS # less than 1 means more precip than used by veg
-summary(CityAllClim)
-
-write.csv(CityAllClim, file.path(path.google, "city_stats_all_GLDAS21_climatology_2001-2020.csv"), row.names=F)
+write.csv(cityAllClim, file.path(path.google, "city_stats_all_GLDAS21_climatology_2001-2020.csv"), row.names=F)

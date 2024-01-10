@@ -99,30 +99,6 @@ cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
 cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj) & cityAll.ET$ETobs.max>1,] # get rid of anything we didn't model or that has a very low range of ET
 summary(cityAll.ET)
 
-# Original dataset without the year intercept
-cityAll.ETOrig <- read.csv(file.path(path.google, "city_stats_all_ET_v1_2023-12-20.csv"))
-# cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
-cityAll.ETOrig <- cityAll.ETOrig[cityAll.ETOrig$ISOURBID %in% cityAll.ET$ISOURBID,] # get rid of anything we didn't model or that has a very low range of ET
-summary(cityAll.ETOrig)
-
-summary(cityAll.ETOrig[,c("ISOURBID", "ETmodel.R2adj", "ETmodel.RMSE")])
-summary(cityAll.ET[,c("ISOURBID", "ETmodel.R2adj", "ETmodel.RMSE")])
-summary(cityAll.ET$ETmodel.R2adj - cityAll.ETOrig$ETmodel.R2adj)
-hist(cityAll.ET$ETmodel.R2adj - cityAll.ETOrig$ETmodel.R2adj)
-hist(cityAll.ET$ETmodel.RMSE - cityAll.ETOrig$ETmodel.RMSE)
-
-plot(cityAll.ET$ETmodel.R2adj ~ cityAll.ETOrig$ETmodel.R2adj); abline(a=0, b=1, col="red2")
-plot(cityAll.ET$ETmodel.RMSE ~ cityAll.ETOrig$ETmodel.RMSE); abline(a=0, b=1, col="red2")
-
-par(mfrow=c(2,2))
-hist(cityAll.ETOrig$ETmodel.R2adj, xlim=c(0,1), main="Original R2"); hist(cityAll.ETOrig$ETmodel.RMSE, xlim=c(0,1.5), main="Original RMSE")
-hist(cityAll.ET$ETmodel.R2adj, xlim=c(0,1), main="New R2"); hist(cityAll.ET$ETmodel.RMSE,  xlim=c(0,1.5), main="New RMSE"); par(mfrow=c(1,1))
-
-length(which(cityAll.ET$ETmodel.R2adj<0.33))/nrow(cityAll.ET); length(which(cityAll.ETOrig$ETmodel.R2adj<0.33))/nrow(cityAll.ETOrig)
-length(which(cityAll.stats$LSTmodel.R2adj<0.33))/nrow(cityAll.stats)
-summary(cityAll.stats[,c("ISOURBID", "LSTmodel.R2adj")])
-
-
 cityAll.stats <- cityAll.stats[cityAll.stats$ISOURBID %in% cityAll.ET$ISOURBID[!is.na(cityAll.ET$ETmodel.R2adj)],]
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),9:25])
 summary(cityAll.stats)
@@ -138,7 +114,16 @@ summary(cityAll.ET)
 
 # Setting up some dummy columns for GLDAS data; story
 cityAll.gldas <- read.csv(file.path(path.google, "city_stats_all_GLDAS21_climatology_2001-2020.csv"))
-cityAll.ET <- merge(cityAll.ET, cityall.gldas, all.x=T, all.y=F)
+summary(cityAll.gldas)
+
+cityAll.ET <- merge(cityAll.ET, cityAll.gldas, all.x=T, all.y=F)
+summary(cityAll.ET)
+
+
+cityAll.ET$ETpred.Precip <- cityAll.ET$ETpred.mean/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
+cityAll.ET$ETgldas.Precip <- cityAll.ET$ET.GLDAS/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
+summary(cityAll.ET)
+
 
 write.csv(cityAll.ET, file.path(path.google, "city_stats_all_ET-GLDAS.csv"), row.names=F)
 # ##########################################
@@ -148,14 +133,17 @@ write.csv(cityAll.ET, file.path(path.google, "city_stats_all_ET-GLDAS.csv"), row
 # Do some data exploration ----
 # ##########################################
 cityAll.ET <- read.csv(file.path(path.google, "city_stats_all_ET-GLDAS.csv"))
+cityAll.ET$ETpixels.prop <- cityAll.ET$n.pixels.ET/cityAll.ET$n.pixels
+cityAll.ET$biomeName <- factor(cityAll.ET$biomeName, levels=biome.order$biomeName)
 
+summary(cityAll.ET)
 
 length(which(cityAll.ET$Precip.GLDAS<0.01))
 length(which(cityAll.ET$ETpixels.prop<0.75))
 
-cityAll.ET <- cityAll.ET[cityAll.ET$ISOURBID %in% StatsCombined$ISOURBID & cityAll.ET$Precip.GLDAS>=0.01 & cityAll.ET$ETpixels.prop>=0.75,]
+# cityAll.ET <- cityAll.ET[cityAll.ET$ISOURBID %in% StatsCombined$ISOURBID & cityAll.ET$Precip.GLDAS>=0.01 & cityAll.ET$ETpixels.prop>=0.75,]
 summary(cityAll.ET)
-nrow(cityAll.ET); nrow(StatsCombined)
+nrow(cityAll.ET); 
 
 hist(cityAll.ET$ETpixels.prop)
 
@@ -199,7 +187,6 @@ etR2 <- ggplot(data=cityAll.ET[,]) +
   scale_fill_manual(values=biome.pall.all) +
   guides(fill="none") +
   theme_bw()
-
 etR2
 
 etRMSE <- ggplot(data=cityAll.ET[,]) +
@@ -229,6 +216,7 @@ etRMSEsd <- ggplot(data=cityAll.ET[,]) +
   guides(fill="none") +
   theme_bw() 
 etRMSEsd
+
 # ############## 
 png(file.path(path.figs, "ETmodel_PerformanceSummaries.png"), height=8, width=8, units="in", res=320)
 cowplot::plot_grid(etR2, etRMSE, etRMSEmean, etRMSEsd, ncol=2)
@@ -289,7 +277,7 @@ plotInputs <- cowplot::plot_grid(plotET, plotPrecip, ncol=1)
 png(file.path(path.figs, "ETmodel_ET_vs_Precip_Current.png"), height=8, width=10, units="in", res=320)
 cowplot::plot_grid(plotInputs, plotRatio, ncol=2, rel_widths=c(0.25, 0.75))
 dev.off()
-
+ 
 plot(ETobs.mean ~ ETpred.mean, data=cityAll.ET); abline(a=0, b=1, col="red")
 plot(ETobs.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
 plot(ETpred.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
@@ -304,7 +292,7 @@ ggplot(data=cityAll.ET) +
   theme(legend.position="top")
   
   
-# How frequently doe
+# Proportion of cities where precip exceeds estimated ET in our data
 length(which(cityAll.ET$ETpred.Precip<1))/length(which(!is.na(cityAll.ET$ETpred.Precip)))
 length(which(cityAll.ET$ETgldas.Precip<1))/length(which(!is.na(cityAll.ET$ETgldas.Precip)))
 
