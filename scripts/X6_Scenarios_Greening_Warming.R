@@ -14,6 +14,7 @@
 ###########################################
 library(tidyr)
 
+library(mgcv)
 library(ggplot2); library(RColorBrewer); library(cowplot)
 library(ggalt); library(sf)
 library(mapproj)
@@ -21,6 +22,7 @@ library(scales)
 
 path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google, "data_processed_final")
+path.et <- file.path(path.google, "ET_models_v2")
 
 biome.pall.all = c("Taiga"= "#2c5c74", 
                    "Tundra"="#6d8e9d",
@@ -223,6 +225,21 @@ cmip6$Scenario <- as.factor(cmip6$Scenario)
 cmip6$Time <- as.factor(cmip6$Time)
 summary(cmip6)
 
+###########################################
+
+
+###########################################
+# Reading in an testing a model
+###########################################
+CITY="CAN15001"
+
+# modETCity <- load(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))
+modETCity <- readRDS("~/Desktop/CAN15001_Model-ET_annual_gam.rds")
+?predict.gam
+test <- predict(modETCity, type="terms", exclude="as.factor(year)")
+
+test2 <- predict(modETCity, type="terms", exclude=c("s(cover.tree)", "s(cover.veg)", "s(LST_Day)", "s(x,y)"))
+summary(test2)
 ###########################################
 
 
