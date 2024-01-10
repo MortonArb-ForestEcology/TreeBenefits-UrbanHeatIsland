@@ -128,53 +128,8 @@ summary(cityAll.ET)
 #  - evapotranspriation (Rainf_f_tavg_mean) - kg/m2/s (= mm/s) --> save as mm/day to jive with MODIS data
 
 # Setting up some dummy columns for GLDAS data; story
-cityAll.ET[,c("ET.GLDAS", "Tmean.GLDAS", "Precip.GLDAS")] <- NA
-
-f.gldas <- dir(path.raw, "GLDAS")
-head(f.gldas)
-
-pb <- txtProgressBar(0, nrow(cityAll.ET), style=3)
-for(i in 1:nrow(cityAll.ET)){
-  setTxtProgressBar(pb, i)
-  
-  CITY <- cityAll.ET$ISOURBID[i]
-  fCity <- grep(CITY, f.gldas)
-  
-  if(length(fCity)==0) next 
-  
-  cityClim <- stack(file.path(path.raw, f.gldas[fCity]))
-  # plot(cityClim)
-  
-  etNow <- getValues(cityClim[["Evap_tavg_mean"]])*60*60*24
-  precipNow <- getValues(cityClim[["Rainf_f_tavg_mean"]])*60*60*24
-  tempNow <- getValues(cityClim[["Tair_f_inst_mean"]])-273.15
-  
-  etNow <- etNow[!is.na(etNow)]
-  precipNow <- precipNow[!is.na(precipNow)]
-  tempNow <- tempNow[!is.na(tempNow)]
-  
-  if(length(etNow)==0) next
-  
-  if(length(etNow)==1){
-    cityAll.ET$ET.GLDAS[i] <- etNow
-    cityAll.ET$Precip.GLDAS[i] <- precipNow
-    cityAll.ET$Tmean.GLDAS[i] <- tempNow
-  } else {
-    cityAll.ET$ET.GLDAS[i] <- mean(etNow)
-    cityAll.ET$Precip.GLDAS[i] <- mean(precipNow)
-    cityAll.ET$Tmean.GLDAS[i] <- mean(tempNow)
-  }
-  
-  rm(cityClim)
-  
-}
-summary(cityAll.ET)
-head(cityAll.ET[is.na(cityAll.ET$ET.GLDAS),])
-
-# Comparing our predicted and Observed ET vs precip
-cityAll.ET$ETpred.Precip <- cityAll.ET$ETpred.mean/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
-cityAll.ET$ETgldas.Precip <- cityAll.ET$ET.GLDAS/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
-summary(cityAll.ET)
+cityAll.gldas <- read.csv(file.path(path.google, "city_stats_all_GLDAS21_climatology_2001-2020.csv"))
+cityAll.ET <- merge(cityAll.ET, cityall.gldas, all.x=T, all.y=F)
 
 write.csv(cityAll.ET, file.path(path.google, "city_stats_all_ET-GLDAS.csv"), row.names=F)
 # ##########################################
