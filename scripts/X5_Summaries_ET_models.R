@@ -12,14 +12,14 @@ library(raster)
 ###########################################
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
-path.cities <- file.path(path.google)
+# path.google <- file.path(path.google)
 path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v3/")
 
 
 # Adding info for the previous version so we can double check
 # path.google2 <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v2")
-# path.cities2 <- file.path(path.google2)
-# file.cityAll.stats2 <- file.path(path.cities2, "city_stats_all.csv")
+# path.google2 <- file.path(path.google2)
+# file.cityAll.stats2 <- file.path(path.google2, "city_stats_all.csv")
 
 
 path.figs <- file.path(path.google, "figures_exploratory")
@@ -49,7 +49,7 @@ world <- map_data("world")
 # Read in Data; do some cleanup ----
 # ##########################################
 # Reading in our old, full dataset
-cityAll.stats <- read.csv(file.path(path.cities, "city_stats_all.csv"))
+cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
 cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
 summary(as.factor(cityAll.stats$biome))
 
@@ -93,13 +93,14 @@ summary(cityAll.stats)
 
 
 # Reading in our ET dataset
-cityAll.ET <- read.csv(file.path(path.cities, "city_stats_all_ET.csv"))
+# cityAll.ET <-  read.csv(file.path(path.google, "city_stats_all_ET.csv"))
+cityAll.ET <- read.csv("~/Desktop/city_stats_all_ET.csv") # read.csv(file.path(path.google, "city_stats_all_ET.csv"))
 cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
 cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj) & cityAll.ET$ETobs.max>1,] # get rid of anything we didn't model or that has a very low range of ET
 summary(cityAll.ET)
 
 # Original dataset without the year intercept
-cityAll.ETOrig <- read.csv(file.path(path.cities, "city_stats_all_ET_v1_2023-12-20.csv"))
+cityAll.ETOrig <- read.csv(file.path(path.google, "city_stats_all_ET_v1_2023-12-20.csv"))
 # cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
 cityAll.ETOrig <- cityAll.ETOrig[cityAll.ETOrig$ISOURBID %in% cityAll.ET$ISOURBID,] # get rid of anything we didn't model or that has a very low range of ET
 summary(cityAll.ETOrig)
@@ -107,6 +108,7 @@ summary(cityAll.ETOrig)
 summary(cityAll.ETOrig[,c("ISOURBID", "ETmodel.R2adj", "ETmodel.RMSE")])
 summary(cityAll.ET[,c("ISOURBID", "ETmodel.R2adj", "ETmodel.RMSE")])
 plot(cityAll.ET$ETmodel.R2adj ~ cityAll.ETOrig$ETmodel.R2adj); abline(a=0, b=1, col="red2")
+plot(cityAll.ET$ETmodel.RMSE ~ cityAll.ETOrig$ETmodel.RMSE); abline(a=0, b=1, col="red2")
 
 par(mfrow=c(2,2))
 hist(cityAll.ETOrig$ETmodel.R2adj, xlim=c(0,1), main="Original R2"); hist(cityAll.ETOrig$ETmodel.RMSE, xlim=c(0,1.5), main="Original RMSE")
@@ -174,14 +176,14 @@ cityAll.ET$ETpred.Precip <- cityAll.ET$ETpred.mean/cityAll.ET$Precip.GLDAS # les
 cityAll.ET$ETgldas.Precip <- cityAll.ET$ET.GLDAS/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
 summary(cityAll.ET)
 
-write.csv(cityAll.ET, file.path(path.cities, "city_stats_all_ET-GLDAS.csv"), row.names=F)
+write.csv(cityAll.ET, file.path(path.google, "city_stats_all_ET-GLDAS.csv"), row.names=F)
 # ##########################################
 
 
 # ##########################################
 # Do some data exploration ----
 # ##########################################
-cityAll.ET <- read.csv(file.path(path.cities, "city_stats_all_ET-GLDAS.csv"))
+cityAll.ET <- read.csv(file.path(path.google, "city_stats_all_ET-GLDAS.csv"))
 
 plot(ETobs.mean ~ ETpred.mean, data=cityAll.ET); abline(a=0, b=1, col="red")
 plot(ETobs.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
