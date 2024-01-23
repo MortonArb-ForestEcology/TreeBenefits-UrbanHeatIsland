@@ -39,42 +39,79 @@ biome.pall.all = c("Taiga"= "#2c5c74",
                    "Tropical Moist Broadleaf Forest"= "#266240",
                    "Mangroves" = "#9c8c94")
 
+overwrite=T
 ###########################################
 
 
 ###########################################
 # Read in city data & summarizing baseline ----
 ###########################################
-# cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
-# cityAll.stats <- cityAll.stats[,!grepl("ETmodel", names(cityAll.stats))]
-# cityAll.stats <- cityAll.stats[,!grepl("corr.", names(cityAll.stats))]
-# cityAll.stats <- cityAll.stats[,!grepl("trend", names(cityAll.stats))]
-# summary(cityAll.stats)
-# 
-# summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),])
-
-StatsCombined <- read.csv(file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"))
-StatsCombined <- StatsCombined[,!(grepl("ETmodel", names(StatsCombined)))]
-summary(StatsCombined)
-
-
-cityAll.ET <- read.csv(file.path(path.google, "city_stats_all_ET-GLDAS.csv"))
-cityAll.ET$ETpixels.prop <- cityAll.ET$n.pixels.ET/cityAll.ET$n.pixels
-cityAll.ET$ET.cv <- cityAll.ET$ETobs.sd/(cityAll.ET$ETobs.max - cityAll.ET$ETobs.min)
-summary(cityAll.ET)
-
-plot(ETmodel.R2adj ~ ET.cv, data=cityAll.ET)
-
-biome.order <- aggregate(Tmean.GLDAS ~ biomeName, data=cityAll.ET, FUN=mean)
-biome.order <- biome.order[order(biome.order$Tmean.GLDAS),]
-
-StatsCombined$biomeName <- factor(StatsCombined$biomeName, levels=biome.order$biomeName)
-cityAll.ET$biomeName <- factor(cityAll.ET$biomeName, levels=biome.order$biomeName)
-
-
+if(file.exists(file.path(path.google, "city_stats_all_ET_scenarios.csv")) & !overwrite){
+  cityAnalyStats <- read.csv(file.path(path.google, "city_stats_all_ET_scenarios.csv"))
+} else {
+  cityAnalyStats <- read.csv(file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"))
+  cityAnalyStats <- cityAnalyStats[,!(grepl("ETmodel", names(cityAnalyStats)))]
+  summary(cityAnalyStats)
+  
+  
+  # cityAll.ET <- read.csv(file.path(path.google, "city_stats_all_ET-GLDAS.csv"))
+  # cityAll.ET$ETpixels.prop <- cityAll.ET$n.pixels.ET/cityAll.ET$n.pixels
+  # cityAll.ET$ET.cv <- cityAll.ET$ETobs.sd/(cityAll.ET$ETobs.max - cityAll.ET$ETobs.min)
+  # summary(cityAll.ET)
+  # 
+  # plot(ETmodel.R2adj ~ ET.cv, data=cityAll.ET)
+  
+  # biome.order <- aggregate(Tmean.GLDAS ~ biomeName, data=cityAll.ET, FUN=mean)
+  # biome.order <- biome.order[order(biome.order$Tmean.GLDAS),]
+  # 
+  # cityAnalyStats$biomeName <- factor(cityAnalyStats$biomeName, levels=biome.order$biomeName)
+  # cityAll.ET$biomeName <- factor(cityAll.ET$biomeName, levels=biome.order$biomeName)
+  # summary(cityAnalyStats)
+  
+  
+  # Add Columns for the stats we want to model
+  cityAnalyStats$tree.mean.TreeTargetBiome <- NA # This is the mean of our greening distribution
+  cityAnalyStats$tree.mean.TreeTargetBottomUp <- NA # This is the mean of our greening distribution
+  cols.modET <- c("modET.Base", "modET.TreeEven", "modET.TreeTargetEven", "modET.TreeTargetBottomUp",
+                  "modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")
+  cityAnalyStats[,cols.modET] <- NA
+}
 ###########################################
 
+###########################################
+# Setting up some meta-data for greening 
+###########################################
 
+# Calculating the Biome targets
+cityAnalyStats$TreeCoverUHINeed <- -cityAnalyStats$value.LST.diff/cityAnalyStats$LSTmodel.tree.slope
+cityAnalyStats$TreeCoverTargetUHI <- cityAnalyStats$TreeCoverUHINeed + cityAnalyStats$value.tree.core
+summary(cityAnalyStats)
+
+# Doing the targets based only on cities with UHIs to be consistent with our past results
+citiesUHI <- which(cityAnalyStats$value.LST.diff>0 & cityAnalyStats$value.LST.diff.p<0.01)
+
+biomeTargetStats <- aggregate(ISOURBID~biomeName, data=cityAnalyStats[citiesUHI,], FUN=length)
+# names(biomeTargetStats)
+biomeTargetStats[,c("UHI", "CurrentTreeCover", "TargetTreeCover")] <- aggregate(cbind(value.LST.diff, value.tree.core, TreeCoverTargetUHI)~biomeName, data=cityAnalyStats[citiesUHI,], FUN=median)[,c("value.LST.diff", "value.tree.core", "TreeCoverTargetUHI")]
+biomeTargetStats
+
+
+# Setting up some data frames to look at the distribution of tree cover in cities
+if(file.exists(file.path(path.google, "TreeDistribution_Current.csv")) & !overwrite){
+  treeDistCurrent <- read.csv(file.path(path.google, "TreeDistribution_Current.csv"))
+  treeDistGreen <- read.csv(file.path(path.google, "TreeDistribution_Greening-BottomUp.csv"))
+} else {
+  treeDistCurrent <- data.frame(ISOURBID=cityAnalyStats$ISOURBID)
+  treeBreaks <- seq(0,100, by=5)
+  treeColLabs <- paste("tree", 
+                       paste(stringr::str_pad(treeBreaks[1:(length(treeBreaks)-1)], width=2, side="left", pad=0), 
+                             stringr::str_pad(treeBreaks[2:(length(treeBreaks))], width=2, side="left", pad=0), sep="-"),
+                       sep="_")
+  treeDistCurrent[,treeColLabs] <- NA
+  
+  treeDistGreen <- treeDistCurrent
+}
+###########################################
 
 
 ###########################################
@@ -82,30 +119,197 @@ cityAll.ET$biomeName <- factor(cityAll.ET$biomeName, levels=biome.order$biomeNam
 ###########################################
 
 # Read in CMIP6 metadata 
-cmip6 <- read.csv(file.path(path.google, "city_stats_all_CMIP6_deviations.csv"))
-cmip6$Scenario <- as.factor(cmip6$Scenario)
-cmip6$Time <- as.factor(cmip6$Time)
-summary(cmip6)
-
+if(file.exists(file.path(path.google, "city_stats_all_CMIP6_ET.csv")) & !overwrite){
+  cmip6 <- read.csv(file.path(path.google, "city_stats_all_CMIP6_ET.csv"))
+  cmip6$Scenario <- as.factor(cmip6$Scenario)
+  cmip6$Time <- as.factor(cmip6$Time)
+  
+} else {
+  cmip6 <- read.csv(file.path(path.google, "city_stats_all_CMIP6_deviations.csv"))
+  cmip6$Scenario <- as.factor(cmip6$Scenario)
+  cmip6$Time <- as.factor(cmip6$Time)
+  cmip6 <- cmip6[cmip6$Scenario %in% c("ssp245", "ssp585") & cmip6$Time %in% c(2050, 2100) & !is.na(cmip6$tas.diff),]
+  cmip6$modET <- NA
+  summary(cmip6)
+}
 ###########################################
 
 
 ###########################################
-# Reading in an testing a model
+# Reading in an testing a model ----
 ###########################################
-CITY="CAN15001"
+# CITY="CAN15001"
+# CITY="USA26687" # Chicago
+# rowCity <- which(cityAnalyStats$NAME=="Roanoke" & !is.na(cityAnalyStats$NAME))
+# CITY=cityAnalyStats$ISOURBID[rowCity]
+# cityAnalyStats[cityAnalyStats$ISOURBID==CITY,]
+pb <- txtProgressBar(min=0, max=nrow(cityAnalyStats), style=3)
 
-# modETCity <- load(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))
-modETCity <- readRDS("~/Desktop/CAN15001_Model-ET_annual_gam.rds")
-?predict.gam
-test <- predict(modETCity, type="terms", exclude="as.factor(year)")
+for(rowCity in 1:nrow(cityAnalyStats)){
+  setTxtProgressBar(pb, rowCity)
+  
+  if(!overwrite & !any(is.na(cityAnalyStats[rowCity,cols.modET]))) next # If we've done this city, skip it
+  
+  CITY=cityAnalyStats$ISOURBID[rowCity]
+  print(CITY)
+  
+  
+  dfCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Pixels.csv")))
+  dfCity <- dfCity[dfCity$cityBounds,]
+  summary(dfCity)
+  dfCityET <- read.csv(file.path(path.et, CITY, paste0(CITY, "_ET_means.csv")))
+  summary(dfCityET)
+  
+  modETCitySum <- readRDS(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))
+  modETCitySum
+  cityIntercept <- mean(modETCitySum$p.coeff)
+  
+  dfCity$Intercept <- cityIntercept
+  
+  modETCity <- readRDS(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))
+  # modETCity <- readRDS("~/Desktop/CAN15001_Model-ET_annual_gam.rds")
+  
+  
+  # ------------------
+  # Generating our baseline ET Estimate
+  # ------------------
+  # Store info about the current tree distribution-- these are proportions 
+  nCity <- nrow(dfCity)
+  for(j in 2:length(treeBreaks)){
+  if(j==2){
+    treeDistCurrent[rowCity,j] <- length(which(dfCity$tree.mean>=treeBreaks[j-1] & dfCity$tree.mean<=treeBreaks[j]))/nCity
+  } else {
+    treeDistCurrent[rowCity,j] <- length(which(dfCity$tree.mean>treeBreaks[j-1] & dfCity$tree.mean<=treeBreaks[j]))/nCity
+  }
+  }
+  # treeDistCurrent[rowCity,]
+  # sum(treeDistCurrent[rowCity,2:ncol(treeDistCurrent)])
+  write.csv(treeDistCurrent, file.path(path.google, "TreeDistribution_Current.csv"), row.names=F)
+  
+  dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  # dfMod[,c("cover.tree", "cover.veg", "LST_Day", "x", "y")] <- dfCity[,c("tree.mean", "veg.mean", "LST.mean", "x", "y")]
+  dfMod$year <- 2010 # Giving it a dummy year
+  
+  dfCity$modET.Base <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
+  summary(dfCity) 
+  
+  cityAnalyStats$modET.Base[rowCity] <- mean(dfCity$modET.Base)
+  
+  # ------------------
+  
+  # ------------------
+  # Greening Scenarios ----
+  # ------------------
+  
+  # City with homogenous tree cover (current levels)
+  dfMod <- data.frame(cover.tree=mean(dfCity$tree.mean), cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod$year <- 2010 # Giving it a dummy year
+  dfCity$modET.TreeEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
+  
+  cityAnalyStats$modET.TreeEven[rowCity] <- mean(dfCity$modET.TreeEven)
+  
+  
+  # City with homogenous tree cover -- Target Levels
+  treeCitymean <- mean(dfCity$tree.mean)
+  treeBiomeRef <- biomeTargetStats$TargetTreeCover[biomeTargetStats$biomeName==cityAnalyStats$biomeName[cityAnalyStats$ISOURBID==CITY]]
+  
+  cityAnalyStats$tree.mean.TreeTargetBiome[rowCity] <- treeBiomeRef
+  
+  dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod$year <- 2010 # Giving it a dummy year
+  dfCity$modET.TreeTargetEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
+  
+  cityAnalyStats$modET.TreeTargetEven[rowCity] <- mean(dfCity$modET.TreeTargetEven)
+  
+  # ------------
+  # Bottom-Up approach to greening --> anything less than the biome target gets 1/2 way there (diff/2)
+  # ------------
+  dfCity$cover.tree.TreeTargetBottomUp <- dfCity$tree.mean
+  dfCity$cover.tree.TreeTargetBottomUp[dfCity$tree.mean<treeBiomeRef] <- dfCity$tree.mean[dfCity$tree.mean<treeBiomeRef] + (treeBiomeRef-dfCity$tree.mean[dfCity$tree.mean<treeBiomeRef])/2
+  summary(dfCity)
+  
+  
+  for(j in 2:length(treeBreaks)){
+  if(j==2){
+    treeDistGreen[rowCity,j] <- length(which(dfCity$cover.tree.TreeTargetBottomUp>=treeBreaks[j-1] & dfCity$cover.tree.TreeTargetBottomUp<=treeBreaks[j]))/nCity
+  } else {
+    treeDistGreen[rowCity,j] <- length(which(dfCity$cover.tree.TreeTargetBottomUp>treeBreaks[j-1] & dfCity$cover.TreeTargetBottomUp<=treeBreaks[j]))/nCity
+  }
+  }
+  # treeDistGreen[rowCity,]
+  # sum(treeDistGreen[rowCity,2:ncol(treeDistCurrent)])
+  
+  write.csv(treeDistGreen, file.path(path.google, "TreeDistribution_Greening-BottomUp.csv"), row.names=F)
+  
+  png(file.path(path.et, CITY, paste0(CITY, "_TreeCover_Modeled.png")), height=4, width=6, units="in", res=180)
+  par(mfrow=c(2,1))
+  hist(dfCity$tree.mean, xlim=c(0,100))
+  hist(dfMod$cover.tree, xlim=c(0,100))
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeTargetBottomUp, cover.veg=mean(dfCity$veg.mean), LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  
+  dfMod$year <- 2010 # Giving it a dummy year
+  dfCity$modET.TreeTargetBottomUp <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
+  summary(dfCity)
+  
+  cityAnalyStats$modET.TreeTargetBottomUp[rowCity] <- mean(dfCity$modET.TreeTargetBottomUp)
+  # cityAnalyStats[rowCity,]
+  # ------------
+  
+  
+  # ------------------
+  
+  
+  
+  
+  # ------------------
+  # Warming Scenarios ----
+  # Adding the mean end-century warming from ssp245, ssp585
+  # ------------------
+  for(SSP in unique(cmip6$Scenario)){
+  print(paste0("--", SSP))
+  for(TIME in unique(cmip6$Time)){
+    print(paste0("   ", TIME))
+    datTmp <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+    
+    gcmNow <- unique(cmip6$GCM[cmip6$Scenario==SSP & cmip6$Time==TIME])
+    datTmp[,gcmNow] <- NA
+    
+    for(GCM in unique(cmip6$GCM[cmip6$Scenario==SSP & cmip6$Time==TIME])){
+      cmip6Row <- which(cmip6$ISOURBID==CITY & cmip6$Scenario==SSP & cmip6$Time==TIME & cmip6$GCM==GCM)
+      
+      warmNow <- cmip6$tas.diff[cmip6Row]
+      
+      dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean+warmNow, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+      dfMod$year <- 2010 # Giving it a dummy year
+      
+      datTmp[,GCM] <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
+      summary(datTmp)
+      
+      cmip6$modET[cmip6Row] <- mean(datTmp[,GCM])
+    } # End GCM
+    
+    summary(datTmp)
+    write.csv(datTmp, file.path(path.et, CITY, paste0(CITY, "_ET_", SSP, "_", TIME, ".csv")), row.names=F)
+    
+    dfCity[,paste("modET", SSP, TIME, sep=".")] <- apply(datTmp[,gcmNow], 1, mean)
+    summary(dfCity)
+    
+    # This should be the same as doing the mean of the pixel means, but I feel better doing the mean of the regional means here
+    cityAnalyStats[rowCity,paste("modET", SSP, TIME, sep=".")] <- mean(cmip6$modET[cmip6$ISOURBID==CITY & cmip6$Scenario==SSP & cmip6$Time==TIME], na.rm=T)
+    # summary(cityAnalyStats)
+    # cityAnalyStats[rowCity,]
+  } # End Time
+  
+  } # End SSP
+  
+  write.csv(cmip6, file.path(path.google, "city_stats_all_CMIP6_ET.csv"), row.names=F)
+  
+  # ------------------
+  
+  
+  write.csv(cityAnalyStats, file.path(path.google, "city_stats_all_ET_scenarios.csv"), row.names=F)
 
-test2 <- predict(modETCity, type="terms", exclude=c("s(cover.tree)", "s(cover.veg)", "s(LST_Day)", "s(x,y)"))
-summary(test2)
-###########################################
-
-
-###########################################
-# Iterating through climate change scenarios
-###########################################
-###########################################
+}
