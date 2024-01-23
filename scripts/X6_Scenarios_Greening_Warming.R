@@ -39,7 +39,7 @@ biome.pall.all = c("Taiga"= "#2c5c74",
                    "Tropical Moist Broadleaf Forest"= "#266240",
                    "Mangroves" = "#9c8c94")
 
-overwrite=T
+overwrite=F
 ###########################################
 
 
@@ -155,14 +155,18 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   
   dfCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Pixels.csv")))
-  dfCity <- dfCity[dfCity$cityBounds,]
-  summary(dfCity)
-  dfCityET <- read.csv(file.path(path.et, CITY, paste0(CITY, "_ET_means.csv")))
-  summary(dfCityET)
+  dfCity <- dfCity[dfCity$cityBounds & !is.na(dfCity$LST.mean),]
+  # summary(dfCity)
+  
+  # dfCityET <- read.csv(file.path(path.et, CITY, paste0(CITY, "_ET_means.csv")))
+  # summary(dfCityET)
   
   modETCitySum <- readRDS(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))
-  modETCitySum
+  # modETCitySum
+  
   cityIntercept <- mean(modETCitySum$p.coeff)
+  # yrstr <- paste(names(modETCitySum$p.coeff)[1])
+  yrUse <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff)[1], start=-4))
   
   dfCity$Intercept <- cityIntercept
   
@@ -186,10 +190,8 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # sum(treeDistCurrent[rowCity,2:ncol(treeDistCurrent)])
   write.csv(treeDistCurrent, file.path(path.google, "TreeDistribution_Current.csv"), row.names=F)
   
-  dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
-  # dfMod[,c("cover.tree", "cover.veg", "LST_Day", "x", "y")] <- dfCity[,c("tree.mean", "veg.mean", "LST.mean", "x", "y")]
-  dfMod$year <- 2010 # Giving it a dummy year
-  
+  dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+
   dfCity$modET.Base <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
   summary(dfCity) 
   
@@ -202,8 +204,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # ------------------
   
   # City with homogenous tree cover (current levels)
-  dfMod <- data.frame(cover.tree=mean(dfCity$tree.mean), cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
-  dfMod$year <- 2010 # Giving it a dummy year
+  dfMod <- data.frame(cover.tree=mean(dfCity$tree.mean), cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
   dfCity$modET.TreeEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
   
   cityAnalyStats$modET.TreeEven[rowCity] <- mean(dfCity$modET.TreeEven)
@@ -215,8 +216,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   cityAnalyStats$tree.mean.TreeTargetBiome[rowCity] <- treeBiomeRef
   
-  dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
-  dfMod$year <- 2010 # Giving it a dummy year
+  dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
   dfCity$modET.TreeTargetEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
   
   cityAnalyStats$modET.TreeTargetEven[rowCity] <- mean(dfCity$modET.TreeTargetEven)
@@ -230,11 +230,11 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   
   for(j in 2:length(treeBreaks)){
-  if(j==2){
-    treeDistGreen[rowCity,j] <- length(which(dfCity$cover.tree.TreeTargetBottomUp>=treeBreaks[j-1] & dfCity$cover.tree.TreeTargetBottomUp<=treeBreaks[j]))/nCity
-  } else {
-    treeDistGreen[rowCity,j] <- length(which(dfCity$cover.tree.TreeTargetBottomUp>treeBreaks[j-1] & dfCity$cover.TreeTargetBottomUp<=treeBreaks[j]))/nCity
-  }
+    if(j==2){
+      treeDistGreen[rowCity,j] <- length(which(dfCity$cover.tree.TreeTargetBottomUp>=treeBreaks[j-1] & dfCity$cover.tree.TreeTargetBottomUp<=treeBreaks[j]))/nCity
+    } else {
+      treeDistGreen[rowCity,j] <- length(which(dfCity$cover.tree.TreeTargetBottomUp>treeBreaks[j-1] & dfCity$cover.tree.TreeTargetBottomUp<=treeBreaks[j]))/nCity
+    }
   }
   # treeDistGreen[rowCity,]
   # sum(treeDistGreen[rowCity,2:ncol(treeDistCurrent)])
@@ -248,17 +248,16 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   par(mfrow=c(1,1))
   dev.off()
   
-  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeTargetBottomUp, cover.veg=mean(dfCity$veg.mean), LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeTargetBottomUp, cover.veg=mean(dfCity$veg.mean), LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
   
-  dfMod$year <- 2010 # Giving it a dummy year
   dfCity$modET.TreeTargetBottomUp <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
   summary(dfCity)
   
+  
+  cityAnalyStats$tree.mean.TreeTargetBottomUp[rowCity] <- mean(dfCity$cover.tree.TreeTargetBottomUp)
   cityAnalyStats$modET.TreeTargetBottomUp[rowCity] <- mean(dfCity$modET.TreeTargetBottomUp)
   # cityAnalyStats[rowCity,]
   # ------------
-  
-  
   # ------------------
   
   
@@ -282,7 +281,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
       
       warmNow <- cmip6$tas.diff[cmip6Row]
       
-      dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean+warmNow, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+      dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean+warmNow, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
       dfMod$year <- 2010 # Giving it a dummy year
       
       datTmp[,GCM] <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
