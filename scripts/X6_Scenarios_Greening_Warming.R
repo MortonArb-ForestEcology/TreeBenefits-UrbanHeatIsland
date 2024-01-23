@@ -282,8 +282,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
       warmNow <- cmip6$tas.diff[cmip6Row]
       
       dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean+warmNow, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
-      dfMod$year <- 2010 # Giving it a dummy year
-      
+
       datTmp[,GCM] <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
       summary(datTmp)
       
