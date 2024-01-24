@@ -46,6 +46,10 @@ overwrite=F
 ###########################################
 # Read in city data & summarizing baseline ----
 ###########################################
+
+cols.modET <- c("modET.Base", "modET.TreeEven", "modET.TreeTargetEven", "modET.TreeTargetBottomUp",
+                "modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")
+
 if(file.exists(file.path(path.google, "city_stats_all_ET_scenarios.csv")) & !overwrite){
   cityAnalyStats <- read.csv(file.path(path.google, "city_stats_all_ET_scenarios.csv"))
 } else {
@@ -72,10 +76,9 @@ if(file.exists(file.path(path.google, "city_stats_all_ET_scenarios.csv")) & !ove
   # Add Columns for the stats we want to model
   cityAnalyStats$tree.mean.TreeTargetBiome <- NA # This is the mean of our greening distribution
   cityAnalyStats$tree.mean.TreeTargetBottomUp <- NA # This is the mean of our greening distribution
-  cols.modET <- c("modET.Base", "modET.TreeEven", "modET.TreeTargetEven", "modET.TreeTargetBottomUp",
-                  "modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")
   cityAnalyStats[,cols.modET] <- NA
 }
+summary(cityAnalyStats)
 ###########################################
 
 ###########################################
@@ -96,21 +99,24 @@ biomeTargetStats[,c("UHI", "CurrentTreeCover", "TargetTreeCover")] <- aggregate(
 biomeTargetStats
 
 
+treeBreaks <- seq(0,100, by=5)
+treeColLabs <- paste("tree", 
+                     paste(stringr::str_pad(treeBreaks[1:(length(treeBreaks)-1)], width=2, side="left", pad=0), 
+                           stringr::str_pad(treeBreaks[2:(length(treeBreaks))], width=2, side="left", pad=0), sep="-"),
+                     sep="_")
+
 # Setting up some data frames to look at the distribution of tree cover in cities
 if(file.exists(file.path(path.google, "TreeDistribution_Current.csv")) & !overwrite){
   treeDistCurrent <- read.csv(file.path(path.google, "TreeDistribution_Current.csv"))
   treeDistGreen <- read.csv(file.path(path.google, "TreeDistribution_Greening-BottomUp.csv"))
 } else {
   treeDistCurrent <- data.frame(ISOURBID=cityAnalyStats$ISOURBID)
-  treeBreaks <- seq(0,100, by=5)
-  treeColLabs <- paste("tree", 
-                       paste(stringr::str_pad(treeBreaks[1:(length(treeBreaks)-1)], width=2, side="left", pad=0), 
-                             stringr::str_pad(treeBreaks[2:(length(treeBreaks))], width=2, side="left", pad=0), sep="-"),
-                       sep="_")
   treeDistCurrent[,treeColLabs] <- NA
   
   treeDistGreen <- treeDistCurrent
 }
+summary(treeDistCurrent)
+summary(treeDistGreen)
 ###########################################
 
 
@@ -130,8 +136,9 @@ if(file.exists(file.path(path.google, "city_stats_all_CMIP6_ET.csv")) & !overwri
   cmip6$Time <- as.factor(cmip6$Time)
   cmip6 <- cmip6[cmip6$Scenario %in% c("ssp245", "ssp585") & cmip6$Time %in% c(2050, 2100) & !is.na(cmip6$tas.diff),]
   cmip6$modET <- NA
-  summary(cmip6)
 }
+summary(cmip6)
+
 ###########################################
 
 
@@ -161,6 +168,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # dfCityET <- read.csv(file.path(path.et, CITY, paste0(CITY, "_ET_means.csv")))
   # summary(dfCityET)
   
+  if(!dir.exists(file.path(path.et, CITY))) next # This city doesn't have any ET model, so just skip it!
   modETCitySum <- readRDS(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))
   # modETCitySum
   
@@ -273,11 +281,12 @@ for(rowCity in 1:nrow(cityAnalyStats)){
     print(paste0("   ", TIME))
     datTmp <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
     
-    gcmNow <- unique(cmip6$GCM[cmip6$Scenario==SSP & cmip6$Time==TIME])
+    gcmNow <- unique(cmip6$GCM[cmip6$ISOURBID==CITY & cmip6$Scenario==SSP & cmip6$Time==TIME])
     datTmp[,gcmNow] <- NA
     
-    for(GCM in unique(cmip6$GCM[cmip6$Scenario==SSP & cmip6$Time==TIME])){
+    for(GCM in unique(cmip6$GCM[cmip6$ISOURBID==CITY & cmip6$Scenario==SSP & cmip6$Time==TIME])){
       cmip6Row <- which(cmip6$ISOURBID==CITY & cmip6$Scenario==SSP & cmip6$Time==TIME & cmip6$GCM==GCM)
+      
       
       warmNow <- cmip6$tas.diff[cmip6Row]
       
@@ -292,7 +301,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
     summary(datTmp)
     write.csv(datTmp, file.path(path.et, CITY, paste0(CITY, "_ET_", SSP, "_", TIME, ".csv")), row.names=F)
     
-    dfCity[,paste("modET", SSP, TIME, sep=".")] <- apply(datTmp[,gcmNow], 1, mean)
+    dfCity[,paste("modET", SSP, TIME, sep=".")] <- apply(datTmp[,gcmNow], 1, mean, na.rm=T)
     summary(dfCity)
     
     # This should be the same as doing the mean of the pixel means, but I feel better doing the mean of the regional means here
