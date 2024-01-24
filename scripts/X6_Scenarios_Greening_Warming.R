@@ -222,13 +222,14 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   treeCitymean <- mean(dfCity$tree.mean)
   treeBiomeRef <- biomeTargetStats$TargetTreeCover[biomeTargetStats$biomeName==cityAnalyStats$biomeName[cityAnalyStats$ISOURBID==CITY]]
   
-  cityAnalyStats$tree.mean.TreeTargetBiome[rowCity] <- treeBiomeRef
-  
-  dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
-  dfCity$modET.TreeTargetEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
-  
-  cityAnalyStats$modET.TreeTargetEven[rowCity] <- mean(dfCity$modET.TreeTargetEven)
-  
+  if(length(treeBiomeRef)>0){
+    cityAnalyStats$tree.mean.TreeTargetBiome[rowCity] <- treeBiomeRef
+    
+    dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+    dfCity$modET.TreeTargetEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
+    
+    cityAnalyStats$modET.TreeTargetEven[rowCity] <- mean(dfCity$modET.TreeTargetEven)
+  }
   # ------------
   # Bottom-Up approach to greening --> anything less than the biome target gets 1/2 way there (diff/2)
   # ------------
