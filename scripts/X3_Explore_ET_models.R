@@ -20,9 +20,14 @@ library(mgcv)
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
 # user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3/data_processed_final")
-path.out <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3/ETmodel_Testing")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+path.cities <- file.path(path.google, "data_processed_final")
+
+# Path to where Earth Engine is saving the spatial extractions
+path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v3")
+
+# Path where we're saving the preliminary stuff
+path.out <- file.path(path.google, "ETmodel_v3_Testing")
 if(!dir.exists(path.out)) dir.create(path.out, recursive = T)
 
 
@@ -37,15 +42,41 @@ cities.test <- c(cities.cherry, cities.random)
 cities.test
 # i=3
 
+
+cityClim <- read.csv(file.path(path.google, "city_climatology.csv"))
+cityClim$TIME <- as.factor(cityClim$TIME)
+summary(cityClim)
+
+
+# Get a list of the files that are done
+# # Note: Some cities (2-3) seems to have >1 file, which is weird.  Can do a spot check or just roll with the last file like I think I have coded in
+files.elev <- dir(path.EEout, "elevation")
+files.lst <- dir(path.EEout, "LST_Day_Tmean")
+files.et <- dir(path.EEout, "ETmean")
+files.tree <- dir(path.EEout, "PercentTree")
+files.veg <- dir(path.EEout, "PercentOtherVeg")
+files.mask <- dir(path.EEout, "CityMask")
+length(files.lst); length(files.et); length(files.tree); length(files.veg); length(files.elev); length(files.mask)
+# Note: We're missing 3 cities for ET data
+
+# Figure out which cities have all the layers needed to be analyzed
+cities.elev <- unlist(lapply(files.elev, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+cities.lst <- unlist(lapply(files.lst, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+cities.et <- unlist(lapply(files.et, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+cities.tree <- unlist(lapply(files.tree, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+cities.veg <- unlist(lapply(files.veg, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+cities.mask <- unlist(lapply(files.mask, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+
+
 # Fitting a series of models to ET to see how we can do
-# mod1 <- gam(ET.mean ~ tree.mean + veg.mean + s(x,y), data=dat.test)
-# mod2 <- gam(sqrt(ET.mean) ~ tree.mean + veg.mean + s(x,y), data=dat.test)
-# mod3 <- gam(log(ET.mean) ~ tree.mean + veg.mean + s(x,y), data=dat.test)
-# mod4 <- gam(ET.mean ~ log(tree.mean) + log(veg.mean) + s(x,y), data=dat.test)
-# mod5 <- gam(ET.mean ~ sqrt(tree.mean) + sqrt(veg.mean) + s(x,y), data=dat.test)
-# mod6 <- gam(sqrt(ET.mean) ~ sqrt(tree.mean) + sqrt(veg.mean) + s(x,y), data=dat.test)
-# mod7 <- gam(ET.mean ~  tree.mean*veg.mean + s(x,y), data=dat.test)
-# mod8 <- gam(sqrt(ET.mean) ~ tree.mean*veg.mean + s(x,y), data=dat.test)
+# mod1 <- gam(ET.mean ~ tree.mean + veg.mean + s(x,y), data=valsCity)
+# mod2 <- gam(sqrt(ET.mean) ~ tree.mean + veg.mean + s(x,y), data=valsCity)
+# mod3 <- gam(log(ET.mean) ~ tree.mean + veg.mean + s(x,y), data=valsCity)
+# mod4 <- gam(ET.mean ~ log(tree.mean) + log(veg.mean) + s(x,y), data=valsCity)
+# mod5 <- gam(ET.mean ~ sqrt(tree.mean) + sqrt(veg.mean) + s(x,y), data=valsCity)
+# mod6 <- gam(sqrt(ET.mean) ~ sqrt(tree.mean) + sqrt(veg.mean) + s(x,y), data=valsCity)
+# mod7 <- gam(ET.mean ~  tree.mean*veg.mean + s(x,y), data=valsCity)
+# mod8 <- gam(sqrt(ET.mean) ~ tree.mean*veg.mean + s(x,y), data=valsCity)
 # lst1 <- gam(ET.mean ~ tree.mean + veg.mean + LST.mean + s(x,y), data=dat.mod)
 # lst2 <- gam(sqrt(ET.mean) ~ tree.mean + veg.mean + LST.mean + s(x,y), data=dat.mod)
 # lst3 <- gam(ET.mean ~ (tree.mean + veg.mean)*LST.mean + s(x,y), data=dat.mod)
@@ -71,41 +102,247 @@ for(i in 1:length(cities.test)){
   dir.create(file.path(path.out, CITY), recursive=T, showWarnings = F)
   print(CITY)
   
-  dat.test <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Pixels.csv")))
-  summary(dat.test)
+  row.city <- which(cityStatsET$ISOURBID==CITY)
+  print(CITY)
+  # citySP <- sdei.urb[sdei.urb$ISOURBID==CITY, ]
+  # cityBuff <- st_buffer(citySP, dist=10e3)
   
-  # hist(dat.test$ET.mean)
-  # hist(dat.test$tree.mean)
-  # hist(dat.test$veg.mean)
-  # hist(sqrt(dat.test$ET.mean))
-  # hist(log(dat.test$ET.mean))
+  # length(files.elev); length(files.lst); length(files.tree); length(files.veg); length(files.mask)
+  # Circuitous coding, but it will be more resilient to multiple versions
+  fMASK <- files.mask[grep(CITY, files.mask)]
+  fELEV <- files.elev[grep(CITY, files.elev)]
+  fLST <- files.lst[grep(CITY, files.lst)]
+  fTREE <- files.tree[grep(CITY, files.tree)]
+  fVEG <- files.veg[grep(CITY, files.veg)]
+  fET <- files.et[grep(CITY, files.et)]
   
-  map.et <- ggplot(data=dat.test ) +
+  # The length statements will grab the newest file if there's more than one
+  maskCity <- raster(file.path(path.EEout, fMASK[length(fMASK)]))
+  elevCity <- raster(file.path(path.EEout, fELEV[length(fELEV)]))
+  lstCity <- brick(file.path(path.EEout, fLST[length(fLST)]))-273.15
+  treeCity <- brick(file.path(path.EEout, fTREE[length(fTREE)]))
+  vegCity <- brick(file.path(path.EEout, fVEG[length(fVEG)]))
+  etCity <- brick(file.path(path.EEout, fET[length(fET)]))/8
+  
+  # Calculating some additional
+  
+  
+  # par(mfrow=c(1,2))
+  # plot(elevCity); plot(maskCity)
+  # par(mfrow=c(1,1))
+  # plot(treeCity)
+  # plot(lstCity)
+  # plot(etCity)
+  
+  # lst.mean <- mean(lstCity)
+  # tree.mean <- mean(treeCity)
+  # veg.mean <- mean(vegCity)
+  # par(mfrow=c(2,2))
+  # plot(elevCity); plot(lst.mean); plot(tree.mean); plot(veg.mean)
+  
+  # Elevation should be our most reliable data layer, so lets use that as our base
+  coordsCity <- data.frame(coordinates(elevCity)) 
+  coordsCity$location <- paste0("x", coordsCity$x, "y", coordsCity$y)
+  coordsCity$elevation <- getValues(elevCity)
+  coordsCity$cityBounds <- getValues(maskCity)
+  coordsCity$cityBounds <- !is.na(coordsCity$cityBounds) # NA = buffer = FALSE citybounds
+  
+  # Double Checking the mask 
+  coordsMask <- data.frame(coordinates(maskCity))
+  coordsMask$location <- paste0("x", coordsMask$x, "y", coordsMask$y)
+  
+  # In case we're missing some years of LST (likely in the tropics); only pull certain layers
+  layers.use <- names(treeCity)[names(treeCity) %in% names(lstCity)]
+  
+  coordsVeg <- data.frame(coordinates(treeCity))
+  coordsVeg$location <- paste0("x", coordsVeg$x, "y", coordsVeg$y)
+  
+  
+  # Land Surface Temperature 
+  coordsLST <- data.frame(coordinates(lstCity))
+  coordsLST$location <- paste0("x", coordsLST$x, "y", coordsLST$y)
+  
+  # Adding ET --> note: This will just be a subset of years!
+  layersET <- names(etCity)[names(etCity) %in% names(lstCity)]
+  
+  coordsET <- data.frame(coordinates(etCity))
+  coordsET$location <- paste0("x", coordsET$x, "y", coordsET$y)
+  
+  valsCityVeg <- stack(data.frame(getValues(treeCity[[layers.use]])))
+  names(valsCityVeg) <- c("cover.tree", "year")
+  valsCityVeg$cover.veg <- stack(data.frame(getValues(vegCity[[layers.use]])))[,1]
+  valsCityVeg$x <- coordsVeg$x
+  valsCityVeg$y <- coordsVeg$y
+  valsCityVeg$location <- coordsVeg$location
+  
+  if(all(coordsVeg$location == coordsCity$location)){
+    cityStatsET$SpatialMistmatch[row.city] <- F # No problem, we're good
+    
+    valsCity <- valsCityVeg[,]
+    valsCity$elevation <- coordsCity$elevation
+    valsCity$cityBounds <- coordsCity$cityBounds
+    # valsCity <- merge(coordsCity, valsCityVeg, all.x=T, all.y=T)
+    
+  } else if(nrow(coordsVeg)==nrow(coordsCity)) {
+    # Checking to make sure the offset is minimal
+    datComb <- data.frame(x1=coordsVeg$x, y1=coordsVeg$y, x2 = coordsCity$x, y2 = coordsCity$y)
+    datComb$x.diff <- datComb$x1 - datComb$x2
+    datComb$y.diff <- datComb$y1 - datComb$y2
+    # summary(datComb) # For this example, it's a stupid tiny offset
+    
+    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
+      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
+      # cityStatsET$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+      
+      valsCity <- valsCityVeg[,]
+      valsCity$elevation <- coordsCity$elevation
+      valsCity$cityBounds <- coordsCity$cityBounds
+    }  else {
+      stop("Something's really off")
+    }
+    
+  } else if( any(coordsVeg$location %in% coordsCity$location)) {  
+    print(warning("Veg and Elev Layer Coords don't match, but at least some do"))
+    valsCity <- valsCityVeg[,]
+    
+    valsCity <- merge(valsCity, coordsCity, all.x=T, all.y=F)
+  } else {
+    print(warning("Veg and Elev Layer doesn't match. :-( skipping for now to see how prevalent that is"))
+    next
+  }
+  
+  
+  valsLST <- stack(data.frame(getValues(lstCity[[layers.use]])))
+  names(valsLST) <- c("LST_Day", "year")
+  valsLST$x <- coordsLST$x
+  valsLST$y <- coordsLST$y
+  valsLST$location <- coordsLST$location
+  summary(valsLST)
+  
+  # locLSTAll <- unique(valsLST$location[!is.na(valsLST$LST_Day)])
+  
+  # nrow(coordsCity); nrow(coordsLST)
+  if(all(coordsLST$location == coordsCity$location)){
+    valsCity$LST_Day <- valsLST$LST_Day
+    # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
+  } else if( nrow(coordsLST) == nrow (coordsCity)) {  
+    # Checking to make sure the offset is minimal
+    datComb <- data.frame(x1=coordsCity$x, y1=coordsCity$y, x2 = valsLST$x, y2 = coordsCity$y)
+    datComb$x.diff <- datComb$x1 - datComb$x2
+    datComb$y.diff <- datComb$y1 - datComb$y2
+    # summary(datComb) # For this example, it's a stupid tiny offset
+    
+    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
+      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
+      # cityStatsET$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+      valsCity$LST_Day <- valsLST$LST_Day
+      
+    }  else {
+      stop("Something's really off")
+    }
+  } else if( any(coordsLST$location %in% valsCity$location)) {  
+    valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
+  } else {
+    print(warning("LST coords do not match elev.  Need to re-implment nearest neighbor"))
+  }
+  
+  valsET <- stack(data.frame(getValues(etCity[[layersET]])))
+  names(valsET) <- c("ET", "year")
+  valsET$x <- coordsET$x
+  valsET$y <- coordsET$y
+  valsET$location <- coordsET$location
+  summary(valsET)
+  
+  # nrow(coordsCity); nrow(coordsLST)
+  if(all(coordsET$location == coordsCity$location)){
+    valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
+    # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
+  } else if( nrow(coordsET) == nrow (coordsCity)) {  
+    # Checking to make sure the offset is minimal
+    datComb <- data.frame(x1=coordsCity$x, y1=coordsCity$y, x2 = valsET$x, y2 = valsET$y)
+    datComb$x.diff <- datComb$x1 - datComb$x2
+    datComb$y.diff <- datComb$y1 - datComb$y2
+    # summary(datComb) # For this example, it's a stupid tiny offset
+    
+    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
+      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
+      # cityStatsET$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+      valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
+      
+    }  else {
+      stop("Something's really off")
+    }
+    
+    # print(warning("Using a merge to get things together.  Slow, but it should work"))
+  } else if( any(coordsET$location %in% valsCity$location)) {
+    print(warning("Using a merge to get things together.  Slow, but it should work"))
+    valsCity <- merge(valsCity, valsET, all.x=T, all.y=F)
+  } else {
+    print(warning("LST coords do not match elev.  Need to re-implment nearest neighbor"))
+  }
+  
+  summary(valsCity)
+  
+  
+  # Doing some conversion etc
+  valsCity$year <- as.numeric(substr(valsCity$year, 3, 6))
+  
+  yrsCityET <- unique(valsCity$year[!is.na(valsCity$ET)])
+  if(length(yrsCityET)<5){
+    # # (Note all cities before NGA56716 alphabetically need to be checked for this criteria
+    print(warning("ET data available for fewer than 5 years, Need to skip it.") )
+    cityStatsET$ETmodel.R2adj[row.city] <- -9999
+    
+    next 
+  }
+  valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & valsCity$year %in% yrsCityET,] # NOTE: getting rid of years >2014
+  summary(valsCity)
+  
+  if(length(unique(valsCity$location[!is.na(valsCity$ET)]))<50){
+    print(warning("Not enough ET pixels to robustly model; skip city"))
+    print("") # Just give a clean return before moving on
+    cityStatsET$ETmodel.R2adj[row.city] <- -9999
+    next
+  }
+  
+  if(max(valsCity$ET, na.rm=T)<0.1){
+    print(warning("ET too low to model; skip city"))
+    print("") # Just give a clean return before moving on
+    cityStatsET$ETmodel.R2adj[row.city] <- -9999
+    next
+  }  
+  # hist(valsCity$ET.mean)
+  # hist(valsCity$tree.mean)
+  # hist(valsCity$veg.mean)
+  # hist(sqrt(valsCity$ET.mean))
+  # hist(log(valsCity$ET.mean))
+  
+  map.et <- ggplot(data=valsCity ) +
     coord_equal() +
     geom_tile(aes(x=x, y=y, fill=ET.mean))
-  map.tree <- ggplot(data=dat.test ) +
+  map.tree <- ggplot(data=valsCity ) +
     coord_equal() +
     geom_tile(aes(x=x, y=y, fill=tree.mean))
-  map.veg <- ggplot(data=dat.test ) +
+  map.veg <- ggplot(data=valsCity ) +
     coord_equal() +
     geom_tile(aes(x=x, y=y, fill=veg.mean))
   
-  hist.et <- ggplot(data=dat.test ) +
+  hist.et <- ggplot(data=valsCity ) +
     geom_histogram(aes(x=ET.mean))
-  hist.tree <- ggplot(data=dat.test ) +
+  hist.tree <- ggplot(data=valsCity ) +
     geom_histogram(aes(x=tree.mean))
-  hist.veg <- ggplot(data=dat.test ) +
+  hist.veg <- ggplot(data=valsCity ) +
     geom_histogram(aes(x=veg.mean))
   
-  plot.lst <- ggplot(data=dat.test, aes(x=LST.mean, y=ET.mean)) +
+  plot.lst <- ggplot(data=valsCity, aes(x=LST.mean, y=ET.mean)) +
     geom_point() +
     stat_smooth(method="lm")
   
-  plot.tree <- ggplot(data=dat.test, aes(x=tree.mean, y=ET.mean)) +
+  plot.tree <- ggplot(data=valsCity, aes(x=tree.mean, y=ET.mean)) +
     geom_point() +
     stat_smooth(method="lm")
   
-  plot.veg <- ggplot(data=dat.test, aes(x=veg.mean, y=ET.mean)) +
+  plot.veg <- ggplot(data=valsCity, aes(x=veg.mean, y=ET.mean)) +
     geom_point() +
     stat_smooth(method="lm")
   
@@ -114,7 +351,7 @@ for(i in 1:length(cities.test)){
   dev.off()
   
   # Creating a clean thing with no missing data
-  dat.mod <- dat.test[!is.na(dat.test$ET.mean) & !is.na(dat.test$tree.mean),]
+  dat.mod <- valsCity[!is.na(valsCity$ET.mean) & !is.na(valsCity$tree.mean),]
   summary(dat.mod)
   
   
