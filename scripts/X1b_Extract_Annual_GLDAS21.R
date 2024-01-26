@@ -91,15 +91,9 @@ maskBBox <- ee$Geometry$BBox(-180, -60, 180, 75)
 # .1 - Northern Hemisphere: July/August
 # JulAugList <- ee_manage_assetlist(path_asset = "users/crollinson/LST_JulAug_Clean/")
 GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
-GLDASJulAug <- GLDASJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
-ee_print(GLDASJulAug)
-# Map$addLayer(GLDASJulAug$select('Tair_f_inst_mean'), vizTempK, "Jul/Aug Temperature")
-# Map$addLayer(GLDASJulAug$select('Evap_tavg_mean'), vizPrecip, "Jul/Aug ET")
-# Map$addLayer(GLDASJulAug$select('Rainf_f_tavg_mean'), vizPrecip, "Jul/Aug PR")
-
-
-GLDASJanFeb <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(1,60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
-GLDASJanFeb <- GLDASJanFeb$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+# GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
+# GLDASJulAug <- GLDASJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+# ee_print(GLDASJulAug)
 # Map$addLayer(GLDASJulAug$select('Tair_f_inst_mean'), vizTempK, "Jul/Aug Temperature")
 # Map$addLayer(GLDASJulAug$select('Evap_tavg_mean'), vizPrecip, "Jul/Aug ET")
 # Map$addLayer(GLDASJulAug$select('Rainf_f_tavg_mean'), vizPrecip, "Jul/Aug PR")
@@ -122,13 +116,6 @@ extractGLDASAnn <- function(CitySP, CityNames, GLDAS, GoogleFolderSave, overwrit
     cityNow <- CitySP$filter(ee$Filter$eq('ISOURBID', cityID))
     # Map$centerObject(cityNow) # NOTE: THIS IS REALLY IMPORTANT APPARENTLY!
     # Map$addLayer(cityNow)
-    #-------
-    
-    
-    #-------
-    # Extracting Data for the whole region
-    #-------
-    # Start Tree Cover Layer
     gldasCity <- GLDAS$map(function(img){
       return(img$clip(cityNow))
       })
@@ -146,89 +133,33 @@ extractGLDASAnn <- function(CitySP, CityNames, GLDAS, GoogleFolderSave, overwrit
     
     gldasYrMean <- yrList$map(ee_utils_pyfunc(function(j){
       YR <- ee$Number(j);
-      START <- ee$Date$fromYMD(YR,1,1);
-      END <- ee$Date$fromYMD(YR,12,31);
-      lstYR <- gldasCity$filter(ee$Filter$date(START, END))
-      # // var lstDev =  // make each layer an anomaly map
-      gldasMean <- lstYR$reduce(ee$Reducer$mean())
-      # ee_print(gldasMean)
-      gldasAgg <- ee$Image(gldasMean)
       # Map$addLayer(gldasMean$select("Tair_f_inst_mean"), vizTempK, 'Temperature')
-      # Map$addLayer(gldasMean$select('Evap_tavg_mean'), vizPrecip, "Jul/Aug ET")
-      # Map$addLayer(gldasMean$select('Rainf_f_tavg_mean'), vizPrecip, "Jul/Aug PR")
-      
-      
-      ## ADD YEAR AS A PROPERTY!!
-      gldasAgg <- gldasAgg$set(ee$Dictionary(list(year=YR)))
-      gldasAgg <- gldasAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
-      # ee_print(gldasMean)
-      # Map$addLayer(gldasMean$select('Tair_f_inst_mean'), vizTempK, 'Mean Surface Temperature (K)');
+ee_manage_create(file.path(assetHome, "GLDAS_Annual_JulAug"), asset_type="ImageCollection")
+ee_manage_create(file.path(assetHome, "GLDAS_Annual_JanFeb"), asset_type="ImageCollection")
 
-      return (gldasAgg); # update to standardized once read
-    }))
-    gldasYrMean <- ee$ImageCollection$fromImages(gldasYrMean) # go ahead and overwrite it since we're just changing form
-    # ee_print(gldasYrMean)
-    # tempYrMean <- ee$ImageCollection$toBands(tempYrMean)$rename(yrString)
-        
-    
-    # # Code from NDVI work tor educe to a single value --> will need to be inside a map function()
-    tableYr <- ee$FeatureCollection(gldasYrMean$map(function(img){
-      RedMn =img$reduceRegion(reducer= ee$Reducer$mean(), geometry=cityNow$geometry(),
-                             scale=111319.5, # hard-coded, but it's what has to happen to work
-                             maxPixels=1e4)
-      # RedMn$getInfo()  
-      return(ee$Feature(NULL, RedMn)$set('year', img$get('year'))$set('system:index', img$get('system:index')))
-      
-    }))
-    
-    fileNamePrefix = paste0(cityID, "_GLDAS21_annualMeans")
-    
-    gldasMeansSave <- ee_table_to_drive(collection=tableYr,
-                                     description=paste0("Save_", fileNamePrefix),
-                                     folder=GoogleFolderSave,
-                                     fileNamePrefix=fileNamePrefix,
-                                     timePrefix=T,
-                                     fileFormat="CSV",
-                                     selectors=c("year", "Evap_tavg_mean", "Rainf_f_tavg_mean", "Tair_f_inst_mean"))
-    gldasMeansSave$start()
-    # 
-    
-    # return(ee$Feature(NULL, RedMn)$set('system:time_start', img$get('system:time_start'))$set('date', ee$Date(img$get('system:time_start'))$format("YYYY-MM-dd")))
-    # ee_print(RedMn)
-    
-    # exportGLDAS <- ee_image_to_drive(image=gldasCity, description=paste0(cityID, "_GLDAS21"), fileNamePrefix=paste0(cityID, "_GLDAS21"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
-    # exportGLDAS$start()
-  }  
-}
-##################### 
-
-##################### 
-##################### 
-cityIdS <-sdei.df$ISOURBID[sdei.df$LATITUDE<0]
-cityIdNW <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0 & sdei.df$LONGITUDE<=0]
-cityIdNE1 <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0 & sdei.df$LONGITUDE>0 & sdei.df$LONGITUDE<=75]
-cityIdNE2 <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0 & sdei.df$LONGITUDE>75]
-length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
-
-# If we're not trying to overwrite our files, remove files that were already done
-# cityRemove <- vector()
-# if(!overwrite){
-#   ### Filter out sites that have been done!
-#   gldas.done <- dir(file.path(path.google, GoogleFolderSave), "GLDAS")
-#   
-#   # Check to make sure a city has all three layers; if it doesn't do it again
-#   cityRemove <- unlist(lapply(strsplit(gldas.done, "_"), function(x){x[1]}))
-#   
-#   cityIdS <- cityIdS[!cityIdS %in% cityRemove]
-#   cityIdNW <- cityIdNW[!cityIdNW %in% cityRemove]
-#   cityIdNE1 <- cityIdNE1[!cityIdNE1 %in% cityRemove]
-#   cityIdNE2 <- cityIdNE2[!cityIdNE2 %in% cityRemove]
-#   
-# } # End remove cities loop
-# length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
-
-if(length(cityIdS)>0){
-  extractGLDASAnn(CitySP=citiesUse, CityNames = cityIdS, GLDAS=GLDASJanFeb, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# Doing northern hemisphere
+for(YR in 2001:2020){
+  GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date(paste0(YR,"-01-01"), paste0(YR, "-12-31")))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
+  GLDASJulAug <- GLDASJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+  
+  gldasMean <- GLDASJulAug$reduce(ee$Reducer$mean())$set(ee$Dictionary(list(year=YR)))
+  # ee_print(gldasMean)
+  # Map$addLayer(gldasMean$select('Tair_f_inst_mean'), vizTempK, "Jul/Aug Temperature")
+  
+  saveGLDASAnn <- ee_image_to_asset(gldasMean, description=paste("Save", "GLDAS_Annual_JulAug", YR, sep="_"), assetId=file.path(assetHome, "GLDAS_Annual_JulAug", paste("GLDAS_Annual_JulAug", YR, sep="_")), maxPixels = 10e9, scale=27829.87, region = bBoxN, crs=projCRS, crsTransform=projTransform, overwrite=T)
+  saveGLDASAnn$start()
 }
 
-##################### 
+# Now doing southern hemisphere
+for(YR in 2001:2020){
+  GLDASJanFeb <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(1,60))$filter(ee$Filter$date(paste0(YR,"-01-01"), paste0(YR, "-12-31")))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
+  GLDASJanFeb <- GLDASJanFeb$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+  
+  gldasMean <- GLDASJanFeb$reduce(ee$Reducer$mean())$set(ee$Dictionary(list(year=YR)))
+  # ee_print(gldasMean)
+  # Map$addLayer(gldasMean$select('Tair_f_inst_mean'), vizTempK, "Jul/Aug Temperature")
+  
+  saveGLDASAnn <- ee_image_to_asset(gldasMean, description=paste("Save", "GLDAS_Annual_FanFeb", YR, sep="_"), assetId=file.path(assetHome, "GLDAS_Annual_JanFeb", paste("GLDAS_Annual_JanFeb", YR, sep="_")), maxPixels = 10e9, scale=27829.87, region = bBoxS, crs=projCRS, crsTransform=projTransform, overwrite=T)
+  saveGLDASAnn$start()
+  
+}

@@ -33,3 +33,7 @@ ee_manage_delete("users/crollinson/LST_JulAug_Clean/")
 ee_manage_delete("users/crollinson/LST_JanFeb_Clean/")
 ee_manage_delete("users/crollinson/ET_JulAug")
 ee_manage_delete("users/crollinson/ET_JanFeb")
+
+
+ee_manage_delete("users/crollinson/GLDAS_Annual_JulAug/")
+ee_manage_delete("users/crollinson/GLDAS_Annual_JanFeb/")
