@@ -30,26 +30,7 @@ setYear <- function(img){
 
 
 #####################
-# 1. Load and select cities
-#####################
-sdei.df <- data.frame(vect("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp"))
-sdei.df <- sdei.df[sdei.df$ES00POP>=100e3 & sdei.df$SQKM_FINAL>=1e2,]
-cityIdAll <- sdei.df$ISOURBID
-
-sdei <- ee$FeatureCollection('users/crollinson/sdei-global-uhi-2013');
-# print(sdei.first())
-
-# Right now, just set all cities with >100k people in the metro area and at least 100 sq km in size
-citiesUse <- sdei$filter(ee$Filter$gte('ES00POP', 100e3))$filter(ee$Filter$gte('SQKM_FINAL', 1e2))
-# ee_print(citiesUse) # Thsi function gets the summary stats; this gives us 2,682 cities
-
-# Use map to go ahead and create the buffer around everything
-citiesUse <- citiesUse$map(function(f){f$buffer(10e3)})
-
-#####################
-
-#####################
-# 2. Load in data layers
+# 1. Load in data layers
 ####################
 
 tempColors <- c(
@@ -104,6 +85,10 @@ for(YR in 2001:2020){
   GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date(paste0(YR,"-01-01"), paste0(YR, "-12-31")))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
   GLDASJulAug <- GLDASJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
   
+  projGLDAS = GLDASJulAug$first()$projection()
+  projCRS = projGLDAS$crs()
+  projTransform <- unlist(projGLDAS$getInfo()$transform)
+  
   gldasMean <- GLDASJulAug$reduce(ee$Reducer$mean())$set(ee$Dictionary(list(year=YR)))
   # ee_print(gldasMean)
   # Map$addLayer(gldasMean$select('Tair_f_inst_mean'), vizTempK, "Jul/Aug Temperature")
@@ -116,6 +101,11 @@ for(YR in 2001:2020){
 for(YR in 2001:2020){
   GLDASJanFeb <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(1,60))$filter(ee$Filter$date(paste0(YR,"-01-01"), paste0(YR, "-12-31")))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
   GLDASJanFeb <- GLDASJanFeb$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
+  
+  projGLDAS = GLDASJanFeb$first()$projection()
+  projCRS = projGLDAS$crs()
+  projTransform <- unlist(projGLDAS$getInfo()$transform)
+  
   
   gldasMean <- GLDASJanFeb$reduce(ee$Reducer$mean())$set(ee$Dictionary(list(year=YR)))
   # ee_print(gldasMean)
