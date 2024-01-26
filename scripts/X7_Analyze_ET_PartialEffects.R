@@ -104,11 +104,11 @@ pb <- txtProgressBar(min=0, max=nrow(cityAnalyStats), style=3)
 for(rowCity in 1:nrow(cityAnalyStats)){
   setTxtProgressBar(pb, rowCity)
   
-  test <- splineTree[[CITY]]
+  # test <- splineTree[[CITY]]
   if(!overwrite & !is.null(splineTree[[CITY]])) next # If we've done this city, skip it
   
   CITY=cityAnalyStats$ISOURBID[rowCity]
-  print(CITY)
+  # print(CITY)
   
   
   dfCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Pixels.csv")))
@@ -132,6 +132,8 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # Temp.Max = max annual temperature; [].MaxT = year/intercept in the warmest year 
   # dfIntercept <- data.frame(ISOURBID = cityAnalyStats$ISOURBID, Intercept.Mean=NA, Temp.Mean=NA, Intercept.Max=NA, Year.MaxI=NA, Temp.MaxI=NA, Temp.Max=NA, Year.MaxT=NA, Intercept.MaxT=NA)
   dfIntercept$Intercept.Mean[rowCity] <- mean(modETCitySum$p.coeff)
+  dfIntercept$Temp.Mean[rowCity] <- mean(modETCity$model$LST_Day)
+  
   # yrstr <- paste(names(modETCitySum$p.coeff)[1])
   indMaxI <- which(modETCitySum$p.coeff==max(modETCitySum$p.coeff))
   yrMax <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff)[indMaxI], start=-4))
@@ -145,7 +147,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   indMaxT <- which(lstYr$LST_Day==max(lstYr$LST_Day))
   dfIntercept$Temp.Max[rowCity] <- lstYr$LST_Day[indMaxT]
-  dfIntercept$Year.MaxT[rowCity] <- lstYr$`as.factor(year)`[indMaxT]
+  dfIntercept$Year.MaxT[rowCity] <- as.numeric(paste(lstYr$`as.factor(year)`[indMaxT]))
   dfIntercept$Intercept.MaxT[rowCity] <- modETCitySum$p.coeff[indMaxT]
   
   write.csv(dfIntercept, file.path(path.google, "ETModel_InterceptSummary.csv"), row.names=F)
