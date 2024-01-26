@@ -90,50 +90,12 @@ maskBBox <- ee$Geometry$BBox(-180, -60, 180, 75)
 
 # .1 - Northern Hemisphere: July/August
 # JulAugList <- ee_manage_assetlist(path_asset = "users/crollinson/LST_JulAug_Clean/")
-GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
 # GLDASJulAug <- ee$ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)$select(c("Evap_tavg", "Rainf_f_tavg", "Tair_f_inst"));
 # GLDASJulAug <- GLDASJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
 # ee_print(GLDASJulAug)
 # Map$addLayer(GLDASJulAug$select('Tair_f_inst_mean'), vizTempK, "Jul/Aug Temperature")
 # Map$addLayer(GLDASJulAug$select('Evap_tavg_mean'), vizPrecip, "Jul/Aug ET")
 # Map$addLayer(GLDASJulAug$select('Rainf_f_tavg_mean'), vizPrecip, "Jul/Aug PR")
-
-# -----------
-##################### 
-
-
-##################### 
-# The core function ----
-##################### 
-extractGLDASAnn <- function(CitySP, CityNames, GLDAS, GoogleFolderSave, overwrite=F, ...){
-  # CITIES needs to be a list
-  # Vegetation should be the reprojected MODIS44b product with year added in
-  pb <- txtProgressBar(min=0, max=length(CityNames), style=3)
-  for(i in 1:length(CityNames)){
-    setTxtProgressBar(pb, i)
-    cityID <- CityNames[i]
-    # cityNow <- CitySP$filter('NAME=="Chicago"')$first()
-    cityNow <- CitySP$filter(ee$Filter$eq('ISOURBID', cityID))
-    # Map$centerObject(cityNow) # NOTE: THIS IS REALLY IMPORTANT APPARENTLY!
-    # Map$addLayer(cityNow)
-    gldasCity <- GLDAS$map(function(img){
-      return(img$clip(cityNow))
-      })
-    # ee_print(gldasCity)
-    # Map$addLayer(gldasCity$select("Tair_f_inst_mean"), vizTempK, 'Temperature')
-    # Map$addLayer(gldasCity$select('Evap_tavg_mean'), vizPrecip, "Jul/Aug ET")
-    # Map$addLayer(gldasCity$select('Rainf_f_tavg_mean'), vizPrecip, "Jul/Aug PR")
-
-    yrList <- ee$List(gldasCity$aggregate_array("year"))$distinct()
-    yrString <- yrList$map(ee_utils_pyfunc(function(j){
-      return(ee$String("YR")$cat(ee$String(ee$Number(j)$format())))
-    }))
-    # yrList$getInfo
-    # ee_print(yrList)
-    
-    gldasYrMean <- yrList$map(ee_utils_pyfunc(function(j){
-      YR <- ee$Number(j);
-      # Map$addLayer(gldasMean$select("Tair_f_inst_mean"), vizTempK, 'Temperature')
 ee_manage_create(file.path(assetHome, "GLDAS_Annual_JulAug"), asset_type="ImageCollection")
 ee_manage_create(file.path(assetHome, "GLDAS_Annual_JanFeb"), asset_type="ImageCollection")
 
