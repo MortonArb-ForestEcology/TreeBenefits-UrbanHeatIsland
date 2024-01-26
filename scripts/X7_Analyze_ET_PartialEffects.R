@@ -167,15 +167,15 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   # Tree Effect!
   dfTree <- data.frame(cover.tree = seq(min(modETCity$model$cover.tree), max(modETCity$model$cover.tree), length.out=nInterval), cover.veg=vegMean, LST_Day=lstMean, x=xMean, y=yMean, year=lstYr$`as.factor(year)`[indMaxT])
-  splineTree[[CITY]] <- data.frame(Effect=as.numeric(predict(modETCity, type="terms", terms="s(cover.tree)", newdata=dfTree)), cover.tree=dfTree$cover.tree)
+  splineTree[[CITY]] <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="terms", terms="s(cover.tree)", newdata=dfTree)), cover.tree=dfTree$cover.tree)
 
   # Non-Tree vegetation
   dfVeg <- data.frame(cover.veg = seq(min(modETCity$model$cover.veg), max(modETCity$model$cover.veg), length.out=nInterval), cover.tree=treeMean, LST_Day=lstMean, x=xMean, y=yMean, year=lstYr$`as.factor(year)`[indMaxT])
-  splineVeg[[CITY]] <- data.frame(Effect=as.numeric(predict(modETCity, type="terms", terms="s(cover.veg)", newdata=dfVeg)), cover.veg=dfVeg$cover.veg)
+  splineVeg[[CITY]] <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="terms", terms="s(cover.veg)", newdata=dfVeg)), cover.veg=dfVeg$cover.veg)
   
   # Temperature
   dfTemp <- data.frame(cover.tree = treeMean, cover.veg=vegMean, LST_Day=seq(min(modETCity$model$LST_Day), max(modETCity$model$LST_Day), length.out=nInterval), x=xMean, y=yMean, year=lstYr$`as.factor(year)`[indMaxT])
-  splineTemp[[CITY]] <- data.frame(Effect=as.numeric(predict(modETCity, type="terms", terms="s(LST_Day)", newdata=dfTemp)), LST_Day=dfTemp$LST_Day)
+  splineTemp[[CITY]] <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="terms", terms="s(LST_Day)", newdata=dfTemp)), LST_Day=dfTemp$LST_Day)
   
   
   saveRDS(splineTree, file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverTree.rds"))
@@ -190,5 +190,53 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
  
 }
+###########################################
+
+
+###########################################
+# Plotting the partial effects here for now
+###########################################
+
+dfSplineTree <- data.table::rbindlist(splineTree)
+dfSplineTree <- merge(dfSplineTree, cityAnalyStats[,c("ISOURBID", "biomeName")], all.x=T, all.y=F)
+summary(dfSplineTree)
+
+png(file.path(path.figs, "ETmodel_PartialEffects_CoverTree.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineTree, aes(x=cover.tree, y=Effect)) +
+  facet_wrap(~biomeName) +
+  geom_line(aes(group=ISOURBID), linewidth=0.1) + 
+  geom_smooth() +
+  coord_cartesian(ylim=c(-0.75, 0.75)) +
+  theme_bw()
+dev.off()
+
+dfSplineVeg <- data.table::rbindlist(splineVeg)
+dfSplineVeg <- merge(dfSplineVeg, cityAnalyStats[,c("ISOURBID", "biomeName")], all.x=T, all.y=F)
+summary(dfSplineVeg)
+
+png(file.path(path.figs, "ETmodel_PartialEffects_CoverVeg.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineVeg, aes(x=cover.veg, y=Effect)) +
+  facet_wrap(~biomeName) +
+  geom_line(aes(group=ISOURBID), linewidth=0.1) + 
+  geom_smooth() +
+  coord_cartesian(ylim=c(-0.75, 0.75)) +
+  theme_bw()
+dev.off()
+
+
+dfSplineTemp <- data.table::rbindlist(splineTemp)
+dfSplineTemp <- merge(dfSplineTemp, cityAnalyStats[,c("ISOURBID", "biomeName")], all.x=T, all.y=F)
+summary(dfSplineTemp)
+
+png(file.path(path.figs, "ETmodel_PartialEffects_LST.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineTemp[dfSplineTemp$LST_Day>0], aes(x=LST_Day, y=Effect)) +
+  facet_wrap(~biomeName) +
+  geom_line(aes(group=ISOURBID), linewidth=0.1) + 
+  geom_smooth() +
+  geom_vline(xintercept = 35, color="orange2") +
+  geom_vline(xintercept = 40, color="red2") +
+  coord_cartesian(ylim=c(-0.75, 0.75)) +
+  theme_bw()
+dev.off()
 
 ###########################################
