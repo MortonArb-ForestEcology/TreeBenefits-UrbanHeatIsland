@@ -149,9 +149,11 @@ hist(cityAll.ET$ETpixels.prop)
 
 
 summary(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2,])
-head(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="USA",])
-head(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
-tail(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
+summary(as.factor(cityAll.ET$ISO3[cityAll.ET$ETmodel.R2adj<0.2]))
+summary(as.factor(cityAll.ET$biomeName[cityAll.ET$ETmodel.R2adj<0.2]))
+# head(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="USA",])
+# head(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
+# tail(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
 
 length(which(cityAll.ET$ETpred.Precip<2))
 nrow(cityAll.ET)
@@ -273,11 +275,26 @@ plotRatio <- ggplot(data=cityAll.ET[,]) +
   theme_bw() +
   theme(axis.text.x = element_blank())
 
+plotRatioLog <- ggplot(data=cityAll.ET[,]) +
+  # coord_cartesian(ylim=c(0,2.5), expand=0) +
+  geom_violin(aes(x=biomeName, y=log(ETpred.Precip), fill=biomeName), scale="width") +
+  geom_hline(yintercept=log(1), linetype="dashed") +
+  annotate(geom="text", x=1.25, y=c(-2.5, 3), label=c("Precip Surplus", "Precip Deficit"), hjust=0) +
+  scale_fill_manual(values=biome.pall.all) +
+  labs(y="log(ET/Precip)", x="Biome") +
+  theme_bw() +
+  theme(axis.text.x = element_blank())
+
 plotInputs <- cowplot::plot_grid(plotET, plotPrecip, ncol=1)
 
 png(file.path(path.figs, "ETmodel_ET_vs_Precip_Current.png"), height=8, width=10, units="in", res=320)
 cowplot::plot_grid(plotInputs, plotRatio, ncol=2, rel_widths=c(0.25, 0.75))
 dev.off()
+
+png(file.path(path.figs, "ETmodel_ET_vs_Precip_Current_Log.png"), height=8, width=10, units="in", res=320)
+cowplot::plot_grid(plotInputs, plotRatioLog, ncol=2, rel_widths=c(0.25, 0.75))
+dev.off()
+
  
 plot(ETobs.mean ~ ETpred.mean, data=cityAll.ET); abline(a=0, b=1, col="red")
 plot(ETobs.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
