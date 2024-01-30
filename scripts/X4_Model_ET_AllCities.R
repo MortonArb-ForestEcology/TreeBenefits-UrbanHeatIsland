@@ -4,7 +4,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=T
+overwrite=F
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -123,6 +123,11 @@ for(CITY in citiesAnalyze){
   TempCity <- read.csv(file.path(path.EEout, fTemp[length(fTemp)]))
   TempCity$Tair_f_inst_mean <- TempCity$Tair_f_inst_mean-273.15
   TempCity[,c("Evap_tavg_mean", "Rainf_f_tavg_mean")] <- TempCity[,c("Evap_tavg_mean", "Rainf_f_tavg_mean")]*60*60*24
+  
+  if(all(is.na(TempCity$Tair_f_inst_mean))){
+    print(warning("no actual GLDAS data... skip this location"))
+    next
+  }
   
   # TempCity
   # plot(Evap_tavg_mean ~ Tair_f_inst_mean, data=TempCity)
@@ -289,6 +294,7 @@ for(CITY in citiesAnalyze){
   
   # If we made it this far, now merge in the regional stats from GLDAS
   valsCity <- merge(valsCity, TempCity, all.x=T, all.y=F)
+  # summary(valsCity)
   
   # valsCityAnn <- aggregate(cbind(cover.tree, cover.veg, ET, Evap_tavg_mean, Tair_f_inst_mean) ~ year, data=valsCity, FUN=mean)
   
