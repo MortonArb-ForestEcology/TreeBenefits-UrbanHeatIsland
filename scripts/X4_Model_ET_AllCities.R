@@ -49,8 +49,8 @@ if(!file.exists(file.cityStatsET) | overwrite){
   # Some summary stats about the inputs at the region scale 
   # ------------------
   cityStatsET[,"SpatialMistmatch"] <- NA
-  # - number of pixels, mean LST, cover, elev --> for ranges, give range across entire dataset to indicate range of values used in full model
-  cityStatsET[,c("n.pixels", "n.pixels.ET", "LST.ET.mean", "LST.ET.sd", "LST.ET.min", "LST.ET.max", "tree.ET.mean", "tree.ET.sd", "tree.ET.min", "tree.ET.max", "veg.ET.mean", "veg.ET.sd", "veg.ET.min", "veg.ET.max", "ETobs.mean", "ETobs.sd", "ETobs.min", "ETobs.max")] <- NA
+  # - number of pixels, mean Temp, cover, elev --> for ranges, give range across entire dataset to indicate range of values used in full model
+  cityStatsET[,c("n.pixels", "n.pixels.ET", "Temp.ET.mean", "Temp.ET.sd", "Temp.ET.min", "Temp.ET.max", "tree.ET.mean", "tree.ET.sd", "tree.ET.min", "tree.ET.max", "veg.ET.mean", "veg.ET.sd", "veg.ET.min", "veg.ET.max", "ETobs.mean", "ETobs.sd", "ETobs.min", "ETobs.max")] <- NA
   
   # Save the key info from the full model
   cityStatsET[,c("ETmodel.R2adj", "ETmodel.RMSE")] <- NA
@@ -71,26 +71,26 @@ summary(cityStatsET); dim(cityStatsET)
 # Get a list of the files that are done
 # # Note: Some cities (2-3) seems to have >1 file, which is weird.  Can do a spot check or just roll with the last file like I think I have coded in
 files.elev <- dir(path.EEout, "elevation")
-files.lst <- dir(path.EEout, "LST_Day_Tmean")
+files.temp <- dir(path.EEout, "GLDAS21_annualMeans")
 files.et <- dir(path.EEout, "ETmean")
 files.tree <- dir(path.EEout, "PercentTree")
 files.veg <- dir(path.EEout, "PercentOtherVeg")
 files.mask <- dir(path.EEout, "CityMask")
-length(files.lst); length(files.et); length(files.tree); length(files.veg); length(files.elev); length(files.mask)
+length(files.temp); length(files.et); length(files.tree); length(files.veg); length(files.elev); length(files.mask)
 # Note: We're missing 3 cities for ET data
 
 # Figure out which cities have all the layers needed to be analyzed
 cities.elev <- unlist(lapply(files.elev, FUN=function(x){strsplit(x, "_")[[1]][1]}))
-cities.lst <- unlist(lapply(files.lst, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+cities.temp <- unlist(lapply(files.temp, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.et <- unlist(lapply(files.et, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.tree <- unlist(lapply(files.tree, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.veg <- unlist(lapply(files.veg, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.mask <- unlist(lapply(files.mask, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 
 
-# citiesDone <- unique(cities.lst)
+# citiesDone <- unique(cities.temp)
 
-citiesDone <- unique(cities.lst[cities.lst %in% cities.et & cities.lst %in% cities.elev & cities.lst %in% cities.tree & cities.lst %in% cities.veg & cities.lst %in% cities.mask])
+citiesDone <- unique(cities.temp[cities.temp %in% cities.et & cities.temp %in% cities.elev & cities.temp %in% cities.tree & cities.temp %in% cities.veg & cities.temp %in% cities.mask])
 length(citiesDone)
 
 # Now compare the done list to what needs to be analyzed
@@ -103,25 +103,34 @@ for(CITY in citiesAnalyze){
   # CITY="AUS66430"; CITY="USA26687"
   # # Cities with poor R2: USA34146; IND55394; IND44003
   # CITY="USA34146"
-  
+  # CITY="EGY44702" # Cairo
+
+    
   row.city <- which(cityStatsET$ISOURBID==CITY)
   print(CITY)
   # citySP <- sdei.urb[sdei.urb$ISOURBID==CITY, ]
   # cityBuff <- st_buffer(citySP, dist=10e3)
   
-  # length(files.elev); length(files.lst); length(files.tree); length(files.veg); length(files.mask)
+  # length(files.elev); length(files.temp); length(files.tree); length(files.veg); length(files.mask)
   # Circuitous coding, but it will be more resilient to multiple versions
   fMASK <- files.mask[grep(CITY, files.mask)]
   fELEV <- files.elev[grep(CITY, files.elev)]
-  fLST <- files.lst[grep(CITY, files.lst)]
+  fTemp <- files.temp[grep(CITY, files.temp)]
   fTREE <- files.tree[grep(CITY, files.tree)]
   fVEG <- files.veg[grep(CITY, files.veg)]
   fET <- files.et[grep(CITY, files.et)]
   
+  TempCity <- read.csv(file.path(path.EEout, fTemp[length(fTemp)]))
+  TempCity$Tair_f_inst_mean <- TempCity$Tair_f_inst_mean-273.15
+  TempCity[,c("Evap_tavg_mean", "Rainf_f_tavg_mean")] <- TempCity[,c("Evap_tavg_mean", "Rainf_f_tavg_mean")]*60*60*24
+  
+  # TempCity
+  # plot(Evap_tavg_mean ~ Tair_f_inst_mean, data=TempCity)
+  # abline(lm(Evap_tavg_mean ~ Tair_f_inst_mean, data=TempCity), col="red")
+  
   # The length statements will grab the newest file if there's more than one
   maskCity <- raster(file.path(path.EEout, fMASK[length(fMASK)]))
   elevCity <- raster(file.path(path.EEout, fELEV[length(fELEV)]))
-  lstCity <- brick(file.path(path.EEout, fLST[length(fLST)]))-273.15
   treeCity <- brick(file.path(path.EEout, fTREE[length(fTREE)]))
   vegCity <- brick(file.path(path.EEout, fVEG[length(fVEG)]))
   etCity <- brick(file.path(path.EEout, fET[length(fET)]))/8
@@ -133,14 +142,14 @@ for(CITY in citiesAnalyze){
   # plot(elevCity); plot(maskCity)
   # par(mfrow=c(1,1))
   # plot(treeCity)
-  # plot(lstCity)
+  # plot(TempCity)
   # plot(etCity)
   
-  # lst.mean <- mean(lstCity)
+  # Temp.mean <- mean(TempCity)
   # tree.mean <- mean(treeCity)
   # veg.mean <- mean(vegCity)
   # par(mfrow=c(2,2))
-  # plot(elevCity); plot(lst.mean); plot(tree.mean); plot(veg.mean)
+  # plot(elevCity); plot(Temp.mean); plot(tree.mean); plot(veg.mean)
   
   # Elevation should be our most reliable data layer, so lets use that as our base
   coordsCity <- data.frame(coordinates(elevCity)) 
@@ -153,19 +162,16 @@ for(CITY in citiesAnalyze){
   coordsMask <- data.frame(coordinates(maskCity))
   coordsMask$location <- paste0("x", coordsMask$x, "y", coordsMask$y)
   
-  # In case we're missing some years of LST (likely in the tropics); only pull certain layers
-  layers.use <- names(treeCity)[names(treeCity) %in% names(lstCity)]
+  # In case we're missing some years of Temp (likely in the tropics); only pull certain layers
+  layers.use <- names(treeCity)[names(treeCity) %in% names(etCity)]
   
   coordsVeg <- data.frame(coordinates(treeCity))
   coordsVeg$location <- paste0("x", coordsVeg$x, "y", coordsVeg$y)
   
   
-  # Land Surface Temperature 
-  coordsLST <- data.frame(coordinates(lstCity))
-  coordsLST$location <- paste0("x", coordsLST$x, "y", coordsLST$y)
   
   # Adding ET --> note: This will just be a subset of years!
-  layersET <- names(etCity)[names(etCity) %in% names(lstCity)]
+  layersET <- names(etCity)[names(etCity) %in% names(treeCity)]
   
   coordsET <- data.frame(coordinates(etCity))
   coordsET$location <- paste0("x", coordsET$x, "y", coordsET$y)
@@ -213,41 +219,7 @@ for(CITY in citiesAnalyze){
     next
   }
   
-  
-  valsLST <- stack(data.frame(getValues(lstCity[[layers.use]])))
-  names(valsLST) <- c("LST_Day", "year")
-  valsLST$x <- coordsLST$x
-  valsLST$y <- coordsLST$y
-  valsLST$location <- coordsLST$location
-  summary(valsLST)
-  
-  # locLSTAll <- unique(valsLST$location[!is.na(valsLST$LST_Day)])
-  
-  # nrow(coordsCity); nrow(coordsLST)
-  if(all(coordsLST$location == coordsCity$location)){
-    valsCity$LST_Day <- valsLST$LST_Day
-    # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
-  } else if( nrow(coordsLST) == nrow (coordsCity)) {  
-    # Checking to make sure the offset is minimal
-    datComb <- data.frame(x1=coordsCity$x, y1=coordsCity$y, x2 = valsLST$x, y2 = coordsCity$y)
-    datComb$x.diff <- datComb$x1 - datComb$x2
-    datComb$y.diff <- datComb$y1 - datComb$y2
-    # summary(datComb) # For this example, it's a stupid tiny offset
-    
-    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
-      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
-      # cityStatsET$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
-      valsCity$LST_Day <- valsLST$LST_Day
-      
-    }  else {
-      stop("Something's really off")
-    }
-  } else if( any(coordsLST$location %in% valsCity$location)) {  
-    valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
-  } else {
-    print(warning("LST coords do not match elev.  Need to re-implment nearest neighbor"))
-  }
-  
+
   valsET <- stack(data.frame(getValues(etCity[[layersET]])))
   names(valsET) <- c("ET", "year")
   valsET$x <- coordsET$x
@@ -255,10 +227,10 @@ for(CITY in citiesAnalyze){
   valsET$location <- coordsET$location
   summary(valsET)
   
-  # nrow(coordsCity); nrow(coordsLST)
+  # nrow(coordsCity); nrow(coordsTemp)
   if(all(coordsET$location == coordsCity$location)){
     valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
-    # valsCity <- merge(valsCity, valsLST, all.x=T, all.y=T)
+    # valsCity <- merge(valsCity, valsTemp, all.x=T, all.y=T)
   } else if( nrow(coordsET) == nrow (coordsCity)) {  
     # Checking to make sure the offset is minimal
     datComb <- data.frame(x1=coordsCity$x, y1=coordsCity$y, x2 = valsET$x, y2 = valsET$y)
@@ -280,7 +252,7 @@ for(CITY in citiesAnalyze){
     print(warning("Using a merge to get things together.  Slow, but it should work"))
     valsCity <- merge(valsCity, valsET, all.x=T, all.y=F)
   } else {
-    print(warning("LST coords do not match elev.  Need to re-implment nearest neighbor"))
+    print(warning("Temp coords do not match elev.  Need to re-implment nearest neighbor"))
   }
   
   summary(valsCity)
@@ -315,6 +287,23 @@ for(CITY in citiesAnalyze){
   }
   
   
+  # If we made it this far, now merge in the regional stats from GLDAS
+  valsCity <- merge(valsCity, TempCity, all.x=T, all.y=F)
+  
+  valsCityAnn <- aggregate(cbind(cover.tree, cover.veg, ET, Evap_tavg_mean, Tair_f_inst_mean) ~ year, data=valsCity, FUN=mean)
+  
+  # plot(Tair_f_inst_mean ~ year, data=valsCityAnn)
+  # abline(lm(Tair_f_inst_mean ~ year, data=valsCityAnn), col="red")
+  # plot(cover.tree ~ year, data=valsCityAnn)
+  # abline(lm(cover.tree ~ year, data=valsCityAnn), col="red")
+
+  # plot(Evap_tavg_mean ~ Tair_f_inst_mean, data=valsCityAnn)
+  # abline(lm(Evap_tavg_mean ~ Tair_f_inst_mean, data=valsCityAnn), col="red")
+
+  # plot(ET ~ Tair_f_inst_mean, data=valsCityAnn)
+  # abline(lm(ET ~ Tair_f_inst_mean, data=valsCityAnn), col="red")
+  
+  
   # Don't bother creating a folder for a city until we'll have at least something to save!
   dir.create(file.path(path.cities, CITY), recursive = T, showWarnings = F)
   
@@ -326,10 +315,10 @@ for(CITY in citiesAnalyze){
   # NOTE: In contrast to the big analy script, these are the ranges used to model ET
   cityStatsET$n.pixels[row.city] <- length(unique(valsCity$location))
   cityStatsET$n.pixels.ET[row.city] <- length(unique(valsCity$location[!is.na(valsCity$ET)]))
-  cityStatsET$LST.ET.mean[row.city] <- mean(valsCity$LST_Day[!is.na(valsCity$ET)], na.rm=T)
-  cityStatsET$LST.ET.sd[row.city] <- sd(valsCity$LST_Day[!is.na(valsCity$ET)], na.rm=T)
-  cityStatsET$LST.ET.min[row.city] <- min(valsCity$LST_Day[!is.na(valsCity$ET)], na.rm=T)
-  cityStatsET$LST.ET.max[row.city] <- max(valsCity$LST_Day[!is.na(valsCity$ET)], na.rm=T)
+  cityStatsET$Temp.ET.mean[row.city] <- mean(valsCity$Tair_f_inst_mean[!is.na(valsCity$ET)], na.rm=T)
+  cityStatsET$Temp.ET.sd[row.city] <- sd(valsCity$Tair_f_inst_mean[!is.na(valsCity$ET)], na.rm=T)
+  cityStatsET$Temp.ET.min[row.city] <- min(valsCity$Tair_f_inst_mean[!is.na(valsCity$ET)], na.rm=T)
+  cityStatsET$Temp.ET.max[row.city] <- max(valsCity$Tair_f_inst_mean[!is.na(valsCity$ET)], na.rm=T)
   cityStatsET$tree.ET.mean[row.city] <- mean(valsCity$cover.tree[!is.na(valsCity$ET)], na.rm=T)
   cityStatsET$tree.ET.sd[row.city] <- sd(valsCity$cover.tree[!is.na(valsCity$ET)], na.rm=T)
   cityStatsET$tree.ET.min[row.city] <- min(valsCity$cover.tree[!is.na(valsCity$ET)], na.rm=T)
@@ -348,15 +337,35 @@ for(CITY in citiesAnalyze){
   
   
   # having the year factor means we can't predict ET without knowing a regional mean --> 
-  modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(LST_Day) + s(x,y) + as.factor(year)-1, data=valsCity)
-  sum.modETCity <- summary(modETCity)
-  # sum.modETCity$p.coeff
-  # sum.modETCity
+  # modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(Tair_f_inst_mean, k=3) + s(x,y) + as.factor(year)-1, data=valsCity)
+  # modETCity1 <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(Tair_f_inst_mean, k=3) + s(x,y), data=valsCity)
+  # modETCity2 <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y), data=valsCity)
+  # modETCity3 <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y) + as.factor(year)-1, data=valsCity)
+  # # sum.modETCity$p.coeff
+  # # sum.modETCity
+  # AIC(modETCity, modETCity1, modETCity2, modETCity3)
+  # summary(modETCity)
+  # summary(modETCity1)
+  # summary(modETCity2)
+  # summary(modETCity3)
+  # 
   # par(mfrow=c(2,2))
   # plot(modETCity)
   # par(mfrow=c(1,1))
+  # 
+  # par(mfrow=c(2,2))
+  # plot(modETCity1)
+  # par(mfrow=c(1,1))
+  # 
+  # par(mfrow=c(2,2))
+  # plot(modETCity2)
+  # par(mfrow=c(1,1))
+  # 
+  # par(mfrow=c(2,2))
+  # plot(modETCity3)
+  # par(mfrow=c(1,1))
   
-  # modETCity0 <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(LST_Day) + s(x,y), data=valsCity)
+  # modETCity0 <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(Tair_f_inst_mean) + s(x,y), data=valsCity)
   # sum.modETCity0 <- summary(modETCity0)
   # sum.modETCity0
   # par(mfrow=c(2,2))
@@ -364,10 +373,15 @@ for(CITY in citiesAnalyze){
   # par(mfrow=c(1,1))
   
   
-  # Also testing things on the aggregated values; lets save this just in case
-  aggCity <- aggregate(cbind(ET, cover.tree, cover.veg, LST_Day) ~ x + y, data=valsCity, FUN=mean, na.rm=T)
+  modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y) + as.factor(year)-1, data=valsCity)
+  sum.modETCity$p.coeff
   
-  modETCityAgg <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + s(LST_Day) + s(x,y), data=aggCity)
+  
+  # Also testing things on the aggregated values; lets save this just in case
+  aggCity <- aggregate(cbind(ET, cover.tree, cover.veg, Tair_f_inst_mean) ~ x + y, data=valsCity, FUN=mean, na.rm=T)
+  
+  # No variation in tair, so need to remove it from the model
+  modETCityAgg <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg)  + s(x,y), data=aggCity)
   sum.modETCityAgg <- summary(modETCityAgg)
   # sum.modETCityAgg
   # par(mfrow=c(2,2))
@@ -387,7 +401,7 @@ for(CITY in citiesAnalyze){
   cityStatsET$ETpred.max[row.city] <- max(valsCity$ET.pred, na.rm=T)
   
   
-  # Save the key stats from the big LST model
+  # Save the key stats from the big Temp model
   cityStatsET$ETmodel.R2adj[row.city] <- sum.modETCity$r.sq
   cityStatsET$ETmodel.RMSE[row.city] <- sqrt(mean(valsCity$ET.resid^2, na.rm=T))
   
@@ -411,14 +425,14 @@ for(CITY in citiesAnalyze){
   par(mfrow=c(1,1))
   dev.off()
   
-  # plot(ET.resid ~ LST_Day, data=valsCity); abline(h=0, col="red")
+  # plot(ET.resid ~ Tair_f_inst_mean, data=valsCity); abline(h=0, col="red")
   # plot(ET.resid ~ cover.tree, data=valsCity); abline(h=0, col="red")
   # plot(ET.resid ~ cover.veg, data=valsCity); abline(h=0, col="red")
   # 
-  # plot(ET.pred ~ LST_Day, data=valsCity)
+  # plot(ET.pred ~ Tair_f_inst_mean, data=valsCity)
   # plot(ET.pred ~ cover.tree, data=valsCity)
   # plot(ET.pred ~ cover.veg, data=valsCity)
-  # plot(ET ~ LST_Day, data=valsCity)
+  # plot(ET ~ Tair_f_inst_mean, data=valsCity)
   # plot(ET ~ cover.tree, data=valsCity)
   # plot(ET ~ cover.veg, data=valsCity)
   
@@ -430,7 +444,7 @@ for(CITY in citiesAnalyze){
   print("") # Just give a clean return before moving on
   
   # Remove a bunch of stuff for our own sanity
-  # rm(elevCity, treeCity, vegCity, lstCity, modETCity, valsCity, summaryCity, coordsCity, biome, sp.city, plot.corr.LST.Tree, plot.corr.LST.Veg, plot.corr.Tree.Veg, plot.lst.trend, plot.tree.trend, plot.veg.trend, plot.elev, plot.lst, plot.tree, plot.veg, veg.lst, veg.tree, tree.lst, veg.out, tree.out, sum.corrTreeLST, sum.corrVegLST, sum.corrVegTree, sum.modETCity)
+  # rm(elevCity, treeCity, vegCity, TempCity, modETCity, valsCity, summaryCity, coordsCity, biome, sp.city, plot.corr.temp.Tree, plot.corr.temp.Veg, plot.corr.Tree.Veg, plot.temp.trend, plot.tree.trend, plot.veg.trend, plot.elev, plot.temp, plot.tree, plot.veg, veg.temp, veg.tree, tree.temp, veg.out, tree.out, sum.corrTreeTemp, sum.corrVegTemp, sum.corrVegTree, sum.modETCity)
   
 }	
 
