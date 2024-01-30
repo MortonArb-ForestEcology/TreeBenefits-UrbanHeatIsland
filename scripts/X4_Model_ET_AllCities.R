@@ -290,7 +290,7 @@ for(CITY in citiesAnalyze){
   # If we made it this far, now merge in the regional stats from GLDAS
   valsCity <- merge(valsCity, TempCity, all.x=T, all.y=F)
   
-  valsCityAnn <- aggregate(cbind(cover.tree, cover.veg, ET, Evap_tavg_mean, Tair_f_inst_mean) ~ year, data=valsCity, FUN=mean)
+  # valsCityAnn <- aggregate(cbind(cover.tree, cover.veg, ET, Evap_tavg_mean, Tair_f_inst_mean) ~ year, data=valsCity, FUN=mean)
   
   # plot(Tair_f_inst_mean ~ year, data=valsCityAnn)
   # abline(lm(Tair_f_inst_mean ~ year, data=valsCityAnn), col="red")
@@ -374,7 +374,11 @@ for(CITY in citiesAnalyze){
   
   
   modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y) + as.factor(year)-1, data=valsCity)
-  sum.modETCity$p.coeff
+  sum.modETCity <- summary(modETCity)
+  # sum.modETCity
+  # par(mfrow=c(2,2))
+  # plot(modETCity)
+  # par(mfrow=c(1,1))
   
   
   # Also testing things on the aggregated values; lets save this just in case
@@ -404,7 +408,7 @@ for(CITY in citiesAnalyze){
   # Save the key stats from the big Temp model
   cityStatsET$ETmodel.R2adj[row.city] <- sum.modETCity$r.sq
   cityStatsET$ETmodel.RMSE[row.city] <- sqrt(mean(valsCity$ET.resid^2, na.rm=T))
-  
+  # cityStatsET[row.city,]
   
   saveRDS(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))
   saveRDS(sum.modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))
