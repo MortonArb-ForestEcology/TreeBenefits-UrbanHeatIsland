@@ -155,6 +155,7 @@ tail(cityAll.ET[cityAll.ET$ETmodel.R2adj<0.2 & cityAll.ET$ISO3=="IND",])
 
 length(which(cityAll.ET$ETpred.Precip<2))
 nrow(cityAll.ET)
+length(which(cityAll.ET$ETpred.Precip<2))/nrow(cityAll.ET)
 hist(cityAll.ET$ETpred.Precip[cityAll.ET$ETpred.Precip<2])
 
 
@@ -281,7 +282,7 @@ dev.off()
 plot(ETobs.mean ~ ETpred.mean, data=cityAll.ET); abline(a=0, b=1, col="red")
 plot(ETobs.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
 plot(ETpred.mean ~ ET.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
-plot(LST.ET.mean ~ Tmean.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
+plot(Temp.ET.mean ~ Tmean.GLDAS, data=cityAll.ET); abline(a=0, b=1, col="red")
 
 ggplot(data=cityAll.ET) +
   # coord_equal() +
