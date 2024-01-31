@@ -211,6 +211,9 @@ for(rowCity in 1:nrow(cityAnalyStats)){
 
 ###########################################
 # Plotting the partial effects here for now
+# # This seems useful; worth adding the intercept to these (and then squaring it) so that the y-axis can be ET (kg/m2/day)
+# # Ross: anything that can get us towards describing the full effect seems worth a shot
+# # Christy: worth doing this for the LST model as well
 ###########################################
 
 dfSplineTree <- data.table::rbindlist(splineTree)

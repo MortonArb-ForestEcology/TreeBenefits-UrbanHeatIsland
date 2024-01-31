@@ -274,6 +274,17 @@ for(CITY in citiesAnalyze){
      
     next 
   }
+  
+  # yrsCityET <- unique(valsCity$year[!is.na(valsCity$ET)])
+  if(length(unique(TempCity$year[!is.na(TempCity$Tair_f_inst_mean) & TempCity$year %in% yrsCityET]))<5){
+    # # (Note all cities before NGA56716 alphabetically need to be checked for this criteria
+    print(warning("Insufficient overlap between GLDAS and ET data. Need to skip it.") )
+    cityStatsET$ETmodel.R2adj[row.city] <- -9999
+    
+    next 
+  }
+  
+  
   valsCity <- valsCity[!is.na(valsCity$elevation) & !is.na(valsCity$cover.tree) & valsCity$year %in% yrsCityET,] # NOTE: getting rid of years >2014
   summary(valsCity)
   
