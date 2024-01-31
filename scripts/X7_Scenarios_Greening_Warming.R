@@ -22,7 +22,8 @@ library(scales)
 
 path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google, "data_processed_final")
-path.et <- file.path(path.google, "ET_models_v2")
+path.et <- file.path(path.google, "ET_models_v3")
+path.EEout <- file.path("~/Google Drive/My Drive", "UHI_Analysis_Output_Final_v3")
 
 biome.pall.all = c("Taiga"= "#2c5c74", 
                    "Tundra"="#6d8e9d",
@@ -39,7 +40,7 @@ biome.pall.all = c("Taiga"= "#2c5c74",
                    "Tropical Moist Broadleaf Forest"= "#266240",
                    "Mangroves" = "#9c8c94")
 
-overwrite=F
+overwrite=T
 ###########################################
 
 
@@ -152,6 +153,8 @@ summary(cmip6)
 # cityAnalyStats[cityAnalyStats$ISOURBID==CITY,]
 pb <- txtProgressBar(min=0, max=nrow(cityAnalyStats), style=3)
 
+files.temp <- dir(path.EEout, "GLDAS21_annualMeans")
+
 for(rowCity in 1:nrow(cityAnalyStats)){
   setTxtProgressBar(pb, rowCity)
   
@@ -160,10 +163,17 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   CITY=cityAnalyStats$ISOURBID[rowCity]
   print(CITY)
   
+  fTemp <- files.temp[grep(CITY, files.temp)]
+  
+  TempCity <- read.csv(file.path(path.EEout, fTemp[length(fTemp)]))
+  TempCity$Tair_f_inst_mean <- TempCity$Tair_f_inst_mean-273.15
+  TempCity[,c("Evap_tavg_mean", "Rainf_f_tavg_mean")] <- TempCity[,c("Evap_tavg_mean", "Rainf_f_tavg_mean")]*60*60*24
   
   dfCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_CityStats_Pixels.csv")))
-  dfCity <- dfCity[dfCity$cityBounds & !is.na(dfCity$LST.mean),]
+  dfCity$Tair.mean <- mean(TempCity$Tair_f_inst_mean, na.rm=T)
+  dfCity <- dfCity[dfCity$cityBounds & !is.na(dfCity$tree.mean),]
   # summary(dfCity)
+  
   
   # dfCityET <- read.csv(file.path(path.et, CITY, paste0(CITY, "_ET_means.csv")))
   # summary(dfCityET)
@@ -172,9 +182,10 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   modETCitySum <- readRDS(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))
   # modETCitySum
   
-  cityIntercept <- mean(modETCitySum$p.coeff)
+  intYear <- which(grepl("year", names(modETCitySum$p.coeff)))
+  cityIntercept <- mean(modETCitySum$p.coeff[intYear])
   # yrstr <- paste(names(modETCitySum$p.coeff)[1])
-  yrUse <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff)[1], start=-4))
+  yrUse <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff)[intYear[1]], start=-4))
   
   dfCity$Intercept <- cityIntercept
   
@@ -198,7 +209,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # sum(treeDistCurrent[rowCity,2:ncol(treeDistCurrent)])
   write.csv(treeDistCurrent, file.path(path.google, "TreeDistribution_Current.csv"), row.names=F)
   
-  dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
 
   dfCity$modET.Base <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
   summary(dfCity) 
@@ -212,7 +223,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # ------------------
   
   # City with homogenous tree cover (current levels)
-  dfMod <- data.frame(cover.tree=mean(dfCity$tree.mean), cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod <- data.frame(cover.tree=mean(dfCity$tree.mean), cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
   dfCity$modET.TreeEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
   
   cityAnalyStats$modET.TreeEven[rowCity] <- mean(dfCity$modET.TreeEven)
@@ -225,7 +236,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   if(length(treeBiomeRef)>0){
     cityAnalyStats$tree.mean.TreeTargetBiome[rowCity] <- treeBiomeRef
     
-    dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+    dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
     dfCity$modET.TreeTargetEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
     
     cityAnalyStats$modET.TreeTargetEven[rowCity] <- mean(dfCity$modET.TreeTargetEven)
@@ -257,7 +268,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   par(mfrow=c(1,1))
   dev.off()
   
-  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeTargetBottomUp, cover.veg=mean(dfCity$veg.mean), LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeTargetBottomUp, cover.veg=mean(dfCity$veg.mean), Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
   
   dfCity$modET.TreeTargetBottomUp <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
   summary(dfCity)
@@ -280,7 +291,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   print(paste0("--", SSP))
   for(TIME in unique(cmip6$Time)){
     print(paste0("   ", TIME))
-    datTmp <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+    datTmp <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
     
     gcmNow <- unique(cmip6$GCM[cmip6$ISOURBID==CITY & cmip6$Scenario==SSP & cmip6$Time==TIME])
     datTmp[,gcmNow] <- NA
@@ -291,7 +302,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
       
       warmNow <- cmip6$tas.diff[cmip6Row]
       
-      dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, LST_Day=dfCity$LST.mean+warmNow, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+      dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean+warmNow, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
 
       datTmp[,GCM] <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
       summary(datTmp)
