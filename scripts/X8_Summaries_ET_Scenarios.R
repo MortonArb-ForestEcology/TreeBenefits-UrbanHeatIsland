@@ -52,5 +52,7 @@ treeDistGreen <- read.csv(file.path(path.google, "TreeDistribution_Greening-Bott
 cmip6 <- read.csv(file.path(path.google, "city_stats_all_CMIP6_ET.csv"))
 cmip6$Scenario <- as.factor(cmip6$Scenario)
 cmip6$Time <- as.factor(cmip6$Time)
+summary(cmip6)
 
 ###########################################
+

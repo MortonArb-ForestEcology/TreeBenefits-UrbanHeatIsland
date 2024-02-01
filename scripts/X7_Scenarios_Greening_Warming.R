@@ -40,7 +40,7 @@ biome.pall.all = c("Taiga"= "#2c5c74",
                    "Tropical Moist Broadleaf Forest"= "#266240",
                    "Mangroves" = "#9c8c94")
 
-overwrite=T
+overwrite=F
 ###########################################
 
 
@@ -179,6 +179,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # summary(dfCityET)
   
   if(!dir.exists(file.path(path.et, CITY))) next # This city doesn't have any ET model, so just skip it!
+  if(!file.exists(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))) next # This city doesn't have any ET model, so just skip it!
   modETCitySum <- readRDS(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))
   # modETCitySum
   
