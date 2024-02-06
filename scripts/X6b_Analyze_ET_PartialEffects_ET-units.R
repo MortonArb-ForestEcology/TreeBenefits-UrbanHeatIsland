@@ -1,4 +1,5 @@
 # Looking at the ET Models and doing some predictions of water use and greening scenarios
+# This is identical to script X6, but everything will be transformed back to ET by predicting effects under "mean" conditions rather than working in "terms' space
 library(ggplot2)
 
 # Script to synthesize the results from all of the individual city models ----
@@ -76,7 +77,7 @@ unique(cityAnalyStats$biome)
 # coverIntervals <- seq(0, 100, by=2)
 nInterval = 50
 
-if(overwrite | !file.exists(file.path(path.google, "ETModel_Spline_PartialEffects_CoverTree.rds"))){
+if(overwrite | !file.exists(file.path(path.google, "ETModel_Spline_PartialEffects_CoverTree_ET-units.rds"))){
   
   # First, we need to check the intercepts 
   # -- we'll want to look at the average Intercept and the average LST temperature as well as the max annual temperature
@@ -96,11 +97,11 @@ if(overwrite | !file.exists(file.path(path.google, "ETModel_Spline_PartialEffect
   
   splineTemp  <- splineTree <- splineVeg <- list()
 } else{ 
-  dfIntercept <- read.csv(file.path(path.google, "ETModel_InterceptSummary.csv"))
+  dfIntercept <- read.csv(file.path(path.google, "ETModel_InterceptSummary_ET-units.csv"))
   
-  splineTree <- readRDS(file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverTree.rds"))
-  splineVeg <- readRDS(file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverVeg.rds"))
-  splineTemp <- readRDS(file=file.path(path.google, "ETModel_Spline_PartialEffects_LST-Day.rds"))
+  splineTree <- readRDS(file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverTree_ET-units.rds"))
+  splineVeg <- readRDS(file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverVeg_ET-units.rds"))
+  splineTemp <- readRDS(file=file.path(path.google, "ETModel_Spline_PartialEffects_LST-Day_ET-units.rds"))
 }
 
 
@@ -149,6 +150,11 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   dfIntercept$Intercept.Mean[rowCity] <- mean(modETCitySum$p.coeff[intYear])
   dfIntercept$Temp.Mean[rowCity] <- mean(modETCity$model$Tair_f_inst_mean)
   
+  intDiffs <- modETCitySum$p.coeff[intYear]-mean(modETCitySum$p.coeff[intYear])
+  indMeanI  <- which(intDiffs==min(intDiffs))
+  yearMean <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff[intYear])[indMeanI], start=-4))
+  
+  
   # yrstr <- paste(names(modETCitySum$p.coeff)[1])
   indMaxI <- which(modETCitySum$p.coeff[intYear]==max(modETCitySum$p.coeff[intYear]))
   yrMax <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff[intYear])[indMaxI], start=-4))
@@ -166,7 +172,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   dfIntercept$Year.MaxT[rowCity] <- yrMaxT
   dfIntercept$Intercept.MaxT[rowCity] <- modETCitySum$p.coeff[paste0("as.factor(year)", yrMaxT)]
   
-  write.csv(dfIntercept, file.path(path.google, "ETModel_InterceptSummary.csv"), row.names=F)
+  write.csv(dfIntercept, file.path(path.google, "ETModel_InterceptSummary_ET-units.csv"), row.names=F)
   
   # ----------------------
   
@@ -182,21 +188,32 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   yMean <- mean(modETCity$model$y)
   
   # Tree Effect!
-  dfTree <- data.frame(cover.tree = seq(min(modETCity$model$cover.tree), max(modETCity$model$cover.tree), length.out=nInterval), cover.veg=vegMean, Tair_f_inst_mean=tempMean, x=xMean, y=yMean, year=lstYr$`as.factor(year)`[indMaxT])
-  splineTree[[CITY]] <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="terms", terms="s(cover.tree)", newdata=dfTree)), cover.tree=dfTree$cover.tree)
-
+  dfTree <- data.frame(cover.tree = seq(min(modETCity$model$cover.tree), max(modETCity$model$cover.tree), length.out=nInterval), cover.veg=vegMean, Tair_f_inst_mean=tempMean, x=xMean, y=yMean, year=yearMean)
+  splineTree[[CITY]] <- data.frame(ISOURBID = CITY, ET=as.numeric(predict(modETCity, newdata=dfTree))^2, cover.tree=dfTree$cover.tree)
+  # testTerms <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="terms", terms="s(cover.tree)", newdata=dfTree)), cover.tree=dfTree$cover.tree)
+  # testResp <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="response", terms="s(cover.tree)", newdata=dfTree)), cover.tree=dfTree$cover.tree)
+  # testEffect <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, newdata=dfTree)), cover.tree=dfTree$cover.tree)
+  # 
+  # summary(testTerms)
+  # summary(testResp)
+  # summary(testEffect)
+  
+  # plot(Effect ~ cover.tree, data=testTerms)
+  # plot(Effect^2 ~ cover.tree, data=testResp)
+  # plot(Effect^2 ~ cover.tree, data=testEffect)
+  
   # Non-Tree vegetation
-  dfVeg <- data.frame(cover.veg = seq(min(modETCity$model$cover.veg), max(modETCity$model$cover.veg), length.out=nInterval), cover.tree=treeMean, Tair_f_inst_mean=tempMean, x=xMean, y=yMean, year=lstYr$`as.factor(year)`[indMaxT])
-  splineVeg[[CITY]] <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="terms", terms="s(cover.veg)", newdata=dfVeg)), cover.veg=dfVeg$cover.veg)
+  dfVeg <- data.frame(cover.veg = seq(min(modETCity$model$cover.veg), max(modETCity$model$cover.veg), length.out=nInterval), cover.tree=treeMean, Tair_f_inst_mean=tempMean, x=xMean, y=yMean, year=yearMean)
+  splineVeg[[CITY]] <- data.frame(ISOURBID = CITY, ET=as.numeric(predict(modETCity, newdata=dfVeg))^2, cover.veg=dfVeg$cover.veg)
   
   # Temperature
-  dfTemp <- data.frame(cover.tree = treeMean, cover.veg=vegMean, Tair_f_inst_mean=seq(min(modETCity$model$Tair_f_inst_mean), max(modETCity$model$Tair_f_inst_mean), length.out=nInterval), x=xMean, y=yMean, year=lstYr$`as.factor(year)`[indMaxT])
-  splineTemp[[CITY]] <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="terms", terms="Tair_f_inst_mean", newdata=dfTemp)), Tair_f_inst_mean=dfTemp$Tair_f_inst_mean)
+  dfTemp <- data.frame(cover.tree = treeMean, cover.veg=vegMean, Tair_f_inst_mean=seq(min(modETCity$model$Tair_f_inst_mean), max(modETCity$model$Tair_f_inst_mean), length.out=nInterval), x=xMean, y=yMean, year=yearMean)
+  splineTemp[[CITY]] <- data.frame(ISOURBID = CITY, ET=as.numeric(predict(modETCity, newdata=dfTemp))^2, Tair_f_inst_mean=dfTemp$Tair_f_inst_mean)
   
   
-  saveRDS(splineTree, file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverTree.rds"))
-  saveRDS(splineVeg, file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverVeg.rds"))
-  saveRDS(splineTemp, file=file.path(path.google, "ETModel_Spline_PartialEffects_Tair.rds"))
+  saveRDS(splineTree, file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverTree_ET-units.rds"))
+  saveRDS(splineVeg, file=file.path(path.google, "ETModel_Spline_PartialEffects_CoverVeg_ET-units.rds"))
+  saveRDS(splineTemp, file=file.path(path.google, "ETModel_Spline_PartialEffects_Tair_ET-units.rds"))
   
   
   # ggplot(data=splineTemp[[CITY]]) +
@@ -217,41 +234,40 @@ for(rowCity in 1:nrow(cityAnalyStats)){
 ###########################################
 
 for(CITY in names(splineTree)){
-  splineTree[[CITY]]$Intercept <- splineTree[[CITY]]$Effect + dfIntercept$Intercept.Mean[dfIntercept$ISOURBID==CITY]
-  splineTree[[CITY]]$EffectCent <- splineTree[[CITY]]$Effect - mean(splineTree[[CITY]]$Effect)
+  # splineTree[[CITY]]$Intercept <- splineTree[[CITY]]$ET + dfIntercept$Intercept.Mean[dfIntercept$ISOURBID==CITY]
+  splineTree[[CITY]]$ETCent <- splineTree[[CITY]]$ET - mean(splineTree[[CITY]]$ET)
   splineTree[[CITY]]$TreeCent <- splineTree[[CITY]]$cover.tree - mean(splineTree[[CITY]]$cover.tree)
 }
 dfSplineTree <- data.table::rbindlist(splineTree)
 dfSplineTree <- merge(dfSplineTree, cityAnalyStats[,c("ISOURBID", "biome")], all.x=T, all.y=F)
 summary(dfSplineTree)
 
-png(file.path(path.figs, "ETmodel_PartialEffects_CoverTree.png"), height=8, width=10, units="in", res=320)
-ggplot(data=dfSplineTree, aes(x=cover.tree, y=Effect)) +
+png(file.path(path.figs, "ETmodel_PartialEffects_CoverTree_ET-units.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineTree, aes(x=cover.tree, y=ET)) +
   facet_wrap(~biome) +
   geom_line(aes(group=ISOURBID), linewidth=0.1) + 
   geom_smooth() +
-  coord_cartesian(ylim=c(-0.75, 0.75)) +
+  coord_cartesian(ylim=c(0, 5)) +
   theme_bw()
 dev.off()
 
 
-
-png(file.path(path.figs, "ETmodel_PartialEffects_CoverTree_Centered-EffectOnly.png"), height=8, width=10, units="in", res=320)
-ggplot(data=dfSplineTree, aes(x=cover.tree, y=EffectCent)) +
+png(file.path(path.figs, "ETmodel_PartialEffects_CoverTree_Centered-EffectOnly_ET-units.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineTree, aes(x=cover.tree, y=ETCent)) +
   facet_wrap(~biome) +
   geom_line(aes(group=ISOURBID), linewidth=0.1) + 
   geom_smooth() +
-  coord_cartesian(ylim=c(-0.75, 0.75)) +
+  coord_cartesian(ylim=c(-2.5, 2.5)) +
   theme_bw()
 dev.off()
 
 
-png(file.path(path.figs, "ETmodel_PartialEffects_CoverTree_Centered.png"), height=8, width=10, units="in", res=320)
-ggplot(data=dfSplineTree, aes(x=TreeCent, y=EffectCent)) +
+png(file.path(path.figs, "ETmodel_PartialEffects_CoverTree_Centered_ET-units.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineTree, aes(x=TreeCent, y=ETCent)) +
   facet_wrap(~biome) +
   geom_line(aes(group=ISOURBID), linewidth=0.1) + 
   geom_smooth() +
-  coord_cartesian(ylim=c(-0.75, 0.75)) +
+  coord_cartesian(ylim=c(-2.5, 2.5)) +
   theme_bw()
 dev.off()
 
@@ -260,12 +276,12 @@ dfSplineVeg <- data.table::rbindlist(splineVeg)
 dfSplineVeg <- merge(dfSplineVeg, cityAnalyStats[,c("ISOURBID", "biome")], all.x=T, all.y=F)
 summary(dfSplineVeg)
 
-png(file.path(path.figs, "ETmodel_PartialEffects_CoverVeg.png"), height=8, width=10, units="in", res=320)
-ggplot(data=dfSplineVeg, aes(x=cover.veg, y=Effect)) +
+png(file.path(path.figs, "ETmodel_PartialEffects_CoverVeg_ET-units.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineVeg, aes(x=cover.veg, y=ET)) +
   facet_wrap(~biome) +
   geom_line(aes(group=ISOURBID), linewidth=0.1) + 
   geom_smooth() +
-  coord_cartesian(ylim=c(-0.75, 0.75)) +
+  coord_cartesian(ylim=c(0, 5)) +
   theme_bw()
 dev.off()
 
@@ -274,22 +290,22 @@ dfSplineTemp <- data.table::rbindlist(splineTemp)
 dfSplineTemp <- merge(dfSplineTemp, cityAnalyStats[,c("ISOURBID", "biome")], all.x=T, all.y=F)
 summary(dfSplineTemp)
 
-png(file.path(path.figs, "ETmodel_PartialEffects_Tair.png"), height=8, width=10, units="in", res=320)
-ggplot(data=dfSplineTemp[dfSplineTemp$Tair_f_inst_mean>0], aes(x=Tair_f_inst_mean, y=Effect)) +
+png(file.path(path.figs, "ETmodel_PartialEffects_Tair_ET-units.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineTemp[dfSplineTemp$Tair_f_inst_mean>0], aes(x=Tair_f_inst_mean, y=ET)) +
   facet_wrap(~biome) +
   geom_line(aes(group=ISOURBID), linewidth=0.1) + 
   # geom_smooth() +
   # geom_vline(xintercept = 35, color="orange2") +
   # geom_vline(xintercept = 40, color="red2") +
-  # coord_cartesian(ylim=c(-0.75, 0.75)) +
+  coord_cartesian(ylim=c(0, 5)) +
   theme_bw()
 dev.off()
 
 # Trying to add the intercept alone has very little effect
 # splineTempInt <- splineTemp
 for(CITY in names(splineTemp)){
-  splineTemp[[CITY]]$EffectInt <- splineTemp[[CITY]]$Effect + dfIntercept$Intercept.Mean[dfIntercept$ISOURBID==CITY]
-  splineTemp[[CITY]]$EffectCent <- splineTemp[[CITY]]$Effect - mean(splineTemp[[CITY]]$Effect)
+  # splineTemp[[CITY]]$ET <- splineTemp[[CITY]]$ET + dfIntercept$Intercept.Mean[dfIntercept$ISOURBID==CITY]
+  splineTemp[[CITY]]$ETCent <- splineTemp[[CITY]]$ET - mean(splineTemp[[CITY]]$ET)
   splineTemp[[CITY]]$TairCent <- splineTemp[[CITY]]$Tair_f_inst_mean - mean(splineTemp[[CITY]]$Tair_f_inst_mean)
 }
 
@@ -297,38 +313,27 @@ dfSplineTemp <- data.table::rbindlist(splineTemp)
 dfSplineTemp <- merge(dfSplineTemp, cityAnalyStats[,c("ISOURBID", "biome")], all.x=T, all.y=F)
 summary(dfSplineTemp)
 
-png(file.path(path.figs, "ETmodel_PartialEffects_Tair_Intercept.png"), height=8, width=10, units="in", res=320)
-ggplot(data=dfSplineTemp[dfSplineTemp$Tair_f_inst_mean>0], aes(x=Tair_f_inst_mean, y=Effect)) +
-  facet_wrap(~biome) +
-  geom_line(aes(group=ISOURBID), linewidth=0.1) + 
-  # geom_smooth() +
-  # geom_vline(xintercept = 35, color="orange2") +
-  # geom_vline(xintercept = 40, color="red2") +
-  # coord_cartesian(ylim=c(-0.75, 0.75)) +
-  theme_bw()
-dev.off()
-
-
-png(file.path(path.figs, "ETmodel_PartialEffects_Tair_Centered.png"), height=8, width=10, units="in", res=320)
-ggplot(data=dfSplineTemp[dfSplineTemp$Tair_f_inst_mean>0], aes(x=TairCent, y=EffectCent)) +
+png(file.path(path.figs, "ETmodel_PartialEffects_Tair_Centered_ET-units.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineTemp[dfSplineTemp$Tair_f_inst_mean>0], aes(x=TairCent, y=ETCent)) +
   facet_wrap(~biome) +
   geom_line(aes(group=ISOURBID), linewidth=0.1) + 
   geom_smooth(method="lm") +
   # geom_vline(xintercept = 35, color="orange2") +
   # geom_vline(xintercept = 40, color="red2") +
-  # coord_cartesian(ylim=c(-0.75, 0.75)) +
+  coord_cartesian(ylim=c(-1, 1)) +
   theme_bw()
 dev.off()
 
-png(file.path(path.figs, "ETmodel_PartialEffects_Tair_Centered-EffectOnly.png"), height=8, width=10, units="in", res=320)
-ggplot(data=dfSplineTemp[dfSplineTemp$Tair_f_inst_mean>0], aes(x=Tair_f_inst_mean, y=EffectCent)) +
+png(file.path(path.figs, "ETmodel_PartialEffects_Tair_Centered_ET-units_2.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dfSplineTemp[dfSplineTemp$Tair_f_inst_mean>0], aes(x=TairCent, y=ETCent)) +
   facet_wrap(~biome) +
   geom_line(aes(group=ISOURBID), linewidth=0.1) + 
-  geom_smooth() +
+  geom_smooth(method="lm") +
   # geom_vline(xintercept = 35, color="orange2") +
   # geom_vline(xintercept = 40, color="red2") +
-  # coord_cartesian(ylim=c(-0.75, 0.75)) +
+  coord_cartesian(ylim=c(-2.5, 2.5)) +
   theme_bw()
 dev.off()
+
 
 ###########################################
