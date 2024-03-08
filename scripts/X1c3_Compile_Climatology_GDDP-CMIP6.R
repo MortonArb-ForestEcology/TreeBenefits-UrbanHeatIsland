@@ -206,7 +206,7 @@ write.csv(cmip6, file.path(path.google, "city_stats_all_CMIP6_deviations.csv"), 
 
 
 # ##########################################
-# Do some quick graphing of the CMIP6 temp & precip stats
+# Do some quick graphing of the CMIP6 temp & precip stats ----
 # ##########################################
 cmip6 <- read.csv(file.path(path.google, "city_stats_all_CMIP6_deviations.csv"))
 cmip6$Scenario <- as.factor(cmip6$Scenario)
