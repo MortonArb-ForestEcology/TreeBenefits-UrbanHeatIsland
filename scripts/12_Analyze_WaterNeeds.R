@@ -34,7 +34,6 @@ biome.pall.all = c("Taiga"= "#2c5c74",
 # Reading in base data form our original analyses ----
 # -------------------
 cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
-cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
 summary(as.factor(cityAll.stats$biome))
 
 cityAll.stats$biomeName <- car::recode(cityAll.stats$biome, 

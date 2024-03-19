@@ -5,7 +5,26 @@
 # 02. Cities need more trees to offset UHIs; more trees means more water; ----
 # 03. Warming will increase water demand; precipitation will not keep pace in many regions ----
 
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+path.cities <- file.path(path.google, "data_processed_final")
 
+path.figs <- file.path(path.google, "figures_manuscript")
+dir.create(path.figs, recursive=T, showWarnings=F)
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+# Read in some base datasets etc.
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+source("0_color_palettes_etc.R")
+
+biome.order <-  read.csv(file.path(path.google, "UHIs-FinalCityDataForAnalysis_BiomeOrder.csv"))
+biome.order
+
+StatsCombined <-  read.csv(file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"))
+StatsCombined$biomeName <- factor(StatsCombined$biomeName, levels=biome.order$biomeName)
+StatsCombined$biomeCode <- factor(StatsCombined$biomeCode, levels=biome.order$biomeCode)
+summary(StatsCombined)
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # 01. Trees cool cities & need water to do so: ----
