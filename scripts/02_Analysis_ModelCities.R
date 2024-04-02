@@ -471,64 +471,7 @@ for(CITY in citiesAnalyze){
   # cityStatsRegion[row.city,]
   
   
-  # ------------
-  # Adding an couple ET models 
-  # ------------
-  if(length(unique(valsCity$location[!is.na(valsCity$ET)]))>=50 & length(unique(valsCity$year[!is.na(valsCity$ET)]))>1){
-    # print(warning("Not enough ET pixels to model"))
-    # This first one is predicting ET The same way we do LST to decompose the effects of veg cover on ET
-    modETCity <- gam(ET ~ cover.tree + cover.veg +  s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
-    sum.modETCity <- summary(modETCity)
-    sum.modETCity
-    
-    rows.ET <- which(valsCity$year %in% unique(valsCity$year[!is.na(valsCity$ET)]))
-    valsCity[rows.ET, "ETgam.pred"] <- predict(modETCity, newdata=valsCity[rows.ET,]) # note: need to note column differently because of missing values
-    valsCity$ETgam.resid <- valsCity$ET - valsCity$ETgam.pred # Hand-calculating te residuals... gives the same thing
-    save(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_gam.RData")))
-    # par(mfrow=c(1,1)); plot(modETCity)
-    
-    png(file.path(path.cities, CITY, paste0(CITY, "ET_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
-    par(mfrow=c(2,2))
-    plot(modETCity)
-    hist(valsCity$ETgam.resid)
-    plot(ETgam.resid ~ ETgam.pred, data=valsCity); abline(h=0, col="red")
-    plot(ET ~ ETgam.pred, data=valsCity); abline(a=0, b=1, col="red")
-    par(mfrow=c(1,1))
-    dev.off()
-    
-    
-    cityStatsRegion$ETmodel.R2adj[row.city] <- sum.modETCity$r.sq
-    cityStatsRegion$ETmodel.AIC[row.city] <- AIC(modETCity)
-    cityStatsRegion[row.city,c("ETmodel.tree.slope", "ETmodel.veg.slope", "ETmodel.elev.slope")] <- sum.modETCity$p.coeff[c("cover.tree", "cover.veg", "elevation")]
-    cityStatsRegion[row.city,c("ETmodel.tree.p", "ETmodel.veg.p", "ETmodel.elev.p")] <- sum.modETCity$p.pv[c("cover.tree", "cover.veg", "elevation")]
-    # cityStatsRegion[row.city,]
-  }
-  
-  # plot(LST_Day ~ ET, data=valsCity)
-  # # NOTE: THIS ONLY WORKS FOR THE NON-URBAN CORE --> We can't use this for everywhere, so lets ignore it!
-  # modLSTETCity <- gam(LST_Day ~ ET + s(x,y) + as.factor(year)-1, data=valsCity, na.action=na.omit)
-  # sum.modLSTETCity <- summary(modLSTETCity)
-  # sum.modLSTETCity
-  # 
-  # cityStatsRegion$LST.ET.model.R2adj[row.city] <- sum.modLSTETCity$r.sq
-  # cityStatsRegion$LST.ET.model.AIC[row.city] <- AIC(modLSTETCity)
-  # # cityStatsRegion[row.city,]
-  # 
-  # valsCity$LST.ET.gam.pred <- predict(modLSTETCity, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
-  # valsCity$LST.ET.gam.resid <- valsCity$LST_Day - valsCity$LST.ET.gam.pred # Hand-calculating te residuals... gives the same thing
-  # 
-  # save(modLSTETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST-ET_gam.RData")))
-  # # par(mfrow=c(1,1)); plot(modLSTCity)
-  # 
-  # png(file.path(path.cities, CITY, paste0(CITY, "LST-ET_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
-  # par(mfrow=c(2,2))
-  # plot(modLSTETCity)
-  # hist(valsCity$LST.ET.gam.resid)
-  # plot(LST.ET.gam.resid ~ LST.ET.gam.pred, data=valsCity); abline(h=0, col="red")
-  # plot(LST_Day ~ LST.ET.gam.pred, data=valsCity); abline(a=0, b=1, col="red")
-  # par(mfrow=c(1,1))
-  # dev.off()
-  
+
   # ------------
   
   # Adding a quick analysis of how things change through time
@@ -559,29 +502,13 @@ for(CITY in citiesAnalyze){
   cityStatsRegion[row.city, c("trendYear.veg.mean.slope", "trendYear.veg.mean.p")] <- summary(trendYearVegMean)$coefficients["year", c("Estimate", "Pr(>|t|)")]
   cityStatsRegion[row.city, c("trendYear.veg.sd.slope", "trendYear.veg.sd.p")] <- summary(trendYearVegSD)$coefficients["year", c("Estimate", "Pr(>|t|)")]
   
-  # cityStatsRegion[,c("trendYear.LST.mean.slope", "trendYear.LST.mean.p")] <- NA
-  # cityStatsRegion[,c("trendYear.tree.mean.slope", "trendYear.tree.mean.p")] <- NA
-  # cityStatsRegion[,c("trendYear.veg.mean.slope", "trendYear.veg.mean.p")] <- NA
-  # cityStatsRegion[,c("trendYear.LST.sd.slope", "trendYear.LST.sd.p")] <- NA
-  # cityStatsRegion[,c("trendYear.tree.sd.slope", "trendYear.tree.sd.p")] <- NA
-  # cityStatsRegion[,c("trendYear.veg.sd.slope", "trendYear.veg.sd.p")] <- NA
-  # 
-    
   # Calculating pixel-based summary stats to do some trend correlations
   # For computational tractability, need to run each pixel independently.  Doing Hobart as a loop just takes a few seconds
   summaryCity <- aggregate(cbind(LST_Day, cover.tree, cover.veg, elevation) ~ x+y+location + cityBounds, data=valsCity, FUN=mean)
   names(summaryCity)[names(summaryCity) %in% c("LST_Day", "cover.tree", "cover.veg")] <- c("LST.mean", "tree.mean", "veg.mean")
   summary(summaryCity)
 
-  # Addign ET Into this
-  summaryCityET <- aggregate(ET ~ x+y+location + cityBounds, data=valsCity, FUN=mean)
-  names(summaryCityET)[names(summaryCityET) %in% c("ET")] <- c("ET.mean")
-  summary(summaryCityET)
 
-  summaryCity <- merge(summaryCity, summaryCityET, all.x=T, all.y=T)
-  summary(summaryCity)
-  
-    
   summaryCity[,c("LST.trend", "LST.p", "LST.R2")] <- NA
   summaryCity[,c("tree.trend", "tree.p", "tree.R2")] <- NA
   summaryCity[,c("veg.trend", "veg.p", "veg.R2")] <- NA
@@ -612,14 +539,6 @@ for(CITY in citiesAnalyze){
   	sum.veg <- summary(trend.veg)
   	summaryCity[i,c("veg.trend", "veg.p")] <- sum.veg$coefficients["year",c(1,4)]
   	summaryCity[i,"veg.R2"] <- sum.veg$r.squared
-  	
-  	etGood <- which(valsCity$location==summaryCity$location[i] & !is.na(valsCity$ET))
-  	if(length(etGood)>10){
-    	trend.et <- lm(ET ~ year, data=valsCity[rowsCity,])
-    	sum.et <- summary(trend.et)
-    	summaryCity[i,c("ET.trend", "ET.p")] <- sum.et$coefficients["year",c(1,4)]
-    	summaryCity[i,"ET.R2"] <- sum.et$r.squared
-  	}
   	
   }
   summary(summaryCity)
