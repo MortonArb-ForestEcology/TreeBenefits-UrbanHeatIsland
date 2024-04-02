@@ -57,7 +57,7 @@ breaksOther <- c(0, round(quantile(StatsCombined$value.other.core, seq(0.2, 1, l
 
 mapUHI <- ggplot(data=StatsCombined[,]) +
   geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
-  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", linewidth=0.1) +
   coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=value.LST.diff), size=0.25, alpha=0.8) +
@@ -85,7 +85,7 @@ dev.off()
 
 mapTree <- ggplot(data=StatsCombined[,]) +
   geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
-  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", linewidth=0.1) +
   coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=value.tree.core), size=0.25) +
@@ -148,8 +148,8 @@ coolingTreeSummary <- ggplot(data=dfEffectLST, aes()) +
   coord_cartesian(ylim=c(-10,1)) +
   geom_smooth(method="lm", aes(x=cover.tree, y=effectLST.tree, color=biomeName, fill=biomeName)) +
   labs(x="Tree Cover (%)", y="Effect on LST (deg. C)") +
-  scale_color_manual(values=biome.pall.all) + 
-  scale_fill_manual(values=biome.pall.all) + 
+  scale_color_manual(name="Biome", values=biome.pall.all) + 
+  scale_fill_manual(name="Biome", values=biome.pall.all) + 
   theme_bw() 
 
 png(file.path(path.figsExplore, "LSTmodel_PartialEffects_CoverTree_Summary.png"), height=8, width=10, units="in", res=320)
@@ -160,8 +160,8 @@ coolingVegSummary <- ggplot(data=dfEffectLST, aes()) +
   coord_cartesian(ylim=c(-3,1)) +
   geom_smooth(method="lm", aes(x=cover.veg, y=effectLST.veg, color=biomeName, fill=biomeName)) +
   labs(x="Other Vegetation Cover (%)", y="Effect on LST (deg. C)") +
-  scale_color_manual(values=biome.pall.all) + 
-  scale_fill_manual(values=biome.pall.all) + 
+  scale_color_manual(name="Biome", values=biome.pall.all) + 
+  scale_fill_manual(name="Biome", values=biome.pall.all) + 
   theme_bw() 
 
 png(file.path(path.figsExplore, "LSTmodel_PartialEffects_CoverVeg_Summary.png"), height=8, width=10, units="in", res=320)
@@ -194,15 +194,20 @@ etTreeSummary <- ggplot(data=dfSplineTree, aes()) +
   coord_cartesian(ylim=c(0,5)) +
   geom_smooth(method="gam", aes(x=cover.tree, y=ET, color=biomeName, fill=biomeName)) +
   labs(x="Tree Cover (%)", y="ET (mm/day)") +
-  scale_color_manual(values=biome.pall.all) + 
-  scale_fill_manual(values=biome.pall.all) + 
+  scale_color_manual(name="Biome", values=biome.pall.all) + 
+  scale_fill_manual(name="Biome", values=biome.pall.all) + 
   theme_bw() 
 
 png(file.path(path.figsExplore, "ETmodel_PartialEffects_CoverTree_Summary.png"), height=8, width=10, units="in", res=320)
 etTreeSummary
 dev.off()
 
+plotMaps <- cowplot::plot_grid(mapUHI, mapTree, nrow=1, labels=c("A", "B"))
+plotPartialEffects <- cowplot::plot_grid(coolingTreeSummary, etTreeSummary+guides(color="none", fill="none"), labels=c("C", "D"), nrow=1, rel_widths = c(0.67,0.33))
 
+png(file.path(path.figsMS, "Fig1_Current_UHI-Tree-Cool-Water.png"), height=8, width=10, units="in", res=320)
+cowplot::plot_grid(plotMaps, plotPartialEffects, nrow=2)
+dev.off()
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
