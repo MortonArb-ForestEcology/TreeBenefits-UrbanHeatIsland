@@ -28,6 +28,7 @@ StatsCombined$biomeNameRev <- factor(StatsCombined$biomeName, levels=rev(levels(
 StatsCombined$biomeCodeRev <- factor(StatsCombined$biomeCode, levels=rev(levels(StatsCombined$biomeCode)))
 summary(StatsCombined)
 
+length(unique(StatsCombined$ISOURBID))
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -203,10 +204,10 @@ etTreeSummary
 dev.off()
 
 plotMaps <- cowplot::plot_grid(mapUHI, mapTree, nrow=1, labels=c("A", "B"))
-plotPartialEffects <- cowplot::plot_grid(coolingTreeSummary, etTreeSummary+guides(color="none", fill="none"), labels=c("C", "D"), nrow=1, rel_widths = c(0.67,0.33))
+plotPartialEffects <- cowplot::plot_grid(coolingTreeSummary, etTreeSummary+guides(color="none", fill="none"), labels=c("C", "D"), nrow=1, rel_widths = c(0.6,0.4))
 
-png(file.path(path.figsMS, "Fig1_Current_UHI-Tree-Cool-Water.png"), height=8, width=10, units="in", res=320)
-cowplot::plot_grid(plotMaps, plotPartialEffects, nrow=2)
+png(file.path(path.figsMS, "Figure1_Current_UHI-Tree-Cool-Water.png"), height=8, width=11, units="in", res=320)
+cowplot::plot_grid(plotMaps, plotPartialEffects, nrow=2, rel_heights = c(0.5, 0.5))
 dev.off()
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
