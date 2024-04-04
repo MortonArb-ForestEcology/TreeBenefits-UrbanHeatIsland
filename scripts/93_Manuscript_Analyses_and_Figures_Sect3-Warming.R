@@ -1,10 +1,10 @@
-# Updated script for manuscript
-# Outline
-# 01. Trees cool cities & need water to do so: ---- 
-#     Trees have a clear, consistent cooling potential on global urban surface temperatures… [treat cooling capacity as a known; we add a tiny bit of nuance; quickly bring in nuance & water]
-# 02. Cities need more trees to offset UHIs; more trees means more water; ----
 # 03. Warming will increase water demand; precipitation will not keep pace in many regions ----
-library(ggplot2); library(cowplot)
+# Key Results: (What Christy needs to get numbers for)
+#  3.0. SUPPLEMENT Figure: The amount of warming & precipitation varies across the globe; this is CMIP6, not us, so no need to put in main MS
+#. 3.1. Warming will cause an X% increase in ET; X% of cities will see precip not keep pace with this, resulting in XX% of cities 
+#  3.2. Although we estimate XX biomes to have the greatest proportion of cities in a canopy water deficit, the biggest shift in the distribution is in temperate forest biomes, particularly cities in Europe and the US
+
+library(ggplot2); library(cowplot); library(scales)
 
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 path.cities <- file.path(path.google, "data_processed_final")
@@ -28,32 +28,55 @@ StatsCombined$biomeNameRev <- factor(StatsCombined$biomeName, levels=rev(levels(
 StatsCombined$biomeCodeRev <- factor(StatsCombined$biomeCode, levels=rev(levels(StatsCombined$biomeCode)))
 summary(StatsCombined)
 
+# Read in the ET base data
+cityETStats <- read.csv(file.path(path.google, "city_stats_all_ET_scenarios.csv"))
+cityETStats[,c("dET.TreeEven", "dET.TreeTargetEven", "dET.TreeTargetBottomUp", "dET.ssp245.2050", "dET.ssp245.2100", "dET.ssp585.2050", "dET.ssp585.2100")] <- cityETStats[,c("modET.TreeEven", "modET.TreeTargetEven", "modET.TreeTargetBottomUp", "modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")] - cityETStats$modET.Base
+summary(cityETStats)
+
+StatsCombined <- merge(StatsCombined, cityETStats[,c("ISOURBID", "modET.Base")], all.x=T, all.y=F)
+StatsCombined$modET.Precip <- StatsCombined$modET.Base/StatsCombined$Precip.GLDAS
+StatsCombined$Scenario <- c("Present")
+StatsCombined$Time <- c("2020")
+summary(StatsCombined)
+
 
 # Creating a combined ET data frame
 # NOTE that for the cmip6 scenarios, we added the change in temp to the gldas air temp; so lets create a precip correction
 cmip6 <- read.csv(file.path(path.google, "city_stats_all_CMIP6_ET.csv"))
+cmip6$Scenario <- car::recode(cmip6$Scenario, "'ssp245'='SSP2-4.5'; 'ssp585'='SSP5-8.5'")
 cmip6$Scenario <- as.factor(cmip6$Scenario)
 cmip6$Time <- as.factor(cmip6$Time)
-cmip6 <- merge(cmip6, cityAnalyStats[,c("ISOURBID", "biomeName", "biomeCode", "modET.Base")], all.x=T, all.y=F)
+cmip6 <- merge(cmip6, StatsCombined[,c("ISOURBID", "biomeName", "biomeCode", "Tmean.GLDAS", "Precip.GLDAS", "ET.GLDAS", "modET.Base")], all.x=T, all.y=F)
 cmip6$modET.diff <- cmip6$modET - cmip6$modET.Base
+cmip6$modET.perChange <- cmip6$modET/cmip6$modET.Base
 summary(cmip6)
 
-cmip6 <- merge(cmip6, datGLDAS, all.x=T, all.y=F)
-cmip6$pr.adj <- cmip6$pr.gldas*cmip6$pr.per # Creating an adjusted daily precip by looking at the % change in pr for each run
 summary(cmip6)
 
 
 # Looking at the ET vs Precip Ratio --> NOTE: Using adjusted PR because we adjusted ET
+cmip6$pr.adj <- cmip6$Precip.GLDAS*cmip6$pr.per # Creating an adjusted daily precip by looking at the % change in pr for each run
 cmip6$modET.Precip <- cmip6$modET/cmip6$pr.adj
 cmip6$modET.Precip[cmip6$modET.Precip==Inf] <- NA
 # cmip6$modET.PrecipLog <- log(cmip6$modET.Precip)
 summary(cmip6)
 
-cmip6AggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.Precip)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=mean, na.rm=T)
+# Checking the distribution of values of the ET/Precip ratio to figure out whether we should rely on mean or median
+# This doesn't look bad!
+ggplot(data=cmip6) +
+  facet_grid(Scenario~.) +
+  geom_histogram(aes(x=log(modET.Precip)))
+
+cmip6AggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.perChange, modET.Precip)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=mean, na.rm=T)
 cmip6AggMean$biomeName <- factor(cmip6AggMean$biomeName, levels=biome.order$biomeName)
 summary(cmip6AggMean)
 
-etSummary <- rbind(cityAnalyStats[,c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET.Precip")],
+# # Not a huge difference with median, so lets just roll with mean
+# cmip6AggMed <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.Precip)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=median, na.rm=T)
+# cmip6AggMed$biomeName <- factor(cmip6AggMed$biomeName, levels=biome.order$biomeName)
+# summary(cmip6AggMed)
+
+etSummary <- rbind(StatsCombined[,c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET.Precip")],
                    cmip6AggMean[cmip6AggMean$Time=="2100",c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET.Precip")])
 etSummary$biomeName <- factor(etSummary$biomeName, levels=biome.order$biomeName)
 etSummary$biomeCode <- factor(etSummary$biomeCode, levels=rev(biome.order$biomeCode))
@@ -65,12 +88,7 @@ summary(etSummary)
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-# 03. Warming will increase water demand; precipitation will not keep pace in many regions ----
-# Key Results: (What Christy needs to get numbers for)
-#  3.0. SUPPLEMENT Figure: The amount of warming & precipitation varies across the globe; this is CMIP6, not us, so no need to put in main MS
-#. 3.1. Warming will cause an X% increase in ET; X% of cities will see precip not keep pace with this, resulting in XX% of cities 
-#  3.2. Although we estimate XX biomes to have the greatest proportion of cities in a canopy water deficit, the biggest shift in the distribution is in temperate forest biomes, particularly cities in Europe and the US
-
+# 3.1 Main Figure ----
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # Do analyses here!
 
@@ -104,8 +122,8 @@ plotRatioLog <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
   # coord_cartesian(ylim=c(0,2.5), expand=0) +
   geom_violin(aes(y=biomeCode, x=log(modET.Precip), fill=biomeName), scale="width") +
   geom_vline(xintercept=0, linetype="dashed") +
-  annotate(geom="text", y=14, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
-  annotate(geom="text", y=14, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
+  annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
+  annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
   scale_fill_manual(values=biome.pall.all) +
   labs(x="log(ET/Precip)", y="Biome") +
@@ -113,7 +131,181 @@ plotRatioLog <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
   theme_bw()
 plotRatioLog
 
-png(file.path(path.figs, "ETmodel_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
-cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45))
+png(file.path(path.figsMS, "Figure3_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
+cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+# 3.2 Supplemental tables & figures breaking down by biome ----
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+summary(etSummary)
+summary(StatsCombined)
+
+#-#-#-#-#-#-#-#-
+# 3.2.1. Making a figure showing the spatial patterns of climate & its change ----
+#-#-#-#-#-#-#-#-
+tasGLDAS <- ggplot(data=StatsCombined[,]) +
+  # facet_grid(Time~Scenario)+
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", linewidth=0.1) +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=Tmean.GLDAS), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="Mean Summer\nTemp. (deg. C)", colors=gradTemp2, n.breaks=13, oob=squish) +
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+tasGLDAS
+
+# prBreaks <- round(quantile(cmip6Agg$pr[cmip6Agg$Scenario=="historical"], seq(0.1, 0.9, by=0.1)), 1)
+prGLDAS <- ggplot(data=StatsCombined[,]) +
+  # facet_grid(Time~Scenario)+
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", linewidth=0.1) +
+  # coord_map("merc") +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=Precip.GLDAS), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="Mean Summer\nPrecip (mm/day)", colors=gradPrcp2, n.breaks=13, oob=squish) + 
+  # scale_color_stepsn(name="Mean Summer\nPrecip (mm/day)", colors=grad.prcp, limits=c(0,10), breaks=c(0.1, 1.5, 2.3, 2.7, 3.7, 4.8, 5.8, 7.1, 9.3), oob=squish) + # Using breaks from IPCC AR6 figures
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+prGLDAS
+
+# figClimPresent <- cowplot:: plot_grid(tasGLDAS, prGLDAS, labels=c("A", "B"), nrow=1)
+
+tasFuture <- ggplot(data=cmip6AggMean[cmip6AggMean$Time==2100,]) +
+  facet_grid(.~Scenario)+
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=tas.diff), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="Temp Change\n(deg. C)", colors=grad.temp, limits=c(-4.5, 4.5), n.breaks=13, oob=squish) +
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+tasFuture
+
+prFuture <- ggplot(data=cmip6AggMean[cmip6AggMean$Time==2100,]) +
+  facet_grid(.~Scenario) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  # coord_map("merc") +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=(pr.per-1)*100), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="Precip Change\n (%)", colors=grad.prcp, limits=c(-0.8, 0.8)*100, n.breaks=13, oob=squish) + # Using breaks from IPCC AR6 figures
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+prFuture
+
+
+png(file.path(path.figsMS, "FigureSX_Climate_GLDAS_CMIP6-EnsembleMeans.png"), height=6, width=14, units="in", res=320)
+cowplot::plot_grid(tasGLDAS, prGLDAS, tasFuture, prFuture, ncol=2, rel_heights = c(0.45, 0.65), labels=c("A", "B", "C", "D"))
+dev.off()
+#-#-#-#-#-#-#-#-
+
+#-#-#-#-#-#-#-#-
+# 3.2.2. Summarizing the climate & ET change by biome ----
+#-#-#-#-#-#-#-#-
+violinTas <- ggplot(data=cmip6AggMean) +
+  facet_grid(.~Scenario) +
+  geom_violin(aes(x=biomeCode, y=tas.diff, fill=biomeName), scale="width") +
+  geom_hline(yintercept=0) +
+  scale_color_manual(name="Biome", values=biome.pall.all) + 
+  scale_fill_manual(name="Biome", values=biome.pall.all) + 
+  coord_cartesian(ylim=c(0, max(cmip6AggMean$tas.diff))) +
+  guides(color="none", fill="none") +
+  labs(x="Biome", y="Temperature Change (deg. C)") +
+  theme_bw()
+violinTas
+
+violinPr <- ggplot(data=cmip6AggMean) +
+  facet_grid(.~Scenario) +
+  geom_violin(aes(x=biomeCode, y=(pr.per-1)*100, fill=biomeName), scale="width") +
+  geom_hline(yintercept=0) +
+  scale_color_manual(name="Biome", values=biome.pall.all) + 
+  scale_fill_manual(name="Biome", values=biome.pall.all) + 
+  coord_cartesian(ylim=c(-1, 1.25)*100) +
+  guides(color="none", fill="none") +
+  labs(x="Biome", y="Precip Change (%)") +
+  theme_bw()
+violinPr
+
+violinET <- ggplot(data=cmip6AggMean) +
+  facet_grid(.~Scenario) +
+  geom_violin(aes(x=biomeCode, y=modET, fill=biomeName), scale="width") +
+  geom_hline(yintercept=0) +
+  scale_color_manual(name="Biome", values=biome.pall.all) + 
+  scale_fill_manual(name="Biome", values=biome.pall.all) + 
+  # coord_cartesian(ylim=c(-1, 1.25)*100) +
+  guides(color="none", fill="none") +
+  labs(x="Biome", y="ET (mm/day)") +
+  theme_bw()
+violinET
+
+violinETper <- ggplot(data=cmip6AggMean) +
+  facet_grid(.~Scenario) +
+  geom_violin(aes(x=biomeCode, y=(modET.perChange-1)*100, fill=biomeName), scale="width") +
+  geom_hline(yintercept=0) +
+  scale_color_manual(name="Biome", values=biome.pall.all) + 
+  scale_fill_manual(name="Biome", values=biome.pall.all) + 
+  # coord_cartesian(ylim=c(-1, 1.25)*100) +
+  guides(color="none", fill="none") +
+  labs(x="Biome", y="ET Change (%)") +
+  theme_bw()
+violinETper
+
+summary(cmip6AggMean)
+
+png(file.path(path.figsMS, "FigureSX_Climate-ET-Change_Biomes.png"), height=8, width=8, units="in", res=320)
+cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
+dev.off()
+
+changeBiomeAggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET.diff, modET.perChange, modET.Precip) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=mean)
+changeBiomeAggSD <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET.diff, modET.perChange, modET.Precip) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=sd)
+# changeBiomeAggMean <- aggregate(cbind("tas.diff", "pr.diff", "pr.per", "modET.diff", "modET.perChange", "modET.Precip") ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,])
+
+#-#-#-#-#-#-#-#-
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
