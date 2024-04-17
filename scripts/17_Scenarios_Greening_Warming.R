@@ -77,6 +77,8 @@ if(file.exists(file.path(path.google, "city_stats_all_ET_scenarios.csv")) & !ove
   # Add Columns for the stats we want to model
   cityAnalyStats$tree.mean.TreeTargetBiome <- NA # This is the mean of our greening distribution
   cityAnalyStats$tree.mean.TreeTargetBottom25 <- NA # This is the mean of our greening distribution
+  cityAnalyStats$tree.mean.TreeCityBottom50 <- NA # This is the mean of our greening distribution
+  cityAnalyStats$tree.mean.TreeCityBottom25 <- NA # This is the mean of our greening distribution
   cityAnalyStats[,cols.modET] <- NA
 }
 summary(cityAnalyStats)
@@ -157,7 +159,10 @@ summary(cmip6)
 # cityAnalyStats[cityAnalyStats$ISOURBID==CITY,]
 pb <- txtProgressBar(min=0, max=nrow(cityAnalyStats), style=3)
 
+length(dir(path.EEout))
 files.temp <- dir(path.EEout, "GLDAS21_annualMeans")
+length(files.temp)
+nrow(cityAnalyStats)
 
 for(rowCity in 1:nrow(cityAnalyStats)){
   setTxtProgressBar(pb, rowCity)
@@ -340,9 +345,9 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   for(j in 2:length(treeBreaks)){
     if(j==2){
-      treeDistGreenCity50[rowCity,j] <- length(which(dfCity$cover.tree.TreeCityBottom25>=treeBreaks[j-1] & dfCity$cover.tree.TreeCityBottom25<=treeBreaks[j]))/nCity
+      treeDistGreenCity25[rowCity,j] <- length(which(dfCity$cover.tree.TreeCityBottom25>=treeBreaks[j-1] & dfCity$cover.tree.TreeCityBottom25<=treeBreaks[j]))/nCity
     } else {
-      treeDistGreenCity50[rowCity,j] <- length(which(dfCity$cover.tree.TreeCityBottom25>treeBreaks[j-1] & dfCity$cover.tree.TreeCityBottom25<=treeBreaks[j]))/nCity
+      treeDistGreenCity25[rowCity,j] <- length(which(dfCity$cover.tree.TreeCityBottom25>treeBreaks[j-1] & dfCity$cover.tree.TreeCityBottom25<=treeBreaks[j]))/nCity
     }
   }
   # treeDistGreen[rowCity,]
