@@ -212,3 +212,20 @@ dev.off()
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+# Getting some specific numbers for cooling comparisons
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+summary(StatsCombined[,c("LSTmodel.tree.slope", "LSTmodel.veg.slope")])
+summary(StatsCombined$LSTmodel.tree.slope/StatsCombined$LSTmodel.veg.slope)
+median(StatsCombined$LSTmodel.tree.slope/StatsCombined$LSTmodel.veg.slope)
+
+# Sig Cooling Cities; adding fitlers for sig tree & veg coolign ebcause otherwise the numbers get wonky
+coolRatio <- (StatsCombined$LSTmodel.tree.slope/StatsCombined$LSTmodel.veg.slope)
+treeCool <- StatsCombined$LSTmodel.tree.slope<0 & StatsCombined$LSTmodel.tree.p<0.05
+vegCool <- StatsCombined$LSTmodel.veg.slope<0 & StatsCombined$LSTmodel.veg.p<0.05
+
+summary(coolRatio[treeCool & vegCool])
+length(coolRatio[treeCool & vegCool])
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
