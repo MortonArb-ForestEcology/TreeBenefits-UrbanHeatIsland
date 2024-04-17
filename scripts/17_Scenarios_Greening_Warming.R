@@ -193,12 +193,13 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # modETCitySum
   
   intYear <- which(grepl("year", names(modETCitySum$p.coeff)))
-  cityIntercept <- mean(modETCitySum$p.coeff[intYear])
+  cityIntercept <- mean(modETCitySum$p.coeff[intYear]) # Taking the mean year intercept
   # yrstr <- paste(names(modETCitySum$p.coeff)[1])
-  yrUse <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff)[intYear[1]], start=-4))
+  yrUse <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff)[intYear[1]], start=-4)) # Using a dummy year just to get the model to run
   
   dfCity$Intercept <- cityIntercept
   
+  # Read in the full model
   modETCity <- readRDS(file.path(path.et, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))
   # modETCity <- readRDS("~/Desktop/CAN15001_Model-ET_annual_gam.rds")
   
@@ -221,6 +222,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   dfMod <- data.frame(cover.tree=dfCity$tree.mean, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
 
+  # Run the model excluding a particular year effect so we can add in the mean intercept; because the model has the response with a sqrt., we need to square this prediction to get us back into ET space
   dfCity$modET.Base <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
   summary(dfCity) 
   
@@ -231,28 +233,29 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # ------------------
   # Greening Scenarios ----
   # ------------------
-  
-  # City with homogenous tree cover (current levels)
-  dfMod <- data.frame(cover.tree=mean(dfCity$tree.mean), cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
-  dfCity$modET.TreeEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
-  
-  cityAnalyStats$modET.TreeEven[rowCity] <- mean(dfCity$modET.TreeEven)
-  
-  
-  # City with homogenous tree cover -- Target Levels
   treeCitymean <- mean(dfCity$tree.mean)
   treeBiomeRef <- biomeTargetStats$TargetTreeCover[biomeTargetStats$biomeName==cityAnalyStats$biomeName[cityAnalyStats$ISOURBID==CITY]]
   
-  if(length(treeBiomeRef)>0){
-    cityAnalyStats$tree.mean.TreeTargetBiome[rowCity] <- treeBiomeRef
-    
-    dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
-    dfCity$modET.TreeTargetEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
-    
-    cityAnalyStats$modET.TreeTargetEven[rowCity] <- mean(dfCity$modET.TreeTargetEven)
-  }
-  # ------------
-  # Bottom-Up approach to greening --> anything less than the biome target gets 1/4 way there (diff/2)
+  # # City with homogenous tree cover (current levels)
+  # dfMod <- data.frame(cover.tree=mean(dfCity$tree.mean), cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  # dfCity$modET.TreeEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
+  # 
+  # cityAnalyStats$modET.TreeEven[rowCity] <- mean(dfCity$modET.TreeEven)
+  # 
+  # 
+  # # City with homogenous tree cover -- Target Levels
+  # 
+  # if(length(treeBiomeRef)>0){
+  #   cityAnalyStats$tree.mean.TreeTargetBiome[rowCity] <- treeBiomeRef
+  #   
+  #   dfMod <- data.frame(cover.tree=treeBiomeRef, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  #   dfCity$modET.TreeTargetEven <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=dfMod) + dfCity$Intercept)^2
+  #   
+  #   cityAnalyStats$modET.TreeTargetEven[rowCity] <- mean(dfCity$modET.TreeTargetEven)
+  # }
+
+    # ------------
+  # Bottom-Up approach to greening --> anything less than the biome target gets 1/4 way there (diff * 0.25)
   # ------------
   dfCity$cover.tree.TreeTargetBottom25 <- dfCity$tree.mean
   dfCity$cover.tree.TreeTargetBottom25[dfCity$tree.mean<treeBiomeRef] <- dfCity$tree.mean[dfCity$tree.mean<treeBiomeRef] + (treeBiomeRef-dfCity$tree.mean[dfCity$tree.mean<treeBiomeRef])*0.25
@@ -271,7 +274,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   write.csv(treeDistGreen, file.path(path.google, "TreeDistribution_Greening-Bottom25.csv"), row.names=F)
   
-  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeTargetBottom25, cover.veg=mean(dfCity$veg.mean), Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeTargetBottom25, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
   
   png(file.path(path.et, CITY, paste0(CITY, "_TreeCover_Modeled_TargetBottom25.png")), height=4, width=6, units="in", res=180)
   par(mfrow=c(2,1))
@@ -297,7 +300,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   
   dfCity$cover.tree.TreeCityBottom50 <- dfCity$tree.mean
-  dfCity$cover.tree.TreeCityBottom50[dfCity$tree.mean<treeCitymean] <- dfCity$tree.mean[dfCity$tree.mean<treeBiomeRef] + (treeCitymean-dfCity$tree.mean[dfCity$tree.mean<treeCitymean])*0.5
+  dfCity$cover.tree.TreeCityBottom50[dfCity$tree.mean<treeCitymean] <- dfCity$tree.mean[dfCity$tree.mean<treeCitymean] + (treeCitymean-dfCity$tree.mean[dfCity$tree.mean<treeCitymean])*0.5
   summary(dfCity)
   
   
@@ -313,7 +316,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   write.csv(treeDistGreen, file.path(path.google, "TreeDistribution_Greening-CityBottom50.csv"), row.names=F)
   
-  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeCityBottom50, cover.veg=mean(dfCity$veg.mean), Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeCityBottom50, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
   
   png(file.path(path.et, CITY, paste0(CITY, "_TreeCover_CityBottom50.png")), height=4, width=6, units="in", res=180)
   par(mfrow=c(2,1))
@@ -339,7 +342,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   
   dfCity$cover.tree.TreeCityBottom25 <- dfCity$tree.mean
-  dfCity$cover.tree.TreeCityBottom25[dfCity$tree.mean<treeCitymean] <- dfCity$tree.mean[dfCity$tree.mean<treeBiomeRef] + (treeCitymean-dfCity$tree.mean[dfCity$tree.mean<treeCitymean])*0.25
+  dfCity$cover.tree.TreeCityBottom25[dfCity$tree.mean<treeCitymean] <- dfCity$tree.mean[dfCity$tree.mean<treeCitymean] + (treeCitymean-dfCity$tree.mean[dfCity$tree.mean<treeCitymean])*0.25
   summary(dfCity)
   
   
@@ -355,7 +358,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   write.csv(treeDistGreen, file.path(path.google, "TreeDistribution_Greening-CityBottom25.csv"), row.names=F)
   
-  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeCityBottom25, cover.veg=mean(dfCity$veg.mean), Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
+  dfMod <- data.frame(cover.tree=dfCity$cover.tree.TreeCityBottom25, cover.veg=dfCity$veg.mean, Tair_f_inst_mean=dfCity$Tair.mean, x=dfCity$x, y=dfCity$y, year=yrUse, cityBounds=dfCity$cityBounds, Intercept=cityIntercept)
   
   png(file.path(path.et, CITY, paste0(CITY, "_TreeCover_CityBottom25.png")), height=4, width=6, units="in", res=180)
   par(mfrow=c(2,1))
