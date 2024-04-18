@@ -127,7 +127,9 @@ StatsCombined$ETgreenCity50.Precip <- StatsCombined$modET.TreeCityBottom50/Stats
 summary(StatsCombined)
 
 length(which(StatsCombined$ETcurrent.Precip<1 & !is.na(StatsCombined$ETcurrent.Precip)))
-length(which(StatsCombined$ETgreenTarget.Precip<1 & !is.na(StatsCombined$ETgreenTarget.Precip)))
+length(which(StatsCombined$ETgreenBiomeTarget.Precip<1 & !is.na(StatsCombined$ETgreenBiomeTarget.Precip)))
+length(which(StatsCombined$ETgreenCity25.Precip<1 & !is.na(StatsCombined$ETgreenCity25.Precip)))
+length(which(StatsCombined$ETgreenCity50.Precip<1 & !is.na(StatsCombined$ETgreenCity50.Precip)))
 # Only ~ 220 cities lose their sustainability from greening!
 #-#-#-#-#-#-#-#- 
 
