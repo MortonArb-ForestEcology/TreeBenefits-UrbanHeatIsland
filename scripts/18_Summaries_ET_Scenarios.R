@@ -98,8 +98,8 @@ summary(datGLDAS)
 # Now read in city stats
 # --------------------
 cityAnalyStats <- read.csv(file.path(path.google, "city_stats_all_ET_scenarios.csv"))
-cityAnalyStats$biomeName <- factor(cityAnalyStats$biomeName, levels=biome.order)
-cityAnalyStats[,c("dET.TreeEven", "dET.TreeTargetEven", "dET.TreeTargetBottomUp", "dET.ssp245.2050", "dET.ssp245.2100", "dET.ssp585.2050", "dET.ssp585.2100")] <- cityAnalyStats[,c("modET.TreeEven", "modET.TreeTargetEven", "modET.TreeTargetBottomUp", "modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")] - cityAnalyStats$modET.Base
+cityAnalyStats$biomeName <- factor(cityAnalyStats$biomeName, levels=biome.order$biomeName)
+cityAnalyStats[,c("dET.TreeTargetBottom25", "dET.TreeCityBottom50", "dET.TreeCityBottom25", "dET.ssp245.2050", "dET.ssp245.2100", "dET.ssp585.2050", "dET.ssp585.2100")] <- cityAnalyStats[,c("modET.TreeTargetBottom25", "modET.TreeCityBottom50", "modET.TreeCityBottom25", "modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")] - cityAnalyStats$modET.Base
 cityAnalyStats$Scenario <- c("Present")
 cityAnalyStats$Time <- c("2020")
 summary(cityAnalyStats)
