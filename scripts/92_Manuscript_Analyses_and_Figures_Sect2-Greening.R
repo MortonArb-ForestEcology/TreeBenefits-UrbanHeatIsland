@@ -121,7 +121,8 @@ summary(StatsCombined)
 # Water Ratios
 # "modET.TreeTargetBottom25", "modET.TreeCityBottom25", "modET.TreeCityBottom50"
 StatsCombined$ETcurrent.Precip <- StatsCombined$modET.Base/StatsCombined$Precip.GLDAS
-StatsCombined$ETgreenBiomeTarget.Precip <- StatsCombined$modET.TreeTargetBottom25/StatsCombined$Precip.GLDAS
+StatsCombined$ETgreenBiomeTarget.Precip <- StatsCombined$modET.TreeTargetB
+ottom25/StatsCombined$Precip.GLDAS
 StatsCombined$ETgreenCity25.Precip <- StatsCombined$modET.TreeCityBottom25/StatsCombined$Precip.GLDAS
 StatsCombined$ETgreenCity50.Precip <- StatsCombined$modET.TreeCityBottom50/StatsCombined$Precip.GLDAS
 summary(StatsCombined)
