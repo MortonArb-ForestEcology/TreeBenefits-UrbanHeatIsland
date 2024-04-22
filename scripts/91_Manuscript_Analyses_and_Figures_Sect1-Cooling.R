@@ -1,9 +1,16 @@
 # Updated script for manuscript
 # Outline
-# 01. Trees cool cities & need water to do so: ---- 
-#     Trees have a clear, consistent cooling potential on global urban surface temperatures… [treat cooling capacity as a known; we add a tiny bit of nuance; quickly bring in nuance & water]
-# 02. Cities need more trees to offset UHIs; more trees means more water; ----
-# 03. Warming will increase water demand; precipitation will not keep pace in many regions ----
+# 01. Trees cool cities & need water to do so: ----
+#  Trees have a clear, consistent cooling potential on global urban surface temperatures… [treat cooling capacity as a known; we add a tiny bit of nuance; quickly bring in nuance & water]
+# 01. Key Results: (What Christy needs to get numbers for) 
+#  1.1. Average cooling per percent tree cover of urban trees varies among biomes 
+#       -- Trees always do more than non-tree vegetation per percent tree cover
+#  1.2. Trees in arid and semi-arid regions do more per percent tree cover but regions that have more trees in their cities have trees doing more total cooling
+#       -- How much water is needed to do the cooling varies by biome & relationship
+#       -- Our estimates are lower than those produced by other gridded products because we interpolate into the metropolitan core where tree cover is lower, but shows consistent trends ;  
+#           -- (SUPPLEMENT Figs/Tables: comparison with gldas)
+#       -- The relationships between water use and tree canopy are non-linear
+#  1.3. In terms of current peak summer water use vs. output, XXX% of cities receive more water than our 
 library(ggplot2)
 
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
@@ -32,21 +39,8 @@ length(unique(StatsCombined$ISOURBID))
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-# 01. Trees cool cities & need water to do so: ----
-#  Trees have a clear, consistent cooling potential on global urban surface temperatures… [treat cooling capacity as a known; we add a tiny bit of nuance; quickly bring in nuance & water]
-# 01. Key Results: (What Christy needs to get numbers for) 
-#  1.1. Average cooling per percent tree cover of urban trees varies among biomes 
-#       -- Trees always do more than non-tree vegetation per percent tree cover
-#  1.2. Trees in arid and semi-arid regions do more per percent tree cover but regions that have more trees in their cities have trees doing more total cooling
-#       -- How much water is needed to do the cooling varies by biome & relationship
-#       -- Our estimates are lower than those produced by other gridded products because we interpolate into the metropolitan core where tree cover is lower, but shows consistent trends ;  
-#           -- (SUPPLEMENT Figs/Tables: comparison with gldas)
-#       -- The relationships between water use and tree canopy are non-linear
-#  1.3. In terms of current peak summer water use vs. output, XXX% of cities receive more water than our 
+# FIGURES ----
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-# Do analyses here!
-
-
 # 
 UHIquint <- quantile(StatsCombined$value.LST.diff[StatsCombined$value.LST.diff>0], seq(0.2, 1, by=0.2))
 breaksUHI <- c(-rev(UHIquint), 0, UHIquint)
@@ -212,9 +206,20 @@ dev.off()
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+# NUMBERS! ----
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+# aggregating the slopes tot he biome scale real quickly
+coolBiome <- aggregate(cbind(LSTmodel.tree.slope, LSTmodel.veg.slope) ~  biomeCode + biomeName, data=StatsCombined, FUN=mean, na.rm=T)
+coolBiomeMed <- aggregate(cbind(LSTmodel.tree.slope, LSTmodel.veg.slope) ~  biomeCode + biomeName, data=StatsCombined, FUN=median, na.rm=T)
+
+#-#-#-#-#-#-#-
 # Getting some specific numbers for cooling comparisons
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#-#-#-#-#-#-#-
 summary(StatsCombined[,c("LSTmodel.tree.slope", "LSTmodel.veg.slope")])
 summary(StatsCombined$LSTmodel.tree.slope/StatsCombined$LSTmodel.veg.slope)
 median(StatsCombined$LSTmodel.tree.slope/StatsCombined$LSTmodel.veg.slope)
@@ -226,6 +231,6 @@ vegCool <- StatsCombined$LSTmodel.veg.slope<0 & StatsCombined$LSTmodel.veg.p<0.0
 
 summary(coolRatio[treeCool & vegCool])
 length(coolRatio[treeCool & vegCool])
+#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-
