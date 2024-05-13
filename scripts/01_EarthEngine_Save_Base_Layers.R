@@ -4,7 +4,7 @@ library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
 path.google <- "/Volumes/GoogleDrive/My Drive"
-GoogleFolderSave <- "UHI_Analysis_Output_v3"
+GoogleFolderSave <- "UHI_Analysis_Output_v4"
 assetHome <- ee_get_assethome()
 
 
@@ -90,11 +90,11 @@ vizTempK <- list(
 );
 
 # 2.a.1 - Northern Hemisphere: July/August
-tempJulAug <- ee$ImageCollection('MODIS/006/MOD11A2')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+tempJulAug <- ee$ImageCollection('MODIS/061/MOD11A2')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
 tempJulAug <- tempJulAug$map(lstConvert)
 tempJulAug <- tempJulAug$map(setYear)
 
-tempJanFeb <- ee$ImageCollection('MODIS/006/MOD11A2')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+tempJanFeb <- ee$ImageCollection('MODIS/061/MOD11A2')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
 tempJanFeb <- tempJanFeb$map(lstConvert)
 tempJanFeb <- tempJanFeb$map(setYear)
 
@@ -320,11 +320,11 @@ vizET <- list(
 );
 
 
-ETJulAug <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$select("ET")$map(addTime);
+ETJulAug <- ee$ImageCollection('MODIS/061/MOD16A2GF')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$select("ET")$map(addTime);
 ETJulAug <- ETJulAug$map(ETConvert)
 # ETJulAug <- ETJulAug$map(setYear)
 
-ETJanFeb <- ee$ImageCollection('MODIS/NTSG/MOD16A2/105')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$select("ET")$map(addTime);
+ETJanFeb <- ee$ImageCollection('MODIS/061/MOD16A2GF')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$select("ET")$map(addTime);
 ETJanFeb <- ETJanFeb$map(ETConvert)
 # ETJanFeb <- ETJanFeb$map(setYear)
 # 
@@ -366,7 +366,7 @@ for(i in 1:sizeETJA-1){
   img <- ee$Image(ETJAList$get(i))
   imgID <- img$id()$getInfo()
   # ee_print(img)
-  # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
+  # Map$addLayer(img$select("ET"), vizET, "Jul/Aug ET")
   saveETNH <- ee_image_to_asset(img$select("ET"), description=paste0("Save_ET_JulAug_", imgID), assetId=file.path(assetHome, "ET_JulAug", imgID), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveETNH$start()
 }
