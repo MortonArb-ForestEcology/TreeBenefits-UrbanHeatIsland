@@ -11,9 +11,9 @@ library(raster); library(tidyr); library(scales)
 # Establish file paths etc ----
 ###########################################
 # user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
 # path.google <- file.path(path.google)
-path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v3/")
+path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v4/")
 
 
 # Adding info for the previous version so we can double check

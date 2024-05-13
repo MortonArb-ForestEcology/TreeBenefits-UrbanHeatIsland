@@ -20,14 +20,14 @@ library(mgcv)
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
 # user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
 path.cities <- file.path(path.google, "data_processed_final")
 
 # Path to where Earth Engine is saving the spatial extractions
-path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v3")
+path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
 
 # Path where we're saving the preliminary stuff
-path.out <- file.path(path.google, "ETmodel_v3_Testing")
+path.out <- file.path(path.google, "ETmodel_v4_Testing")
 if(!dir.exists(path.out)) dir.create(path.out, recursive = T)
 
 

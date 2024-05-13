@@ -6,7 +6,7 @@
 # 03. Warming will increase water demand; precipitation will not keep pace in many regions ----
 library(ggplot2); library(cowplot)
 
-path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
 path.cities <- file.path(path.google, "data_processed_final")
 
 path.figsMS <- file.path(path.google, "figures_manuscript")

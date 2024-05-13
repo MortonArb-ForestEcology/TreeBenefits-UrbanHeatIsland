@@ -13,7 +13,7 @@ library(raster)
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
 # path.google <- file.path(path.google)
-path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v3/")
+path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v4/")
 
 # Pulling our base file to get the names etc
 cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))

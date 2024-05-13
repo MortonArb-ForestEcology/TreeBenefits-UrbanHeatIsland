@@ -7,7 +7,7 @@
 library(ggplot2)
 
 # file paths for where to put the processed data ----
-path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v3")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
 path.cities <- file.path(path.google, "data_processed_final")
 
 # which(dir(file.path(path.cities, "data_processed_final"))=="JPN28893")
