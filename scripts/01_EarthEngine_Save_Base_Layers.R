@@ -102,6 +102,7 @@ tempJanFeb <- tempJanFeb$map(setYear)
 # tempJulAug$first()$propertyNames()$getInfo()
 # ee_print(tempJulAug$first())
 # Map$addLayer(tempJulAug$first()$select('LST_Day_1km'), vizTempK, "Jul/Aug Temperature")
+# Map$addLayer(tempJanFeb$first()$select('LST_Day_1km'), vizTempK, "Jan/Feb Temperature")
 
 projLST = tempJulAug$select("LST_Day_1km")$first()$projection()
 projCRS = projLST$crs()
@@ -381,7 +382,7 @@ for(i in 1:sizeETJF-1){
   img <- ee$Image(ETJFList$get(i))
   imgID <- img$id()$getInfo()
   # ee_print(img)
-  # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
+  # Map$addLayer(img$select("ET"), vizET, "Jul/Aug ET")
   saveETSH <- ee_image_to_asset(img$select("ET"), description=paste0("Save_ET_JanFeb_", imgID), assetId=file.path(assetHome, "ET_JanFeb", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveETSH$start()
 }

@@ -19,8 +19,12 @@ ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation"
 ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated")
 ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_VegMask")
 
+ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover")
+
 ee_manage_delete("users/crollinson/MERIT-DEM-v1_1km_Reproj_NH")
 ee_manage_delete("users/crollinson/MERIT-DEM-v1_1km_Reproj_SH")
+ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_NH")
+ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_SH")
 ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_NH")
 ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_SH")
 ee_manage_delete("users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated_NH")
