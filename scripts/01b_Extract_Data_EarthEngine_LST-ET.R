@@ -87,11 +87,11 @@ vizTempK <- list(
 # JulAugList <- ee_manage_assetlist(path_asset = "users/crollinson/LST_JulAug_Clean/")
 tempJulAug <- ee$ImageCollection("users/crollinson/LST_JulAug_Clean")
 tempJulAug <- tempJulAug$map(setYear) # Note: This is needed here otherwise the format is weird and code doesn't work!
-# ee_print(tempJulAugX)
+# ee_print(tempJulAug)
 # tempJulAug$first()$propertyNames()$getInfo()
 # tempJulAug$first()$get("system:id")$getInfo()
 # ee_print(tempJulAug$first())
-# Map$addLayer(tempJulAugX$first(), vizTempK, "Jul/Aug Temperature")
+# Map$addLayer(tempJulAug$first(), vizTempK, "Jul/Aug Temperature")
 
 # 2.a.2 - Southern Hemisphere: Jan/Feb
 # JanFebList <- ee_manage_assetlist(path_asset = "users/crollinson/LST_JanFeb_Clean/")
