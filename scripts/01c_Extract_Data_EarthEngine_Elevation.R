@@ -170,6 +170,7 @@ citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 if(length(cityIdS)>0){
   extractElevEE(CitySP=citiesSouth, CityNames = cityIdS, ELEV = elev, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
+
 if(length(cityIdN)>0){
   extractElevEE(CitySP=citiesNorth, CityNames = cityIdN, ELEV = elev, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }

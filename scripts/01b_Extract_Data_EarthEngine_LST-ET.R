@@ -446,6 +446,7 @@ if(length(cityIdNW)>0){
 if(length(cityIdNE1)>0){
   extractTempEE(CitySP=citiesUse, CityNames = cityIdNE1, TEMPERATURE=tempJulAug$select("LST_Day_1km"), ET=ETJulAug$select("ET"), GoogleFolderSave = GoogleFolderSave)
 }
+
 if(length(cityIdNE2)>0){
   extractTempEE(CitySP=citiesUse, CityNames = cityIdNE2, TEMPERATURE=tempJulAug$select("LST_Day_1km"), ET=ETJulAug$select("ET"), GoogleFolderSave = GoogleFolderSave)
 }

@@ -128,12 +128,12 @@ buffNorth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 # testBuff <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_CityMask.tif")))
 # plot(testBuff)
 
-if(length(cityIdN)>0){
-  extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=cityIdN, BASE=vegMask, GoogleFolderSave, overwrite=T)
-}
-
 if(length(cityIdS)>0){
   extractCityMask(cityBuff=buffSouth, cityRaw=citiesSouth, CityNames=cityIdS, BASE=vegMask, GoogleFolderSave, overwrite=T)
+}
+
+if(length(cityIdN)>0){
+  extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=cityIdN, BASE=vegMask, GoogleFolderSave, overwrite=T)
 }
 
 
