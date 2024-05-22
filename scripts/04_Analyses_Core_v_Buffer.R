@@ -61,6 +61,7 @@ for(i in 1:nrow(cityAll.stats)){
   datAll <- read.csv(file.path(path.cities, URBID, paste0(URBID, "_CityStats_Pixels.csv")))
   summary(datAll)
   
+  if(nrow(datAll)<50 | length(unique(datAll$cityBounds))<2) next # For some reason we have some cities with only 2 pixels?
   # Calculate some summary stats
   # datMean <- aggregate(cbind(LST.mean, tree.mean, veg.mean, elevation, LST.trend, tree.trend, veg.trend) ~ cityBounds, data=datAll, FUN=mean)
   # datSD <- aggregate(cbind(LST.mean, tree.mean, veg.mean, elevation, LST.trend, tree.trend, veg.trend) ~ cityBounds, data=datAll, FUN=sd)

@@ -77,7 +77,7 @@ if(!file.exists(file.cityStatsRegion) | overwrite){
   # Save the key info from the full model
   cityStatsRegion[,c("LST.NoVeg.model.R2adj", "LST.NoVeg.model.AIC")] <- NA
   cityStatsRegion[,c("LSTmodel.R2adj", "LSTmodel.AIC", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "LSTmodel.elev.slope", "LSTmodel.tree.p", "LSTmodel.veg.p", "LSTmodel.elev.p")] <- NA
-  cityStatsRegion[,c("ETmodel.R2adj", "ETmodel.AIC", "ETmodel.tree.slope", "ETmodel.veg.slope", "ETmodel.elev.slope", "ETmodel.tree.p", "ETmodel.veg.p", "ETmodel.elev.p")] <- NA
+  # cityStatsRegion[,c("ETmodel.R2adj", "ETmodel.AIC", "ETmodel.tree.slope", "ETmodel.veg.slope", "ETmodel.elev.slope", "ETmodel.tree.p", "ETmodel.veg.p", "ETmodel.elev.p")] <- NA
   
   # I had run this, but removed it because we don't have ET everywhere we need/want it
   # cityStatsRegion[,c("LST.ET.model.R2adj", "LST.ET.model.df", "LST.ET.model.AIC")] <- NA
@@ -504,8 +504,8 @@ for(CITY in citiesAnalyze){
   
   # Calculating pixel-based summary stats to do some trend correlations
   # For computational tractability, need to run each pixel independently.  Doing Hobart as a loop just takes a few seconds
-  summaryCity <- aggregate(cbind(LST_Day, cover.tree, cover.veg, elevation) ~ x+y+location + cityBounds, data=valsCity, FUN=mean)
-  names(summaryCity)[names(summaryCity) %in% c("LST_Day", "cover.tree", "cover.veg")] <- c("LST.mean", "tree.mean", "veg.mean")
+  summaryCity <- aggregate(cbind(LST_Day, cover.tree, cover.veg, elevation, ET) ~ x+y+location + cityBounds, data=valsCity, FUN=mean)
+  names(summaryCity)[names(summaryCity) %in% c("LST_Day", "cover.tree", "cover.veg", "ET")] <- c("LST.mean", "tree.mean", "veg.mean", "ET.mean")
   summary(summaryCity)
 
 

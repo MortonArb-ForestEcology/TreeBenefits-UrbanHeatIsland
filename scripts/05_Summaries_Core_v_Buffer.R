@@ -88,9 +88,15 @@ CityBuffStats <- read.csv(file.path(path.google, "city_stats_core-buffer.csv"))
 CityBuffStats <- merge(CityBuffStats, cityAll.stats[,c("ISOURBID", "NAME",  "LATITUDE", "LONGITUDE", "ES00POP", "biomeName")], all=T)
 summary(CityBuffStats)
 
-nrow(CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.p<0.01,])/ nrow(CityBuffStats[CityBuffStats$factor=="LST",])
+head(CityBuffStats[is.na(CityBuffStats$value.mean.core),])
+length(unique(CityBuffStats$ISOURBID[is.na(CityBuffStats$value.mean.core)]))
 
-mean(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.p<0.01]); sd(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.p<0.01])
+# Get rid of missing cities that got introduced somehow
+CityBuffStats <- CityBuffStats[!is.na(CityBuffStats$value.mean.core),]
+
+nrow(CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.p<0.01 & !is.na(CityBuffStats$value.mean.diff),])/ nrow(CityBuffStats[CityBuffStats$factor=="LST"& !is.na(CityBuffStats$value.mean.diff),])
+
+mean(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.p<0.01], na.rm=T); sd(CityBuffStats$value.mean.diff[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.p<0.01], na.rm=T)
 
 summary(CityBuffStats$biomeName[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.p<0.01])/summary(CityBuffStats$biomeName[CityBuffStats$factor=="LST"])
 
