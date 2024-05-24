@@ -22,7 +22,7 @@ library(scales)
 
 path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
 path.cities <- file.path(path.google, "data_processed_final")
-path.et <- file.path(path.google, "ET_models_v4")
+path.et <- file.path(path.google, "ET_models")
 path.EEout <- file.path("~/Google Drive/My Drive", "UHI_Analysis_Output_Final_v4")
 
 biome.pall.all = c("Taiga"= "#2c5c74", 
@@ -54,8 +54,55 @@ cols.modET <- c("modET.Base", "modET.TreeEven", "modET.TreeTargetEven", "modET.T
 if(file.exists(file.path(path.google, "city_stats_all_ET_scenarios.csv")) & !overwrite){
   cityAnalyStats <- read.csv(file.path(path.google, "city_stats_all_ET_scenarios.csv"))
 } else {
-  cityAnalyStats <- read.csv(file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"))
-  cityAnalyStats <- cityAnalyStats[,!(grepl("ETmodel", names(cityAnalyStats)))]
+  
+  cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
+  cityAll.stats$biomeName <- car::recode(cityAll.stats$biome, 
+                                         "'boreal forest/taiga'='Taiga';
+                                       'tundra'='Tundra';
+                                       'montane grassland/savanna'='Montane Grassland/Savanna';
+                                       'temperate broadleaf/mixed forest'='Temperate Broadleaf Forest';
+                                       'temperate coniferous forest'='Temperate Conifer Forest';
+                                       'temperate grassland/savanna'='Temperate Grassland/Savanna';
+                                       'mediterranean'='Mediterranean';
+                                       'desert/xeric shrublands'='Desert';
+                                       'flooded grassland/savanna'='Flooded Grassland/Savanna';
+                                       'tropical grassland/savannas'='Tropical Grassland/Savanna';
+                                       'tropical dry broadleaf forest'='Tropical Dry Broadleaf Forest';
+                                       'tropical coniferous forest'='Tropical Conifer Forest';
+                                       'tropical moist broadleaf forest'='Tropical Moist Broadleaf Forest';
+                                       'mangroves'='Mangroves'")
+  cityAll.stats$biomeCode <- car::recode(cityAll.stats$biome, 
+                                         "'boreal forest/taiga'='Tai';
+                                       'tundra'='Tun';
+                                       'montane grassland/savanna'='MGS';
+                                       'temperate broadleaf/mixed forest'='TeBF';
+                                       'temperate coniferous forest'='TeCF';
+                                       'temperate grassland/savanna'='TeGS';
+                                       'mediterranean'='Med';
+                                       'desert/xeric shrublands'='Des';
+                                       'flooded grassland/savanna'='FGS';
+                                       'tropical grassland/savannas'='TrGS';
+                                       'tropical dry broadleaf forest'='TrDBF';
+                                       'tropical coniferous forest'='TrCF';
+                                       'tropical moist broadleaf forest'='TrMBF';
+                                       'mangroves'='Man'")
+  summary(cityAll.stats)
+  
+  CityBuffStats <- read.csv(file.path(path.google, "city_stats_core-buffer.csv"))
+  CityBuffStats$factor <- factor(CityBuffStats$factor, levels=c("LST", "tree", "other veg"))
+  CityBuffStats <- CityBuffStats[!is.na(CityBuffStats$ISOURBID),]
+  summary(CityBuffStats)
+  
+  CityBuffwide <- CityBuffStats[CityBuffStats$factor=="LST", c("ISOURBID", "value.mean.core", "value.mean.diff", "value.mean.diff.p")]
+  names(CityBuffwide) <- gsub("mean", "LST", names(CityBuffwide))
+  CityBuffwide[,c("value.tree.core", "value.tree.diff", "value.tree.diff.p")] <- CityBuffStats[CityBuffStats$factor=="tree", c("value.mean.core", "value.mean.diff", "value.mean.diff.p")]
+  summary(CityBuffwide)
+  
+  # cityLST <- cityBuffAnaly[cityBuffAnaly$factor=="LST", c("ISOURBID", "value.mean.core", "value.mean.diff", "value.mean.diff.p", "trend.mean.core", "trend.p.core", "trend.mean.diff", "trend.mean.diff.p")]
+  # names(cityLST) <- gsub("mean", "LST", names(cityLST))
+  # names(cityLST)[which(names(cityLST)=="trend.p.core")] <- "trend.LST.p.core"
+  
+  cityAnalyStats <- merge(cityAll.stats, CityBuffwide, all=T)
   summary(cityAnalyStats)
   
   

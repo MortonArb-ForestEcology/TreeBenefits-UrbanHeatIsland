@@ -80,7 +80,7 @@ head(cityAllCMIP6)
 f.cmip6 <- dir(path.raw, "CMIP6")
 head(f.cmip6)
 
-if(overwrite=F) cityAllCMIP6 <- read.csv(file.path(path.cities, "city_stats_all_CMIP6_wide.csv"));
+if(overwrite==F) cityAllCMIP6 <- read.csv(file.path(path.cities, "city_stats_all_CMIP6_wide.csv"));
 cityAllCMIP6$Var <- as.factor(cityAllCMIP6$Var)
 cityAllCMIP6$Scenario <- as.factor(cityAllCMIP6$Scenario)
 cityAllCMIP6$Time <- as.factor(cityAllCMIP6$Time)

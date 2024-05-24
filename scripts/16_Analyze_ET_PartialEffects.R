@@ -14,7 +14,7 @@ library(mgcv)
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
 path.cities <- file.path(path.google, "data_processed_final")
-path.et <- file.path(path.google, "ET_models_v4")
+path.et <- file.path(path.google, "ET_models")
 path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v4/")
 
 

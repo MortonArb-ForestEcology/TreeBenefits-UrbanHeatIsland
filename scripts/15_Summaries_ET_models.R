@@ -49,7 +49,8 @@ world <- map_data("world")
 # Read in Data; do some cleanup ----
 # ##########################################
 # Reading in our old, full dataset
-cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
+cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
+cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
 summary(as.factor(cityAll.stats$biome))
 
 cityAll.stats$biomeName <- car::recode(cityAll.stats$biome, 
@@ -93,7 +94,6 @@ summary(cityAll.stats)
 
 # Reading in our ET dataset
 cityAll.ET <-  read.csv(file.path(path.google, "city_stats_all_ET.csv"))
-# cityAll.ET <- read.csv("~/Desktop/city_stats_all_ET.csv") # read.csv(file.path(path.google, "city_stats_all_ET.csv"))
 cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
 cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj) & cityAll.ET$ETobs.max>1,] # get rid of anything we didn't model or that has a very low range of ET
 summary(cityAll.ET)
@@ -108,16 +108,24 @@ summary(cityAll.ET)
 # Reading in the climate datasets -- GLDAS
 # Units:
 #  - temperature (Tair_f_inst_mean) - K  --> save as C to jive with MODIS data; note: is mean daily air temp; not day surface temp
-#  - precipitation (Evap_tavg_mean) - kg/m2/s (= mm/s) --> save as mm/day to jive with MODIS data
-#  - evapotranspriation (Rainf_f_tavg_mean) - kg/m2/s (= mm/s) --> save as mm/day to jive with MODIS data
+#  - precipitation (Rainf_f_tavg_meanEvap_tavg_mean) - kg/m2/s (= mm/s) --> save as mm/day to jive with MODIS data
+#  - evapotranspriation (Evap_tavg_mean) - kg/m2/s (= mm/s) --> save as mm/day to jive with MODIS data
 
-# Setting up some dummy columns for GLDAS data; story
-cityAll.gldas <- read.csv(file.path(path.google, "city_stats_all_GLDAS21_climatology_2001-2020.csv"))
-summary(cityAll.gldas)
+#  Doing this as a loop because i cut out the straight climatology option
+pb <- txtProgressBar(min=0, max=nrow(cityAll.ET), style=3)
+for(i in 1:nrow(cityAll.ET)){
+  CITY <- cityAll.ET$ISOURBID[i]
+  cityGLDAS <- read.csv(file.path(path.raw, paste0(CITY, "_GLDAS21_annualMeans.csv")))
+  cityAll.ET[i,c("ET.GLDAS", "Precip.GLDAS", "Tmean.GLDAS")] <- colMeans(cityGLDAS[,c("Evap_tavg_mean", "Rainf_f_tavg_mean", "Tair_f_inst_mean")], na.rm=T)
+  
+  cityAll.ET$ET.GLDAS[i] <- cityAll.ET$ET.GLDAS[i]*60*60*24
+  cityAll.ET$Precip.GLDAS[i] <- cityAll.ET$Precip.GLDAS[i]*60*60*24
+  cityAll.ET$Tmean.GLDAS[i] <- cityAll.ET$Tmean.GLDAS[i]-273.15
+  
+  setTxtProgressBar(pb, i)
+}
 
-cityAll.ET <- merge(cityAll.ET, cityAll.gldas, all.x=T, all.y=F)
 summary(cityAll.ET)
-
 
 cityAll.ET$ETpred.Precip <- cityAll.ET$ETpred.mean/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
 cityAll.ET$ETgldas.Precip <- cityAll.ET$ET.GLDAS/cityAll.ET$Precip.GLDAS # less than 1 means more precip than used by veg
@@ -164,13 +172,13 @@ world <- map_data("world");
 world <- world[!world$long>180,]
 grad.modfit <- c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177", "#49006a")
 
-ggplot(data=cityAll.ET[,]) +
+etR2.map <- ggplot(data=cityAll.ET[,]) +
   geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
   geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
   coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=ETmodel.R2adj), size=0.1, alpha=0.8) +
-  scale_color_stepsn(name="ET model R2-adj", colors=grad.modfit, n.breaks=13, oob=squish) +
+  scale_color_stepsn(name="ET model\nR2-adj", colors=grad.modfit, n.breaks=13, oob=squish) +
   theme(legend.position="top",
         legend.title=element_text(color="black", face="bold"),
         legend.text=element_text(color="black"),
@@ -183,6 +191,11 @@ ggplot(data=cityAll.ET[,]) +
         panel.background = element_rect(fill="NA"),
         panel.grid = element_blank(), 
         plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+etR2.map
+
+png(file.path(path.figs, "ModelFitET_R2adj_Map.png"), height=6, width=12, units="in", res=220)
+etR2.map
+dev.off() 
 
 etR2 <- ggplot(data=cityAll.ET[,]) +
   geom_histogram(aes(x=ETmodel.R2adj, fill=biomeName)) +
