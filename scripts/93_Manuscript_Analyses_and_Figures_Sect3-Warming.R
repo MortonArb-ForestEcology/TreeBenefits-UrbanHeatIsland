@@ -72,6 +72,44 @@ cmip6AggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, mo
 cmip6AggMean$biomeName <- factor(cmip6AggMean$biomeName, levels=biome.order$biomeName)
 summary(cmip6AggMean)
 
+
+# Creating a supplemental table with the climate change stats for each biome
+climCurrentMean <- aggregate(cbind(Tmean.GLDAS, Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined, FUN = mean)
+climCurrentMean[,names(climCurrentMean)[!names(climCurrentMean) %in% c("biomeName", "biomeCode")]] <- round(climCurrentMean[,names(climCurrentMean)[!names(climCurrentMean) %in% c("biomeName", "biomeCode")]], 1)
+climCurrentMean
+
+climCurrentSD <- aggregate(cbind(Tmean.GLDAS, Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined, FUN = sd)
+climCurrentSD[,names(climCurrentSD)[!names(climCurrentSD) %in% c("biomeName", "biomeCode")]] <- round(climCurrentSD[,names(climCurrentSD)[!names(climCurrentSD) %in% c("biomeName", "biomeCode")]], 1)
+climCurrentSD
+
+cmip6BiomeMean245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggMean[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5",], FUN = mean)
+cmip6BiomeMean245$tas.diff <- round(cmip6BiomeMean245$tas.diff, 1)
+cmip6BiomeMean245$pr.per <- round((cmip6BiomeMean245$pr.per-1)*100, 0)
+
+cmip6BiomeSD245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggSD[cmip6AggSD$Time==2100 & cmip6AggSD$Scenario=="SSP2-4.5",], FUN = mean)
+cmip6BiomeSD245$tas.diff <- round(cmip6BiomeSD245$tas.diff, 1)
+cmip6BiomeSD245$pr.per <- round((cmip6BiomeSD245$pr.per-1)*100, 0)
+
+cmip6BiomeMean585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggMean[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5",], FUN = mean)
+cmip6BiomeMean585$tas.diff <- round(cmip6BiomeMean585$tas.diff, 1)
+cmip6BiomeMean585$pr.per <- round((cmip6BiomeMean585$pr.per-1)*100, 0)
+
+cmip6BiomeSD585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggSD[cmip6AggSD$Time==2100 & cmip6AggSD$Scenario=="SSP5-8.5",], FUN = mean)
+cmip6BiomeSD585$tas.diff <- round(cmip6BiomeSD585$tas.diff, 1)
+cmip6BiomeSD585$pr.per <- round((cmip6BiomeSD585$pr.per-1)*100, 0)
+
+TableS6 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMean$biomeCode),
+                      Tmean.GLDAS = pasteMeanSD(climCurrentMean$Tmean.GLDAS, climCurrentSD$Tmean.GLDAS),
+                      Precip.GLDAS = pasteMeanSD(climCurrentMean$Precip.GLDAS, climCurrentSD$Precip.GLDAS),
+                      Tmean.diff.245 = pasteMeanSD(cmip6BiomeMean245$tas.diff, cmip6BiomeSD245$tas.diff),
+                      Pr.diff.245 = pasteMeanSD(cmip6BiomeMean245$pr.per, cmip6BiomeSD245$pr.per),
+                      Tmean.diff.585 = pasteMeanSD(cmip6BiomeMean585$tas.diff, cmip6BiomeSD585$tas.diff),
+                      Pr.diff.585 = pasteMeanSD(cmip6BiomeMean585$pr.per, cmip6BiomeSD585$pr.per))
+                      
+TableS6                      
+write.csv(TableS6, file.path(path.figsMS, "TableS6_ClimateStats_CMIP6.csv"), row.names=F)
+
+
 # # Not a huge difference with median, so lets just roll with mean
 # cmip6AggMed <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.Precip)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=median, na.rm=T)
 # cmip6AggMed$biomeName <- factor(cmip6AggMed$biomeName, levels=biome.order$biomeName)
@@ -241,7 +279,7 @@ prFuture <- ggplot(data=cmip6AggMean[cmip6AggMean$Time==2100,]) +
 prFuture
 
 
-png(file.path(path.figsMS, "FigureSX_Climate_GLDAS_CMIP6-EnsembleMeans.png"), height=6, width=14, units="in", res=320)
+png(file.path(path.figsMS, "FigureS6_Climate_GLDAS_CMIP6-EnsembleMeans.png"), height=6, width=14, units="in", res=320)
 cowplot::plot_grid(tasGLDAS, prGLDAS, tasFuture, prFuture, ncol=2, rel_heights = c(0.45, 0.65), labels=c("A", "B", "C", "D"))
 dev.off()
 #-#-#-#-#-#-#-#-
