@@ -7,6 +7,7 @@
 
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
 path.cities <- file.path(path.google, "data_processed_final")
+path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v4/")
 
 path.figs <- file.path(path.google, "figures_manuscript")
 dir.create(path.figs, recursive=T, showWarnings=F)
@@ -61,9 +62,27 @@ CityBuffStats <- merge(CityBuffStats, cityAll.stats[,c("ISOURBID", "NAME", "LONG
 # CityBuffStats <- CityBuffStats[!is.na(CityBuffStats$ISOURBID),]
 summary(CityBuffStats)
 
-# 1.3. Read in GLDAS data
-cityAll.gldas <- read.csv(file.path(path.google, "city_stats_all_GLDAS21_climatology_2001-2020.csv"))
-cityAll.gldas <- merge(cityAll.gldas, cityAll.stats[,c("ISOURBID", "NAME", "LONGITUDE", "LATITUDE", "biomeName", "biomeCode", "ES00POP")], all.x=T)
+# 1.3. Read in ET model data
+cityAnalyET <- read.csv(file.path(path.google, "city_stats_all_ET.csv"))
+cityAnalyET$ETmodel.R2adj[cityAnalyET$ETmodel.R2adj<0] <- NA 
+summary(cityAnalyET)
+nrow(cityAnalyET)
+
+# 1.4. Read in GLDAS data
+cityAll.gldas <- cityAll.stats[,c("ISOURBID", "NAME", "LONGITUDE", "LATITUDE", "biomeName", "biomeCode", "ES00POP")]
+pb <- txtProgressBar(min=0, max=nrow(cityAll.gldas), style=3)
+for(i in 1:nrow(cityAll.gldas)){
+  CITY <- cityAll.gldas$ISOURBID[i]
+  cityGLDAS <- read.csv(file.path(path.raw, paste0(CITY, "_GLDAS21_annualMeans.csv")))
+  cityAll.gldas[i,c("ET.GLDAS", "Precip.GLDAS", "Tmean.GLDAS")] <- colMeans(cityGLDAS[,c("Evap_tavg_mean", "Rainf_f_tavg_mean", "Tair_f_inst_mean")], na.rm=T)
+  
+  cityAll.gldas$ET.GLDAS[i] <- cityAll.gldas$ET.GLDAS[i]*60*60*24
+  cityAll.gldas$Precip.GLDAS[i] <- cityAll.gldas$Precip.GLDAS[i]*60*60*24
+  cityAll.gldas$Tmean.GLDAS[i] <- cityAll.gldas$Tmean.GLDAS[i]-273.15
+  
+  setTxtProgressBar(pb, i)
+}
+
 summary(cityAll.gldas)
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -82,7 +101,7 @@ length(citiesUHI)
 nrow(cityAll.stats)
 
 
-summary(CityBuff.stats)
+summary(CityBuffStats)
 
 # Getting rid of 4-sigma outliers for difference between metro core & reference region
 # -- This could be because of data errors, topography, etc.
@@ -125,7 +144,8 @@ lstSDSD <- sd(cityAll.stats$LST.sd, na.rm=T)
 lstSDMean; lstSDSD
 citySDLo  <- cityAll.stats$ISOURBID[cityAll.stats$LST.sd<lstSDMean-4*lstSDSD]
 citySDHi  <- cityAll.stats$ISOURBID[cityAll.stats$LST.sd>lstSDMean+4*lstSDSD]
-
+cityNoET <- cityAll.stats$ISOURBID[!cityAll.stats$ISOURBID %in% unique(cityAnalyET$ISOURBID[!is.na(cityAnalyET$ETmodel.R2adj)])]
+length(cityNoET)
 # cityAll.stats[cityAll.stats$ < 1.0,]
 
 summary(cityAll.stats)
@@ -135,7 +155,7 @@ citiesUse <- !is.na(cityAll.stats$trend.LST.slope) &
   cityAll.stats$biome.prop>=0.75 &
   # cityAll.stats$tree.max>10 & cityAll.stats$veg.max>10 &
   cityAll.stats$LST.sd >=1 & cityAll.stats$tree.sd >= 1 & cityAll.stats$veg.sd >= 1 & cityAll.stats$elev.sd >= 1 &
-  !cityAll.stats$ISOURBID %in% c(cityDiffHOT, cityDiffCOLD, cityCoreHOT, cityCoreCOLD, citySDLo, citySDHi)
+  !cityAll.stats$ISOURBID %in% c(cityDiffHOT, cityDiffCOLD, cityCoreHOT, cityCoreCOLD, citySDLo, citySDHi) & cityAll.stats$ISOURBID %in% unique(cityAnalyET$ISOURBID[!is.na(cityAnalyET$ETmodel.R2adj)])
 
 
 length(which(!cityAll.stats$ISOURBID %in% citiesUHI)) # NOT CRITERIA, but good to know
@@ -154,23 +174,27 @@ length(cityCoreHOT)
 length(cityCoreCOLD)
 length(citySDLo)
 length(citySDHi)
+length(cityNoET)
 
-length(which(citiesUse)) # Final number BEFORE removing biomes
+length(which(citiesUse)) # Final number 
 
 # UHI-only 
 # cityStatsAnaly <- cityAll.stats[which(citiesUse & cityAll.stats$ISOURBID %in% citiesUHI),]
 # cityBuffAnaly <- CityBuffStats[CityBuffStats$ISOURBID %in% cityStatsAnaly$ISOURBID,]
 
 cityStatsAnaly <- cityAll.stats[which(citiesUse),]
+cityStatsET <- cityAnalyET[which(citiesUse),]
 cityBuffAnaly <- CityBuffStats[CityBuffStats$ISOURBID %in% cityStatsAnaly$ISOURBID,]
 cityGLDASAnaly <- cityAll.gldas[cityAll.gldas$ISOURBID %in% cityStatsAnaly$ISOURBID,c("ISOURBID", "NAME","Tmean.GLDAS", "Precip.GLDAS", "ET.GLDAS")]
 summary(cityStatsAnaly)
+summary(citysStatsET)
 summary(cityGLDASAnaly)
-summary(cityStatsAnaly$biomeName)
+summary(as.factor(cityStatsAnaly$biomeName))
 dim(cityStatsAnaly)
 
 # cityStatsAnaly[cityStatsAnaly$LSTmodel.tree.slope < -1.0,]
 cityStatsAnaly[cityStatsAnaly$LSTmodel.R2adj < 0.35,]
+cityStatsET[cityStatsET$ETmodel.R2adj < 0.35,]
 
 nrow(cityStatsAnaly)
 
@@ -199,6 +223,7 @@ StatsCombined <- merge(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE",
                        cityGLDASAnaly, all=T)
 StatsCombined <- merge(StatsCombined, cityVeg, all=T)
 StatsCombined <- merge(StatsCombined, cityLST, all=T)
+StatsCombined <- merge(StatsCombined, cityStatsET[,c("ISOURBID", "ETobs.mean", "ETobs.sd", "ETobs.min", "ETobs.max", "ETmodel.R2adj", "ETmodel.RMSE", "ETpred.mean", "ETpred.sd", "ETpred.min", "ETpred.max")], all=T)
 summary(StatsCombined)
 
 # Quick aggregation of cities by GLDAS Mean Summer Temp and Mean Summer Precip to have a consistent order to our cities
@@ -209,10 +234,18 @@ biome.order
 
 sum(biome.order$n.cities)
 
+# Wokring only with cities where there are >20 cities in the biome
+biome.order <- biome.order[biome.order$n.cities>=20,]
+biome.order
+
 write.csv(biome.order, file.path(path.google, "UHIs-FinalCityDataForAnalysis_BiomeOrder.csv"), row.names=F)
 
 
 # **** Saving this combined & formatted dataset for collaborators or other sharing **** ----
+length(which(!StatsCombined$biomeName %in% biome.order$biomeName))
+StatsCombined <- StatsCombined[StatsCombined$biomeName %in% biome.order$biomeName,]
+nrow(StatsCombined)
+
 write.csv(StatsCombined, file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
 
 

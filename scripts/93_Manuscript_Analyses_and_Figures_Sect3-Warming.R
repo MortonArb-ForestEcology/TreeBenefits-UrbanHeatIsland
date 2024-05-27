@@ -30,7 +30,7 @@ summary(StatsCombined)
 
 # Read in the ET base data
 cityETStats <- read.csv(file.path(path.google, "city_stats_all_ET_scenarios.csv"))
-cityETStats[,c("dET.TreeEven", "dET.TreeTargetEven", "dET.TreeTargetBottomUp", "dET.ssp245.2050", "dET.ssp245.2100", "dET.ssp585.2050", "dET.ssp585.2100")] <- cityETStats[,c("modET.TreeEven", "modET.TreeTargetEven", "modET.TreeTargetBottomUp", "modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")] - cityETStats$modET.Base
+cityETStats[,c("dET.ssp245.2050", "dET.ssp245.2100", "dET.ssp585.2050", "dET.ssp585.2100")] <- cityETStats[,c("modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")] - cityETStats$modET.Base
 summary(cityETStats)
 
 StatsCombined <- merge(StatsCombined, cityETStats[,c("ISOURBID", "modET.Base")], all.x=T, all.y=F)
@@ -43,6 +43,7 @@ summary(StatsCombined)
 # Creating a combined ET data frame
 # NOTE that for the cmip6 scenarios, we added the change in temp to the gldas air temp; so lets create a precip correction
 cmip6 <- read.csv(file.path(path.google, "city_stats_all_CMIP6_ET.csv"))
+cmip6 <- cmip6[cmip6$ISOURBID %in% StatsCombined$ISOURBID,]
 cmip6$Scenario <- car::recode(cmip6$Scenario, "'ssp245'='SSP2-4.5'; 'ssp585'='SSP5-8.5'")
 cmip6$Scenario <- as.factor(cmip6$Scenario)
 cmip6$Time <- as.factor(cmip6$Time)

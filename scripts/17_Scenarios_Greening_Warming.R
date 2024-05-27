@@ -40,7 +40,7 @@ biome.pall.all = c("Taiga"= "#2c5c74",
                    "Tropical Moist Broadleaf Forest"= "#266240",
                    "Mangroves" = "#9c8c94")
 
-overwrite=T
+overwrite=F
 ###########################################
 
 
@@ -48,7 +48,7 @@ overwrite=T
 # Read in city data & summarizing baseline ----
 ###########################################
 
-cols.modET <- c("modET.Base", "modET.TreeEven", "modET.TreeTargetEven", "modET.TreeTargetBottom25", "modET.TreeCityBottom50", "modET.TreeCityBottom25",
+cols.modET <- c("modET.Base", "modET.TreeTargetBottom25", "modET.TreeCityBottom50", "modET.TreeCityBottom25",
                 "modET.ssp245.2050", "modET.ssp245.2100", "modET.ssp585.2050", "modET.ssp585.2100")
 
 if(file.exists(file.path(path.google, "city_stats_all_ET_scenarios.csv")) & !overwrite){
@@ -218,6 +218,8 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   
   CITY=cityAnalyStats$ISOURBID[rowCity]
   print(CITY)
+  
+  if(!any(grepl(CITY, files.temp)) | !dir.exists(file.path(path.cities, CITY))) next
   
   fTemp <- files.temp[grep(CITY, files.temp)]
   

@@ -148,7 +148,9 @@ summary(log(cmip6$modET.Precip))
 
 # Tree distributions if we want to go there
 treeDistCurrent <- read.csv(file.path(path.google, "TreeDistribution_Current.csv"))
-treeDistGreen <- read.csv(file.path(path.google, "TreeDistribution_Greening-BottomUp.csv"))
+treeDistGreen <- read.csv(file.path(path.google, "TreeDistribution_Greening-Bottom25.csv"))
+treeDistGreenCity50 <- read.csv(file.path(path.google, "TreeDistribution_Greening-CityBottom50.csv"))
+treeDistGreenCity25 <- read.csv(file.path(path.google, "TreeDistribution_Greening-CityBottom25.csv"))
 
 
 ###########################################
