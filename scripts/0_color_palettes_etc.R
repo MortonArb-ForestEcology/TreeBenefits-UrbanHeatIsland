@@ -63,3 +63,7 @@ biomeCode.pall.all = c("Tai"= "#2c5c74",
 
 world <- ggplot2::map_data("world"); 
 world <- world[!world$long>180,]
+
+
+# function to format pasting of means & sd
+pasteMeanSD <- function(x, y){ paste0(x, " (", y, ")")}

@@ -285,7 +285,7 @@ plotTempEffectsUHIonly <- ggplot(data=effectsUHI2[effectsUHI2$ISOURBID %in% city
         # axis.title.x=element_blank(),
         plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "lines"))
 
-png(file.path(path.figsMS, "FigureSX_TreeCover_Targets-Cooling_UHIOnly.png"), height=6.5, width=9, units="in", res=320)
+png(file.path(path.figsMS, "FigureS5_TreeCover_Targets-Cooling_UHIOnly.png"), height=6.5, width=9, units="in", res=320)
 plotTempEffectsUHIonly
 dev.off()
 
@@ -358,3 +358,124 @@ dev.off()
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+# Effects of Greening on LST (UHI cities only) ----
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+length(cityUHI)
+# cityUHI <- StatsCombined$ISOURBID[]
+# dim(StatsUHI)
+# summary(StatsUHI)
+# names(StatsUHI)
+
+length(which(StatsCombined$value.LST.diff>0 & StatsCombined$value.LST.diff.p<0.05))
+StatsCombined$TreeTarget.CurrentRatio <- StatsCombined$TreeCoverTargetUHI/StatsCombined$value.tree.core
+mean(StatsCombined$TreeTarget.CurrentRatio[StatsCombined$value.LST.diff>0 & StatsCombined$value.LST.diff.p<0.05])
+StatsCombined[,c("greening.coolPerAddBiomeTarget", "greening.coolPerAddCity25", "greening.coolPerAddCity50")] <- StatsCombined[,c("greening.coolingAddBiomeTarget", "greening.coolingAddCity25", "greening.coolingAddCity50")]/StatsCombined$value.LST.diff
+summary(StatsCombined)
+
+StatsUHI <- StatsCombined[StatsCombined$value.LST.diff>0 & StatsCombined$value.LST.diff.p<0.05,]
+
+greenStatsBiomeUHI <- aggregate(Precip.GLDAS ~ biomeName + biomeCode, data=StatsUHI, FUN=length)
+names(greenStatsBiomeUHI)[3] <- "N.Cities.UHI"
+sum(greenStatsBiomeUHI$N.Cities.UHI)
+
+greenStatsBiomeUHIMeans <- aggregate(cbind(TreeCoverTargetUHI, greening.treeAddBiomeTarget, greening.coolingAddBiomeTarget, greening.coolPerAddBiomeTarget, greening.treeAddCity25, greening.coolingAddCity25, greening.coolPerAddCity25, greening.treeAddCity50, greening.coolingAddCity50, greening.coolPerAddCity50) ~ biomeName + biomeCode, data=StatsUHI, FUN=mean)
+greenStatsBiomeUHIMeans[,grep("treeAdd", names(greenStatsBiomeUHIMeans))] <- round(greenStatsBiomeUHIMeans[,grep("treeAdd", names(greenStatsBiomeUHIMeans))], 1)
+greenStatsBiomeUHIMeans[,grep("coolingAdd", names(greenStatsBiomeUHIMeans))] <- round(greenStatsBiomeUHIMeans[,grep("coolingAdd", names(greenStatsBiomeUHIMeans))], 2)
+greenStatsBiomeUHIMeans[,grep("coolPerAdd", names(greenStatsBiomeUHIMeans))] <- round(greenStatsBiomeUHIMeans[,grep("coolPerAdd", names(greenStatsBiomeUHIMeans))], 2)*100
+
+
+greenStatsBiomeUHISDs <- aggregate(cbind(TreeCoverTargetUHI, greening.treeAddBiomeTarget, greening.coolingAddBiomeTarget, greening.coolPerAddBiomeTarget, greening.treeAddCity25, greening.coolingAddCity25, greening.coolPerAddCity25, greening.treeAddCity50, greening.coolingAddCity50, greening.coolPerAddCity50) ~ biomeName + biomeCode, data=StatsUHI, FUN=sd)
+greenStatsBiomeUHISDs[,grep("treeAdd", names(greenStatsBiomeUHISDs))] <- round(greenStatsBiomeUHISDs[,grep("treeAdd", names(greenStatsBiomeUHISDs))], 1)
+greenStatsBiomeUHISDs[,grep("coolingAdd", names(greenStatsBiomeUHISDs))] <- round(greenStatsBiomeUHISDs[,grep("coolingAdd", names(greenStatsBiomeUHISDs))], 2)
+greenStatsBiomeUHISDs[,grep("coolPerAdd", names(greenStatsBiomeUHISDs))] <- round(greenStatsBiomeUHISDs[,grep("coolPerAdd", names(greenStatsBiomeUHISDs))], 2)*100
+
+greenStatsBiomeUHIMeans
+
+
+greenStatsBiomeUHI[,gsub("greening.", "", names(greenStatsBiomeUHIMeans)[!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI)])] <- matrix(paste0(as.matrix(greenStatsBiomeUHIMeans[,!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI)]), " (", as.matrix(greenStatsBiomeUHISDs[,!names(greenStatsBiomeUHISDs) %in% names(greenStatsBiomeUHI)]), ")"), length(which(!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI))))
+greenStatsBiomeUHI$TreeCoverTargetUHI <- round(greenStatsBiomeUHIMeans$TreeCoverTargetUHI, 1)
+greenStatsBiomeUHI
+
+write.csv(greenStatsBiomeUHI, file.path(path.figsMS, "TableS4_Biome_GreenLST_UHIonly.csv"), row.names=F)
+
+
+# Increase 25% of biome target --> median effect
+median(StatsUHI$value.LST.diff); median(StatsUHI$LSTmodel.tree.slope)
+median(StatsUHI$greening.treeAddBiomeTarget); median(StatsUHI$greening.coolPerAddBiomeTarget*100); median(StatsUHI$greening.coolingAddBiomeTarget)
+
+# City-scale stats
+median(StatsUHI$greening.treeAddCity25); median(StatsUHI$greening.treeAddCity50)
+median(StatsUHI$greening.coolPerAddCity25)*100; median(StatsUHI$greening.coolPerAddCity50)*100
+median(StatsUHI$greening.coolingAddCity25); median(StatsUHI$greening.coolingAddCity50)
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+# Effects of Greening on ET (All Cities) ----
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+StatsCombined[,c("ET.PerInc.BiomeTarget", "ET.PerInc.City25", "ET.PerInc.City50")] <- (StatsCombined[,c("modET.TreeTargetBottom25", "modET.TreeCityBottom25", "modET.TreeCityBottom50")]/StatsCombined$modET.Base-1)*100
+
+greenStatsBiomeMeans <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget, greening.treeAddCity25, ET.PerInc.City25, greening.treeAddCity50, ET.PerInc.City50) ~ biomeName + biomeCode, data=StatsCombined, FUN=mean)
+greenStatsBiomeMeans[,names(greenStatsBiomeMeans)[!names(greenStatsBiomeMeans) %in% c("biomeName", "biomeCode")]] <- round(greenStatsBiomeMeans[,names(greenStatsBiomeMeans)[!names(greenStatsBiomeMeans) %in% c("biomeName", "biomeCode")]], 1)
+greenStatsBiomeMeans
+
+greenStatsBiomeSDs <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget, greening.treeAddCity25, ET.PerInc.City25, greening.treeAddCity50, ET.PerInc.City50) ~ biomeName + biomeCode, data=StatsCombined, FUN=sd)
+greenStatsBiomeSDs[,names(greenStatsBiomeSDs)[!names(greenStatsBiomeSDs) %in% c("biomeName", "biomeCode")]] <- round(greenStatsBiomeSDs[,names(greenStatsBiomeSDs)[!names(greenStatsBiomeSDs) %in% c("biomeName", "biomeCode")]], 1)
+greenStatsBiomeSDs
+
+greenStatsBiomeN <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined, FUN=length)
+names(greenStatsBiomeN)[names(greenStatsBiomeN)=="Precip.GLDAS"] <- "N.Total"
+
+WaterRisk.Current <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETcurrent.Precip>1,], FUN=length)
+names(WaterRisk.Current)[names(WaterRisk.Current)=="Precip.GLDAS"] <- "N.Risk.current"
+
+WaterRisk.BiomeTarget <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETgreenBiomeTarget.Precip>1,], FUN=length)
+names(WaterRisk.BiomeTarget)[names(WaterRisk.BiomeTarget)=="Precip.GLDAS"] <- "N.Risk.biomeTarget"
+
+
+WaterRisk.City25 <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETgreenCity25.Precip>1,], FUN=length)
+names(WaterRisk.City25)[names(WaterRisk.City25)=="Precip.GLDAS"] <- "N.Risk.City25"
+WaterRisk.City50 <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETgreenCity50.Precip>1,], FUN=length)
+names(WaterRisk.City50)[names(WaterRisk.City50)=="Precip.GLDAS"] <- "N.Risk.City50"
+
+greenStatsBiomeN <- merge(greenStatsBiomeN, WaterRisk.Current, all.x=T)
+greenStatsBiomeN <- merge(greenStatsBiomeN, WaterRisk.BiomeTarget, all.x=T)
+greenStatsBiomeN <- merge(greenStatsBiomeN, WaterRisk.City25, all.x=T)
+greenStatsBiomeN <- merge(greenStatsBiomeN, WaterRisk.City50, all.x=T)
+greenStatsBiomeN[is.na(greenStatsBiomeN)] <- 0
+
+TableS5 <- data.frame(Biome=pasteMeanSD(greenStatsBiomeN$biomeName, greenStatsBiomeN$biomeCode),
+                      N.Cities = greenStatsBiomeN$N.Total,
+                      Precip = pasteMeanSD(greenStatsBiomeMeans$Precip.GLDAS, greenStatsBiomeSDs$Precip.GLDAS),
+                      current.WaterRisk = paste0(round(greenStatsBiomeN$N.Risk.current/greenStatsBiomeN$N.Total*100,0),"%"),
+                      biomeTarget.TreeAdd = pasteMeanSD(greenStatsBiomeMeans$greening.treeAddBiomeTarget, greenStatsBiomeSDs$greening.treeAddBiomeTarget), 
+                      biomeTarget.ETperInc=pasteMeanSD(greenStatsBiomeMeans$ET.PerInc.BiomeTarget, greenStatsBiomeSDs$ET.PerInc.BiomeTarget),
+                      biomeTarget.WaterRisk = paste0(round(greenStatsBiomeN$N.Risk.biomeTarget/greenStatsBiomeN$N.Total*100, 0),"%"),
+                      city25.TreeAdd = pasteMeanSD(greenStatsBiomeMeans$greening.treeAddCity25, greenStatsBiomeSDs$greening.treeAddCity25), 
+                      city25.ETperInc=pasteMeanSD(greenStatsBiomeMeans$ET.PerInc.City25, greenStatsBiomeSDs$ET.PerInc.City25),
+                      city25.WaterRisk = paste0(round(greenStatsBiomeN$N.Risk.City25/greenStatsBiomeN$N.Total*100, 0),"%"),
+                      city50.TreeAdd = pasteMeanSD(greenStatsBiomeMeans$greening.treeAddCity50, greenStatsBiomeSDs$greening.treeAddCity50), 
+                      city50.ETperInc=pasteMeanSD(greenStatsBiomeMeans$ET.PerInc.City50, greenStatsBiomeSDs$ET.PerInc.City50),
+                      city50.WaterRisk = paste0(round(greenStatsBiomeN$N.Risk.City50/greenStatsBiomeN$N.Total*100, 0), "%"))
+TableS5
+
+write.csv(TableS5, file.path(path.figsMS, "TableS5_Biome_GreenET.csv"), row.names=F)
+
+
+# Number of total current cities at water risk
+length(which(StatsCombined$ETcurrent.Precip>1))
+length(which(StatsCombined$ETcurrent.Precip>1))/nrow(StatsCombined)
+
+median(StatsCombined$ET.PerInc.BiomeTarget); median(StatsCombined$modET.TreeTargetBottom25 - StatsCombined$modET.Base)
+
+median(StatsCombined$ET.PerInc.City25); median(StatsCombined$modET.TreeCityBottom25 - StatsCombined$modET.Base)
+median(StatsCombined$ET.PerInc.City50); median(StatsCombined$modET.TreeCityBottom50 - StatsCombined$modET.Base)
+
+length(which(StatsCombined$ETgreenBiomeTarget.Precip>1)) - length(which(StatsCombined$ETcurrent.Precip>1))
+length(which(StatsCombined$ETgreenBiomeTarget.Precip>1))/nrow(StatsCombined)
+
+summary(StatsCombined[StatsCombined$ETgreenBiomeTarget.Precip>1 & StatsCombined$ETcurrent.Precip<=1,"biomeName"])
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
