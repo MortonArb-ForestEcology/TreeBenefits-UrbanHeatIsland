@@ -403,14 +403,62 @@ dev.off()
 names(StatsCombined)
 # We need baseline N Cities; ET; % cities with water risk
 etBiomeAggMean <- aggregate(modET ~ biomeName + biomeCode, data=StatsCombined, FUN=mean)
+etBiomeAggMean$ET.sd <- aggregate(modET ~ biomeName + biomeCode, data=StatsCombined, FUN=sd)$modET
+etBiomeAggMean[,c("modET", "ET.sd")] <- round(etBiomeAggMean[,c("modET", "ET.sd")], 2)
 etBiomeAggMean$N.Cities <- aggregate(modET ~ biomeName + biomeCode, data=StatsCombined, FUN=length)$modET
 etBiomeAggMean$N.Cities.Risk <- aggregate(modET.Precip ~ biomeName + biomeCode, data=StatsCombined, FUN=function(x){length(which(x>1))})$modET.Precip
 etBiomeAggMean
 
 # We'll need % change in ET; % cities drying; # cities with water risk; % cities with water risk
-changeBiomeAggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.diff, modET.perChange, modET.Precip) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=mean)
-changeBiomeAggSD <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.diff, modET.perChange, modET.Precip) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=sd)
-# changeBiomeAggMean <- aggregate(cbind("tas.diff", "pr.diff", "pr.per", "modET.diff", "modET.perChange", "modET.Precip") ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,])
+changeBiomeAggMedian <- aggregate(cbind(pr.per, modET, modET.perChange) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=median)
+changeBiomeAggMedian
+
+changeBiomeAggMean <- aggregate(cbind(pr.per, modET, modET.perChange) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=mean)
+changeBiomeAggMean$modET <- round(changeBiomeAggMean$modET, 2)
+changeBiomeAggMean[,c("pr.per", "modET.perChange")] <- round(changeBiomeAggMean[,c("pr.per", "modET.perChange")]-1,2)*100
+changeBiomeAggMean$N.Cities.Dry <- aggregate(pr.per ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=function(x){length(which(x<1))})$pr.per
+changeBiomeAggMean$N.Cities.Risk <- aggregate(modET.Precip ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=function(x){length(which(x>1))})$modET.Precip
+
+changeBiomeAggSD <- aggregate(cbind(pr.per, modET, modET.perChange) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=sd)
+changeBiomeAggSD$modET <- round(changeBiomeAggSD$modET, 2)
+changeBiomeAggSD[,c("pr.per", "modET.perChange")] <- round(changeBiomeAggSD[,c("pr.per", "modET.perChange")],2)*100
+
+
+TableS7 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean$biomeCode),
+                      N.Cities = etBiomeAggMean$N.Cities,
+                      ET.current = pasteMeanSD(etBiomeAggMean$modET, etBiomeAggMean$ET.sd),
+                      current.WaterRisk = paste0(round(etBiomeAggMean$N.Cities.Risk/etBiomeAggMean$N.Cities*100,0),"%"),
+                      SSP245.ETchange.per = pasteMeanSD(changeBiomeAggMean$modET.perChange[changeBiomeAggMean$Scenario=="SSP2-4.5"],
+                                                        changeBiomeAggSD$modET.perChange[changeBiomeAggMean$Scenario=="SSP2-4.5"]),
+                      SSP245.CitiesDry.per = paste0(round(changeBiomeAggMean$N.Cities.Dry[changeBiomeAggMean$Scenario=="SSP2-4.5"]/etBiomeAggMean$N.Cities, 2)*100, "%"),
+                      SSP245.CitiesRisk.per = paste0(round(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP2-4.5"]/etBiomeAggMean$N.Cities, 2)*100, "%"),
+                      SSP585.ETchange.per = pasteMeanSD(changeBiomeAggMean$modET.perChange[changeBiomeAggMean$Scenario=="SSP5-8.5"],
+                                                        changeBiomeAggSD$modET.perChange[changeBiomeAggMean$Scenario=="SSP5-8.5"]),
+                      SSP585.CitiesDry.per = paste0(round(changeBiomeAggMean$N.Cities.Dry[changeBiomeAggMean$Scenario=="SSP5-8.5"]/etBiomeAggMean$N.Cities, 2)*100, "%"),
+                      SSP585.CitiesRisk.per = paste0(round(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP5-8.5"]/etBiomeAggMean$N.Cities, 2)*100, "%")
+                      )
+TableS7
+
+write.csv(TableS7, file.path(path.figsMS, "TableS7_ET-Risk_CMIP6.csv"), row.names=F)
+
+# Getting stats on percent changes in ET
+changeBiomeAggMedian
+median(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5"])
+median(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5"])
+
+median(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5"])-median(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5"])
+
+# Getting Stats on number of cities drying
+sum(changeBiomeAggMean$N.Cities.Dry[changeBiomeAggMean$Scenario=="SSP2-4.5"])
+sum(changeBiomeAggMean$N.Cities.Dry[changeBiomeAggMean$Scenario=="SSP5-8.5"])
+
+# Getting Stats on number of cities with summer precip deficit
+sum(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP2-4.5"])/sum(etBiomeAggMean$N.Cities)
+sum(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP5-8.5"])/sum(etBiomeAggMean$N.Cities)
+
+# Looking at change in % cities with risk
+cbind(TableS7$Biome, as.numeric(gsub("%", "", TableS7$SSP245.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS7$current.WaterRisk)))
+cbind(TableS7$Biome, as.numeric(gsub("%", "", TableS7$SSP585.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS7$current.WaterRisk)))
 
 #-#-#-#-#-#-#-#-
 
