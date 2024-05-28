@@ -82,21 +82,21 @@ climCurrentSD <- aggregate(cbind(Tmean.GLDAS, Precip.GLDAS) ~ biomeName + biomeC
 climCurrentSD[,names(climCurrentSD)[!names(climCurrentSD) %in% c("biomeName", "biomeCode")]] <- round(climCurrentSD[,names(climCurrentSD)[!names(climCurrentSD) %in% c("biomeName", "biomeCode")]], 1)
 climCurrentSD
 
-cmip6BiomeMean245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggMean[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5",], FUN = mean)
+cmip6BiomeMean245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggMean[cmip6AggMean$Time=="2100" & cmip6AggMean$Scenario=="SSP2-4.5",], FUN = mean)
 cmip6BiomeMean245$tas.diff <- round(cmip6BiomeMean245$tas.diff, 1)
 cmip6BiomeMean245$pr.per <- round((cmip6BiomeMean245$pr.per-1)*100, 0)
 
-cmip6BiomeSD245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggSD[cmip6AggSD$Time==2100 & cmip6AggSD$Scenario=="SSP2-4.5",], FUN = mean)
+cmip6BiomeSD245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggSD[cmip6AggSD$Time=="2100" & cmip6AggSD$Scenario=="SSP2-4.5",], FUN = sd)
 cmip6BiomeSD245$tas.diff <- round(cmip6BiomeSD245$tas.diff, 1)
-cmip6BiomeSD245$pr.per <- round((cmip6BiomeSD245$pr.per-1)*100, 0)
+cmip6BiomeSD245$pr.per <- round((cmip6BiomeSD245$pr.per)*100, 0)
 
-cmip6BiomeMean585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggMean[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5",], FUN = mean)
+cmip6BiomeMean585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggMean[cmip6AggMean$Time=="2100" & cmip6AggMean$Scenario=="SSP5-8.5",], FUN = mean)
 cmip6BiomeMean585$tas.diff <- round(cmip6BiomeMean585$tas.diff, 1)
 cmip6BiomeMean585$pr.per <- round((cmip6BiomeMean585$pr.per-1)*100, 0)
 
-cmip6BiomeSD585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggSD[cmip6AggSD$Time==2100 & cmip6AggSD$Scenario=="SSP5-8.5",], FUN = mean)
+cmip6BiomeSD585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggSD[cmip6AggSD$Time=="2100" & cmip6AggSD$Scenario=="SSP5-8.5",], FUN = sd)
 cmip6BiomeSD585$tas.diff <- round(cmip6BiomeSD585$tas.diff, 1)
-cmip6BiomeSD585$pr.per <- round((cmip6BiomeSD585$pr.per-1)*100, 0)
+cmip6BiomeSD585$pr.per <- round((cmip6BiomeSD585$pr.per)*100, 0)
 
 TableS6 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMean$biomeCode),
                       Tmean.GLDAS = pasteMeanSD(climCurrentMean$Tmean.GLDAS, climCurrentSD$Tmean.GLDAS),
@@ -114,12 +114,14 @@ write.csv(TableS6, file.path(path.figsMS, "TableS6_ClimateStats_CMIP6.csv"), row
 # cmip6AggMed <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.Precip)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=median, na.rm=T)
 # cmip6AggMed$biomeName <- factor(cmip6AggMed$biomeName, levels=biome.order$biomeName)
 # summary(cmip6AggMed)
+StatsCombined$modET <- StatsCombined$modET.Base
+# cmip6AggMean$modET <- cmip6AggMean$modET
 
-etSummary <- rbind(StatsCombined[,c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET.Precip")],
-                   cmip6AggMean[cmip6AggMean$Time=="2100",c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET.Precip")])
+etSummary <- rbind(StatsCombined[,c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.Precip")],
+                   cmip6AggMean[cmip6AggMean$Time=="2100",c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.Precip")])
 etSummary$biomeName <- factor(etSummary$biomeName, levels=biome.order$biomeName)
 etSummary$biomeCode <- factor(etSummary$biomeCode, levels=rev(biome.order$biomeCode))
-
+etSummary$Scenario <- as.factor(etSummary$Scenario)
 summary(etSummary)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
@@ -287,6 +289,62 @@ dev.off()
 #-#-#-#-#-#-#-#-
 # 3.2.2. Summarizing the climate & ET change by biome ----
 #-#-#-#-#-#-#-#-
+# Adding a figure shoing chang in ET
+mapETcurrent <- ggplot(data=StatsCombined[,]) +
+  # facet_grid(Time~Scenario)+
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", linewidth=0.1) +
+  # coord_map("merc") +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=modET.Base), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="Mean Summer\nET (mm/day)", colors=gradPrcp2, n.breaks=13, oob=squish) + 
+  # scale_color_stepsn(name="Mean Summer\nPrecip (mm/day)", colors=grad.prcp, limits=c(0,10), breaks=c(0.1, 1.5, 2.3, 2.7, 3.7, 4.8, 5.8, 7.1, 9.3), oob=squish) + # Using breaks from IPCC AR6 figures
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+mapETcurrent
+
+mapETfuture <- ggplot(data=cmip6AggMean[cmip6AggMean$Time==2100,]) +
+  facet_grid(.~Scenario) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  # coord_map("merc") +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=(modET.perChange-1)*100), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="ET Change\n (%)", colors=grad.prcp, limits=c(-0.8, 0.8)*100, n.breaks=13, oob=squish) + # Using breaks from IPCC AR6 figures
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+mapETfuture
+
+png(file.path(path.figsMS, "FigureS7_ET-ETchange_current-CMIP6.png"), height=6, width=9, units="in", res=320)
+cowplot::plot_grid(mapETcurrent, mapETfuture, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
+dev.off()
+
+
+
+
+
 violinTas <- ggplot(data=cmip6AggMean) +
   facet_grid(.~Scenario) +
   geom_violin(aes(x=biomeCode, y=tas.diff, fill=biomeName), scale="width") +
@@ -337,12 +395,21 @@ violinETper
 
 summary(cmip6AggMean)
 
-png(file.path(path.figsMS, "FigureSX_Climate-ET-Change_Biomes.png"), height=8, width=8, units="in", res=320)
+png(file.path(path.figsMS, "FigureS8_Climate-ET-Change_Biomes.png"), height=8, width=8, units="in", res=320)
 cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
 dev.off()
 
-changeBiomeAggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET.diff, modET.perChange, modET.Precip) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=mean)
-changeBiomeAggSD <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET.diff, modET.perChange, modET.Precip) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=sd)
+
+names(StatsCombined)
+# We need baseline N Cities; ET; % cities with water risk
+etBiomeAggMean <- aggregate(modET ~ biomeName + biomeCode, data=StatsCombined, FUN=mean)
+etBiomeAggMean$N.Cities <- aggregate(modET ~ biomeName + biomeCode, data=StatsCombined, FUN=length)$modET
+etBiomeAggMean$N.Cities.Risk <- aggregate(modET.Precip ~ biomeName + biomeCode, data=StatsCombined, FUN=function(x){length(which(x>1))})$modET.Precip
+etBiomeAggMean
+
+# We'll need % change in ET; % cities drying; # cities with water risk; % cities with water risk
+changeBiomeAggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.diff, modET.perChange, modET.Precip) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=mean)
+changeBiomeAggSD <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.diff, modET.perChange, modET.Precip) ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,], FUN=sd)
 # changeBiomeAggMean <- aggregate(cbind("tas.diff", "pr.diff", "pr.per", "modET.diff", "modET.perChange", "modET.Precip") ~ biomeName + biomeCode + Scenario, data=cmip6AggMean[cmip6AggMean$Time==2100,])
 
 #-#-#-#-#-#-#-#-
