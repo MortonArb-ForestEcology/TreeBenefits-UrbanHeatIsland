@@ -320,11 +320,11 @@ names(StatsCombined)
 
 StatsCombined$TreeCool <- StatsCombined$LSTmodel.tree.slope*StatsCombined$value.tree.core
 
-tableS3Means <- aggregate(cbind(LSTmodel.R2adj, ETmodel.R2adj, LSTmodel.tree.slope, LSTmodel.veg.slope, TreeCool, modET.Base)~biomeName + biomeCode, data=StatsCombined, FUN=mean)
-tableS3Means[,c("LSTmodel.R2adj", "ETmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "TreeCool", "modET.Base")] <- round(tableS3Means[,c("LSTmodel.R2adj", "ETmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "TreeCool", "modET.Base")],2)
+tableS3Means <- aggregate(cbind(LSTmodel.R2adj, ETmodel.R2adj, LSTmodel.tree.slope, LSTmodel.veg.slope, TreeCool, ETpred.mean)~biomeName + biomeCode, data=StatsCombined, FUN=mean)
+tableS3Means[,c("LSTmodel.R2adj", "ETmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "TreeCool", "ETpred.mean")] <- round(tableS3Means[,c("LSTmodel.R2adj", "ETmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "TreeCool", "ETpred.mean")],2)
 
-tableS3SDs <- aggregate(cbind(LSTmodel.R2adj, ETmodel.R2adj, LSTmodel.tree.slope, LSTmodel.veg.slope, TreeCool, modET.Base)~biomeName + biomeCode, data=StatsCombined, FUN=sd)
-tableS3SDs[,c("LSTmodel.R2adj", "ETmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "TreeCool", "modET.Base")] <- round(tableS3SDs[,c("LSTmodel.R2adj", "ETmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "TreeCool", "modET.Base")],2)
+tableS3SDs <- aggregate(cbind(LSTmodel.R2adj, ETmodel.R2adj, LSTmodel.tree.slope, LSTmodel.veg.slope, TreeCool, ETpred.mean)~biomeName + biomeCode, data=StatsCombined, FUN=sd)
+tableS3SDs[,c("LSTmodel.R2adj", "ETmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "TreeCool", "ETpred.mean")] <- round(tableS3SDs[,c("LSTmodel.R2adj", "ETmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "TreeCool", "ETpred.mean")],2)
 
 TableS3 <- data.frame(Biome=paste0(tableS3Means$biomeName, " (", tableS3Means$biomeCode, ")"),
                       LSTmodel.R2 = paste0(tableS3Means$LSTmodel.R2adj, " (", tableS3SDs$LSTmodel.R2adj, ")"),
@@ -332,7 +332,7 @@ TableS3 <- data.frame(Biome=paste0(tableS3Means$biomeName, " (", tableS3Means$bi
                       LSTmodel.TreeSlope  = paste0(tableS3Means$LSTmodel.tree.slope, " (", tableS3SDs$LSTmodel.tree.slope, ")"),
                       LSTmodel.VegSlope  = paste0(tableS3Means$LSTmodel.veg.slope, " (", tableS3SDs$LSTmodel.veg.slope, ")"),
                       TreeCool.degC = paste0(tableS3Means$TreeCool, " (", tableS3SDs$TreeCool, ")"),
-                      ET.mmDay = paste0(tableS3Means$modET.Base, " (", tableS3SDs$modET.Base, ")"))
+                      ET.mmDay = paste0(tableS3Means$ETpred.mean, " (", tableS3SDs$ETpred.mean, ")"))
 TableS3
 write.csv(TableS3, file.path(path.figsMS, "TableS3_Biome_LST-ET_ModelStats.csv"), row.names=F)
 
@@ -366,6 +366,14 @@ length(which(treeCool))/length(treeCool)
 summary(coolRatio[treeCool & vegCool])
 length(coolRatio[treeCool & vegCool])
 
+
+# Cities with lower tree cover
+treeLowAll <- StatsCombined$value.tree.diff<0
+length(which(treeLowAll))
+
+treeLowSig <- StatsCombined$value.tree.diff<0 & StatsCombined$value.tree.diff.p<0.05
+length(which(treeLowSig))/length(treeLowSig)
+length(unique(StatsCombined$biomeName[treeLowSig]))
 
 #-#-#-#-#-#-#-
 

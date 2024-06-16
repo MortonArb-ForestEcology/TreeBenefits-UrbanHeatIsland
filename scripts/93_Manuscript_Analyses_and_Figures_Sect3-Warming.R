@@ -72,6 +72,24 @@ cmip6AggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, mo
 cmip6AggMean$biomeName <- factor(cmip6AggMean$biomeName, levels=biome.order$biomeName)
 summary(cmip6AggMean)
 
+cmip6AggSD <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.perChange, modET.Precip)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=sd, na.rm=T)
+cmip6AggSD$biomeName <- factor(cmip6AggSD$biomeName, levels=biome.order$biomeName)
+summary(cmip6AggSD)
+
+
+ClimSummary <- merge(StatsCombined[,c("ISOURBID", "biomeName", "biomeCode", "Tmean.GLDAS", "Precip.GLDAS", "ET.GLDAS")], cmip6AggMean[cmip6AggMean$Time=="2100" & cmip6AggMean$Scenario=="SSP2-4.5",c("ISOURBID", "tas.diff", "pr.per")], all.x=T)
+names(ClimSummary)[names(ClimSummary) %in% c("tas.diff", "pr.per")] <- c("tas.diff.SSP245", "pr.per.SSP245")
+ClimSummary <- merge(ClimSummary, cmip6AggMean[cmip6AggMean$Time=="2100" & cmip6AggMean$Scenario=="SSP5-8.5",c("ISOURBID", "tas.diff", "pr.per")], all.x=T)
+names(ClimSummary)[names(ClimSummary) %in% c("tas.diff", "pr.per")] <- c("tas.diff.SSP585", "pr.per.SSP585")
+summary(ClimSummary)
+
+ClimSummary$pr.SSP245 <- ClimSummary$Precip.GLDAS*ClimSummary$pr.per.SSP245
+ClimSummary$pr.SSP585 <- ClimSummary$Precip.GLDAS*ClimSummary$pr.per.SSP585
+ClimSummary$pr.diff.SSP245 <- ClimSummary$Precip.GLDAS - ClimSummary$pr.SSP245
+summary(ClimSummary)
+median(ClimSummary$Precip.GLDAS[ClimSummary$biomeCode=="Med"], na.rm=T)
+median(ClimSummary$pr.diff.SSP245[ClimSummary$biomeCode=="Med"], na.rm=T)
+1-median(ClimSummary$pr.per.SSP245[ClimSummary$biomeCode=="Med"], na.rm=T)
 
 # Creating a supplemental table with the climate change stats for each biome
 climCurrentMean <- aggregate(cbind(Tmean.GLDAS, Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined, FUN = mean)
@@ -86,7 +104,7 @@ cmip6BiomeMean245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, 
 cmip6BiomeMean245$tas.diff <- round(cmip6BiomeMean245$tas.diff, 1)
 cmip6BiomeMean245$pr.per <- round((cmip6BiomeMean245$pr.per-1)*100, 0)
 
-cmip6BiomeSD245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggSD[cmip6AggSD$Time=="2100" & cmip6AggSD$Scenario=="SSP2-4.5",], FUN = sd)
+cmip6BiomeSD245 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggMean[cmip6AggMean$Time=="2100" & cmip6AggMean$Scenario=="SSP2-4.5",], FUN = sd)
 cmip6BiomeSD245$tas.diff <- round(cmip6BiomeSD245$tas.diff, 1)
 cmip6BiomeSD245$pr.per <- round((cmip6BiomeSD245$pr.per)*100, 0)
 
@@ -94,7 +112,7 @@ cmip6BiomeMean585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, 
 cmip6BiomeMean585$tas.diff <- round(cmip6BiomeMean585$tas.diff, 1)
 cmip6BiomeMean585$pr.per <- round((cmip6BiomeMean585$pr.per-1)*100, 0)
 
-cmip6BiomeSD585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggSD[cmip6AggSD$Time=="2100" & cmip6AggSD$Scenario=="SSP5-8.5",], FUN = sd)
+cmip6BiomeSD585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, data=cmip6AggMean[cmip6AggMean$Time=="2100" & cmip6AggMean$Scenario=="SSP5-8.5",], FUN = sd)
 cmip6BiomeSD585$tas.diff <- round(cmip6BiomeSD585$tas.diff, 1)
 cmip6BiomeSD585$pr.per <- round((cmip6BiomeSD585$pr.per)*100, 0)
 

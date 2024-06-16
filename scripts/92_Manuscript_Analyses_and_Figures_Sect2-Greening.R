@@ -147,13 +147,13 @@ summary(StatsCombined$greening.treeAddBiomeTarget/StatsCombined$TreeCoverUHINeed
 coverLong <- stack(StatsCombined[,c("value.tree.core", "tree.mean.TreeTargetBottom25", "tree.mean.TreeCityBottom25", "tree.mean.TreeCityBottom50")])
 coverLong$biomeCode <- StatsCombined$biomeCode
 coverLong$Scenario[grep("tree.core", coverLong$ind)] <- "Current"
-coverLong$Scenario[grep("Target", coverLong$ind)] <- "+25% Biome UHI"
-coverLong$Scenario[grep("CityBottom25", coverLong$ind)] <- "+25% City Mean"
-coverLong$Scenario[grep("CityBottom50", coverLong$ind)] <- "+50% City Mean"
-coverLong$Scenario <- factor(coverLong$Scenario, levels=c("Current", "+25% Biome UHI", "+25% City Mean", "+50% City Mean"))
+coverLong$Scenario[grep("Target", coverLong$ind)] <- "Biome-25"
+coverLong$Scenario[grep("CityBottom25", coverLong$ind)] <- "City-25"
+coverLong$Scenario[grep("CityBottom50", coverLong$ind)] <- "City-50"
+coverLong$Scenario <- factor(coverLong$Scenario, levels=c("Current", "Biome-25", "City-25", "City-50"))
 summary(coverLong)
 
-colorsScenario <- c("Current"="#005a32", "Biome UHI"="gray70", "+25% Biome UHI"="#b2df8a", "+25% City Mean"="#a6cee3", "+50% City Mean"="#1f78b4")
+colorsScenario <- c("Current"="#005a32", "Biome UHI"="gray70", "Biome-25"="#b2df8a", "City-25"="#a6cee3", "City-50"="#1f78b4")
 
 TreeCoverTarget <- ggplot(data=StatsCombined[,], aes(x=biomeCode, y=TreeCoverTargetUHI, fill="Biome UHI", color="Biome UHI")) +  
   geom_bar(stat="summary", fun="median") +
@@ -202,10 +202,10 @@ summary(effectsUHI)
 effectsUHI2 <- stack(effectsUHI[,c("Current", "GreeningBiomeTarget", "GreeningCity25", "GreeningCity50")])
 # names(effectsUHI2)[2] <- c("Scenario")
 effectsUHI2$Scenario[grep("Current", effectsUHI2$ind)] <- "Current"
-effectsUHI2$Scenario[grep("Target", effectsUHI2$ind)] <- "+25% Biome UHI"
-effectsUHI2$Scenario[grep("City25", effectsUHI2$ind)] <- "+25% City Mean"
-effectsUHI2$Scenario[grep("City50", effectsUHI2$ind)] <- "+50% City Mean"
-effectsUHI2$Scenario <- factor(effectsUHI2$Scenario, levels=c("Current", "+25% Biome UHI", "+25% City Mean", "+50% City Mean"))
+effectsUHI2$Scenario[grep("Target", effectsUHI2$ind)] <- "Biome-25"
+effectsUHI2$Scenario[grep("City25", effectsUHI2$ind)] <- "City-25"
+effectsUHI2$Scenario[grep("City50", effectsUHI2$ind)] <- "City-50"
+effectsUHI2$Scenario <- factor(effectsUHI2$Scenario, levels=c("Current", "Biome-25", "City-25", "City-50"))
 
 effectsUHI2[,c("effect", "ISOURBID", "biomeName", "biomeCode", "biomeCodeRev")] <- effectsUHI[,c("effect", "ISOURBID", "biomeName", "biomeCode", "biomeCodeRev")]
 summary(effectsUHI2)
@@ -300,9 +300,12 @@ summary(1-StatsCombined$greening.remainUHICity50[StatsCombined$value.LST.diff>0]
 summary(StatsCombined$greening.treeAddCity50[StatsCombined$value.LST.diff>0])
 
 
+precip.means <- aggregate(Precip.GLDAS ~ biomeCode, data=StatsCombined, FUN=mean)
+
 # Compare current vs. scenario with water use
 plotPrecip <- ggplot(data=StatsCombined[,]) +
   geom_violin(aes(x=biomeCode, y=Precip.GLDAS, fill=biomeName), scale="width") +
+  geom_errorbar(data=precip.means, aes(x=biomeCode, ymin=Precip.GLDAS, ymax=Precip.GLDAS), color="black", linewidth=1, width=1) +
   scale_fill_manual(values=biome.pall.all) +
   scale_y_continuous(limits=c(0, max(StatsCombined$Precip.GLDAS, na.rm=T)+1), expand=c(0,0)) +
   labs(y="GLDAS Precip\n(kg/m2/day)", x="Biome") +
@@ -315,28 +318,27 @@ names(effectsET) <- c("ET", "Scenario")
 effectsET$ETratio <- stack(StatsCombined[,c("ETcurrent.Precip", "ETgreenBiomeTarget.Precip", "ETgreenCity25.Precip", "ETgreenCity50.Precip")])[,1]
 effectsET$Scenario <- as.character(effectsET$Scenario)
 effectsET$Scenario[grep("Base", effectsET$Scenario)] <- "Current"
-effectsET$Scenario[grep("Target", effectsET$Scenario)] <- "+25% Biome UHI"
-effectsET$Scenario[grep("CityBottom25", effectsET$Scenario)] <- "+25% City Mean"
-effectsET$Scenario[grep("CityBottom50", effectsET$Scenario)] <- "+50% City Mean"
-effectsET$Scenario <- factor(effectsET$Scenario, levels=c("Current", "+25% Biome UHI", "+25% City Mean", "+50% City Mean"))
+effectsET$Scenario[grep("Target", effectsET$Scenario)] <- "Biome-25"
+effectsET$Scenario[grep("CityBottom25", effectsET$Scenario)] <- "City-25"
+effectsET$Scenario[grep("CityBottom50", effectsET$Scenario)] <- "City-50"
+effectsET$Scenario <- factor(effectsET$Scenario, levels=c("Current", "Biome-25", "City-25", "City-50"))
 
 effectsET[,c("ISOURBID", "biomeName", "biomeCode", "biomeCodeRev", "Precip.GLDAS")] <- StatsCombined[,c("ISOURBID", "biomeName", "biomeCode", "biomeCodeRev", "Precip.GLDAS")]
 summary(effectsET)
 
 # "Current"="#005a32", "Biome Target"=grad.tree[4], "50% Greening"=grad.tree[6])
 
-precip.means <- aggregate(Precip.GLDAS ~ biomeCode, data=StatsCombined, FUN=mean)
 
 plotET <- ggplot(data=effectsET[,]) +
   geom_violin(aes(x=biomeCode, y=ET, fill=Scenario), scale="width") +
-  geom_errorbar(data=precip.means, aes(x=biomeCode, ymin=Precip.GLDAS, ymax=Precip.GLDAS), color="orange3", linewidth=1, width=1) +
+  geom_errorbar(data=precip.means, aes(x=biomeCode, ymin=Precip.GLDAS, ymax=Precip.GLDAS), color="black", linewidth=1, width=1) +
   # geom_errorbar(stat="summary", fun="mean", data=StatsCombined, aes(x=biomeCode, y=Precip.GLDAS)) +
   scale_fill_manual(values=colorsScenario) +
   # scale_color_manual(values=biomeCode.pall.all) +
   labs(y="ET (kg/m2/day)", x="Biome") +
-  scale_y_continuous(limits=c(0, max(StatsCombined$Precip.GLDAS, na.rm=T)+1), expand=c(0,0)) +
+  scale_y_continuous(limits=c(0, max(precip.means$Precip.GLDAS, na.rm=T)+0.5), expand=c(0,0)) +
   guides(color="none") +
-  theme_bw() + theme(legend.position="top", plot.background = element_blank(), plot.margin = unit(c(0.5,0.5,0.5,1.5), "lines"))
+  theme_bw() + theme(legend.position="top", plot.background = element_blank(), plot.margin = unit(c(0.5,0.5,0.5,1.85), "lines"))
 plotET
 
 plotETratio <- ggplot(data=effectsET[,]) +
@@ -346,7 +348,7 @@ plotETratio <- ggplot(data=effectsET[,]) +
   annotate(geom="text", x=1, y=c(-2.5, 3), label=c("Precip Surplus", "Precip Deficit"), hjust=0) +
   labs(y="log(ET/Precip)", x="Biome") +
   guides(fill="none") +
-  theme_bw() + theme(plot.background = element_blank(), plot.margin = unit(c(0.5,0.5,0.5,1.0), "lines"))
+  theme_bw() + theme(plot.background = element_blank(), plot.margin = unit(c(0.5,0.5,0.5,1.55), "lines"))
 
 plotETratio
 
@@ -356,7 +358,7 @@ png(file.path(path.figsMS, "Figure2_TreeCover_Targets-ET.png"), height=6, width=
 cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
 dev.off()
 
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+   #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
