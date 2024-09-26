@@ -31,6 +31,26 @@ summary(cities.et)
 
 sdei.urb <- sdei.urb[sdei.urb$ISOURBID %in% cities.et$ISOURBID,]
 
+# 1b. Checking Ameriflux for additional locations
+library(amerifluxr)
+amerifluxAll <- amf_site_info()
+summary(amerifluxAll)
+amerifluxCC <- amerifluxAll[amerifluxAll$DATA_POLICY=="CCBY4.0",]
+ameriflux.sp <- st_as_sf(amerifluxCC, coords=c("LOCATION_LONG", "LOCATION_LAT"))
+st_crs(ameriflux.sp) <- st_crs(sdei.urb)
+
+ameriflux.urb <- st_filter(ameriflux.sp, sdei.urb)
+summary(ameriflux.urb) # 28 cities with our temporal window in our city footprint and CC-BY-4.0 license
+data.frame(ameriflux.urb[,c("SITE_ID", "SITE_NAME", "COUNTRY", "STATE", "IGBP")])
+
+# data.frame(ameriflux.urb)
+# summary(ameriflux.urb[!is.na(ameriflux.urb$ameriflux2015),]) # 20 sites in our 2k cities
+
+# Pulling International Data from places used in Ukkola et al 2021: https://essd.copernicus.org/articles/14/449/2022/
+# OzFlux, La Thuile, Fluxnet 2015
+# Pulling European Flux Databases: http://gaia.agraria.unitus.it/home
+
+
 # 1a. Reading in locations of FLUXNET 2015 data
 fluxnet <- googlesheets4::read_sheet(ss="1urdK0oxAWOnEI5pdAmsaQRdTaqbaYxnLL0Ouh4vYxiU")
 summary(fluxnet)
@@ -42,22 +62,9 @@ summary(fluxnet.urb)
 data.frame(fluxnet.urb)
 summary(fluxnet.urb[!is.na(fluxnet.urb$FLUXNET2015),]) # 15 sites in our 2k cities
 summary(fluxnet.urb[!is.na(fluxnet.urb$FLUXNET2015) & !grepl("US-", fluxnet.urb$SITE_ID),]) # 12 international cities
+data.frame(fluxnet.urb[!is.na(fluxnet.urb$FLUXNET2015) & !grepl("US-", fluxnet.urb$SITE_ID),])
 
 fluxnet.yrs <- read.csv(file.path(path.tower, "FLUXENT_Site-Years_2014.csv"))
 fluxnet.yrs <- fluxnet.yrs[fluxnet.yrs$Year.Site.ID %in% fluxnet.urb$SITE_ID,]
 fluxnet.yrs # Looks like all 20 have at least some data for valdiation
 
-# 1b. Checking Ameriflux for additional locations
-ameriflux <- read.table(file.path(path.tower, "AmeriFlux-site-search-results-202409131633.tsv"), sep="\t", header=T)
-ameriflux <- ameriflux[ameriflux$Site.Start<2020 & (ameriflux$Site.End>2000 | is.na(ameriflux$Site.End)),]
-summary(ameriflux)
-ameriflux.sp <- st_as_sf(ameriflux, coords=c("Longitude..degrees.", "Latitude..degrees."))
-st_crs(ameriflux.sp) <- st_crs(sdei.urb)
-
-ameriflux.urb <- st_filter(ameriflux.sp, sdei.urb)
-summary(ameriflux.urb) # 33 cities with our temporal window in our city footprint
-data.frame(ameriflux.urb[,c("Site.ID", "Name", "Principal.Investigator", "Data.Use.Policy")])
-summary(ameriflux.urb[ameriflux.urb$Data.Use.Policy=="CC-BY-4.0",]) # 28 with CC-BY fair use license
-
-# data.frame(ameriflux.urb)
-# summary(ameriflux.urb[!is.na(ameriflux.urb$ameriflux2015),]) # 20 sites in our 2k cities
