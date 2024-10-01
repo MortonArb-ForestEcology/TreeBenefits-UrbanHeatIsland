@@ -68,48 +68,72 @@ amf_download_base(user_id = "crollinson", user_email="crollinson@mortonarb.org",
 fameriflux <- list.dirs(file.path(path.tower, "Ameriflux"), full.names=F)
 FP_ls <- amf_variables()
 summary(FP_ls)
+FP_ls$Name
 FP_ls[FP_ls$Name %in% c("TIMESTAMP", "LE", "SLE", "T_BOLE", "TA", "TS"),]
 
 # Doing a test file
 amerifluxUse <- data.frame(ameriflux.urb2[sapply(ameriflux.urb2$SITE_ID, FUN=function(x) {any(grepl(x, fameriflux))}) & ameriflux.urb2$DATA_START<2020,])
 summary(amerifluxUse)
 
+towerETlist <- list()
 
+pb <- txtProgressBar(min=0, max=nrow(amerifluxUse), style=3)
+for(i in 1:nrow(amerifluxUse)){
+  setTxtProgressBar(pb, i)
+  towerNOW <- amerifluxUse$SITE_ID[i]
+  # tableROW <- which(amerifluxUse$SITE_ID==towerNOW)
+  summerMO <- ifelse(amerifluxUse$LOCATION_LAT[i]<0, 1, 7)
+  
+  fnow <- fameriflux[grep(towerNOW, fameriflux)] # Find the directory name
+  ftest <- dir(file.path(path.tower, "Ameriflux", fnow), ".csv") # Find the file name
+  test <- amf_read_base(file=file.path(path.tower, "Ameriflux", fnow, ftest), unzip=F, parse_timestamp = T)
+  summary(test)
+  
+  test <- test[test$YEAR>=2000 & test$YEAR<=2020 & test$MONTH %in% summerMO:(summerMO+1),]
+  summary(test)
+  names(test)
+  summary(test$LE)
+  # If no variable TA, need to extract or calculate the value for the highest sensor
+  # Multiple TAs are _H_V_R, with V=1 beig the highest veritcal position
+  if(!"TA" %in% names(test)){
+    colsTA <- names(test)[grep("TA_1_1_*", names(test))]
+    if(length(colsTA)==1) { 
+      test$TA <- test[,colsTA]
+    } else if(length(colsTA)>1){
+      test$TA <- apply(test[,colsTA], 1, mean, na.rm=T)
+    } else next
+  }
+  
+  # summary(test[!is.na(test$LE),])
+  # length(which(test$LE<0))
+  
+  # Convert LE to ET: https://ameriflux.lbl.gov/sites/siteinfo/US-INb
+  # LE is in W/m2; MODIS ET is in kg/m2/8day
+  # According to stack exchange: https://earthscience.stackexchange.com/questions/20733/fluxnet15-how-to-convert-latent-heat-flux-to-actual-evapotranspiration
+  # ET = LE/lambda; lambda = 2.501 - (2.361e-3)*Ta; Ta = air temp in deg. c; 
+  # lambda in MJ/kg; x 10^6 to convert MJ to J
+  # LE = latent heat flux in W/m2 = J/s/m2
+  # lambda = latent heat of evaporation = ~2257 J/g (W = J/s)
+  # library(bigleaf)
+  # bigET <- LE.to.ET(test$LE, test$TA)*60*60*24
+  # summary(bigET)
+  test$ET <- test$LE/((2.501 - 2.361e-3*test$TA)*10^6)*60*60*24 # ET In kg/m2/s convert to daily
+  summary(test)
+  
+  testDay <- aggregate(cbind(ET, TA) ~ YEAR + MONTH + DAY + DOY, data=test, FUN=mean)
+  summary(testDay)
+  
+  testYr <- aggregate(cbind(ET, TA) ~ YEAR, data=testDay, FUN=mean)
+  testYr
+  
+  testYr[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG")] <- amerifluxUse[i, c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "LOCATION_LAT", "LOCATION_LONG")]
+  testYr <- testYr[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG", "YEAR", "TA", "ET")]
+  testYr
+  
+  # Aggregating 
+  towerETlist[[towerNOW]] <- testYr
+}
 
-towerNOW <- "US-INi"
-tableROW <- which(amerifluxUse$SITE_ID==towerNOW)
-summerMO <- ifelse(amerifluxUse$LOCATION_LAT[tableROW]<0, 1, 7)
-
-fnow <- fameriflux[grep(towerNOW, fameriflux)] # Find the directory name
-ftest <- dir(file.path(path.tower, "Ameriflux", fnow), ".csv") # Find the file name
-test <- amf_read_base(file=file.path(path.tower, "Ameriflux", fnow, ftest), unzip=F, parse_timestamp = T)
-summary(test)
-
-test <- test[test$YEAR>=2000 & test$YEAR<=2020 & test$MONTH %in% summerMO:(summerMO+1),]
-summary(test)
-summary(test[!is.na(test$LE),])
-length(which(test$LE<0))
-
-# Convert LE to ET: https://ameriflux.lbl.gov/sites/siteinfo/US-INb
-# LE is in W/m2; MODIS ET is in kg/m2/8day
-# According to stack exchange: https://earthscience.stackexchange.com/questions/20733/fluxnet15-how-to-convert-latent-heat-flux-to-actual-evapotranspiration
-# ET = LE/lambda; lambda = 2.501 - (2.361e-3)*Ta; Ta = air temp in deg. c; 
-# lambda in MJ/kg; x 10^6 to convert MJ to J
-# LE = latent heat flux in W/m2 = J/s/m2
-# lambda = latent heat of evaporation = ~2257 J/g (W = J/s)
-# library(bigleaf)
-# bigET <- LE.to.ET(test$LE, test$TA)*60*60*24
-# summary(bigET)
-test$ET <- test$LE/((2.501 - 2.361e-3*test$TA)*10^6)*60*60*24 # ET In kg/m2/s convert to daily
-summary(test)
-
-testDay <- aggregate(cbind(ET, TA) ~ YEAR + MONTH + DAY + DOY, data=test, FUN=mean)
-summary(testDay)
-
-testYr <- aggregate(cbind(ET, TA) ~ YEAR, data=testDay, FUN=mean)
-testYr
-
-# Aggregating 
 
 # Pulling International Data from places used in Ukkola et al 2021: https://essd.copernicus.org/articles/14/449/2022/
 # OzFlux, La Thuile, Fluxnet 2015
