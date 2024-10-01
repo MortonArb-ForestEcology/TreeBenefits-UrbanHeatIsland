@@ -36,24 +36,103 @@ library(amerifluxr)
 amerifluxAll <- amf_site_info()
 summary(amerifluxAll)
 amerifluxCC <- amerifluxAll[amerifluxAll$DATA_POLICY=="CCBY4.0",]
+summary(amerifluxCC)
+
+
 ameriflux.sp <- st_as_sf(amerifluxCC, coords=c("LOCATION_LONG", "LOCATION_LAT"))
 st_crs(ameriflux.sp) <- st_crs(sdei.urb)
 
 ameriflux.urb <- st_filter(ameriflux.sp, sdei.urb)
-summary(ameriflux.urb) # 28 cities with our temporal window in our city footprint and CC-BY-4.0 license
+summary(ameriflux.urb) # 29 cities with our temporal window in our city footprint and CC-BY-4.0 license
 data.frame(ameriflux.urb[,c("SITE_ID", "SITE_NAME", "COUNTRY", "STATE", "IGBP")])
 
-# data.frame(ameriflux.urb)
-# summary(ameriflux.urb[!is.na(ameriflux.urb$ameriflux2015),]) # 20 sites in our 2k cities
+ameriflux.urb2 <- st_join(ameriflux.urb, sdei.urb[,c("ISOURBID", "ISO3", "NAME")], largest=F)
+ameriflux.urb2 <- merge(data.frame(ameriflux.urb2), amerifluxCC, all.y=F)
+summary(ameriflux.urb2)
+length(unique(ameriflux.urb2$ISOURBID)) # 19 unique cities
+
+write.csv(data.frame(ameriflux.urb2), file.path(path.tower, "AmerifluxSites_Use.csv"), row.names=F)
+
+
+# Extract the actual ameriflux data
+if(!dir.exists(file.path(path.tower, "Ameriflux"))) dir.create(file.path(path.tower, "Ameriflux"))
+fzip <- dir(file.path(path.tower, "Ameriflux"), ".zip")
+# sites.search <- vector()
+# for(SITE in ameriflux.urb2$SITE_ID){
+#   if(!grepl(SITE, fzip)) sites.search <- c(sites.search, SITE)   # If we don't have a file for the site, append it to our list
+# }
+
+amf_download_base(user_id = "crollinson", user_email="crollinson@mortonarb.org", site_id = ameriflux.urb2$SITE_ID, data_product = "BASE-BADM", data_policy="CCBY4.0", agree_policy = TRUE, intended_use="remote_sensing", intended_use_text = "validation of interpolated MODIS ET products in urban areas", out_dir = file.path(path.tower, "Ameriflux"))
+
+# fzip <- dir(file.path(path.tower, "Ameriflux"), ".zip")
+fameriflux <- list.dirs(file.path(path.tower, "Ameriflux"), full.names=F)
+FP_ls <- amf_variables()
+summary(FP_ls)
+FP_ls[FP_ls$Name %in% c("TIMESTAMP", "LE", "SLE", "T_BOLE", "TA", "TS"),]
+
+# Doing a test file
+amerifluxUse <- data.frame(ameriflux.urb2[sapply(ameriflux.urb2$SITE_ID, FUN=function(x) {any(grepl(x, fameriflux))}) & ameriflux.urb2$DATA_START<2020,])
+summary(amerifluxUse)
+
+
+
+towerNOW <- "US-INi"
+tableROW <- which(amerifluxUse$SITE_ID==towerNOW)
+summerMO <- ifelse(amerifluxUse$LOCATION_LAT[tableROW]<0, 1, 7)
+
+fnow <- fameriflux[grep(towerNOW, fameriflux)] # Find the directory name
+ftest <- dir(file.path(path.tower, "Ameriflux", fnow), ".csv") # Find the file name
+test <- amf_read_base(file=file.path(path.tower, "Ameriflux", fnow, ftest), unzip=F, parse_timestamp = T)
+summary(test)
+
+test <- test[test$YEAR>=2000 & test$YEAR<=2020 & test$MONTH %in% summerMO:(summerMO+1),]
+summary(test)
+summary(test[!is.na(test$LE),])
+length(which(test$LE<0))
+
+# Convert LE to ET: https://ameriflux.lbl.gov/sites/siteinfo/US-INb
+# LE is in W/m2; MODIS ET is in kg/m2/8day
+# According to stack exchange: https://earthscience.stackexchange.com/questions/20733/fluxnet15-how-to-convert-latent-heat-flux-to-actual-evapotranspiration
+# ET = LE/lambda; lambda = 2.501 - (2.361e-3)*Ta; Ta = air temp in deg. c; 
+# lambda in MJ/kg; x 10^6 to convert MJ to J
+# LE = latent heat flux in W/m2 = J/s/m2
+# lambda = latent heat of evaporation = ~2257 J/g (W = J/s)
+# library(bigleaf)
+# bigET <- LE.to.ET(test$LE, test$TA)*60*60*24
+# summary(bigET)
+test$ET <- test$LE/((2.501 - 2.361e-3*test$TA)*10^6)*60*60*24 # ET In kg/m2/s convert to daily
+summary(test)
+
+testDay <- aggregate(cbind(ET, TA) ~ YEAR + MONTH + DAY + DOY, data=test, FUN=mean)
+summary(testDay)
+
+testYr <- aggregate(cbind(ET, TA) ~ YEAR, data=testDay, FUN=mean)
+testYr
+
+# Aggregating 
 
 # Pulling International Data from places used in Ukkola et al 2021: https://essd.copernicus.org/articles/14/449/2022/
 # OzFlux, La Thuile, Fluxnet 2015
 # Pulling European Flux Databases: http://gaia.agraria.unitus.it/home
 
 
-# 1b. Reading in locations of Euroflux data
-# https://www.europe-fluxdata.eu/home/sites-list
-eurofluxAll <- read.csv(file.path(path.tower, "EuroFlux - SitesList.csv")) 
+# # 1b. Reading in locations of Euroflux data <- This has been a NIGHTMARE to work with!
+# # https://www.europe-fluxdata.eu/home/sites-list
+# eurofluxAll <- read.csv(file.path(path.tower, "EuroFlux - SitesList.csv")) 
+# eurofluxAll <- eurofluxAll[!is.na(eurofluxAll$Site.Longitude) & eurofluxAll$Site.Longitude>-180,]
+# summary(eurofluxAll)
+# head(eurofluxAll)
+# 
+# # Look for just sites that have LE
+# eurofluxLE <- eurofluxAll[grepl("LE", eurofluxAll$Fluxes),]
+# summary(eurofluxLE)
+# 
+# euroflux.sp <- st_as_sf(eurofluxLE, coords=c("Site.Longitude", "Site.Latitude"))
+# st_crs(euroflux.sp) <- st_crs(sdei.urb)
+# 
+# euroflux.urb <- st_filter(euroflux.sp, sdei.urb)
+# summary(euroflux.urb) # 48 cities in our city footprints and CC-BY-4.0 license
+# data.frame(euroflux.urb[,c("Site.Code", "Site.Name", "Fluxes", "IGBP.Code")])
 
 
 # 1c. Reading in locations of FLUXNET 2015 data
