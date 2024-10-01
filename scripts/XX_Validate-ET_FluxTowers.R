@@ -51,7 +51,12 @@ data.frame(ameriflux.urb[,c("SITE_ID", "SITE_NAME", "COUNTRY", "STATE", "IGBP")]
 # Pulling European Flux Databases: http://gaia.agraria.unitus.it/home
 
 
-# 1a. Reading in locations of FLUXNET 2015 data
+# 1b. Reading in locations of Euroflux data
+# https://www.europe-fluxdata.eu/home/sites-list
+eurofluxAll <- read.csv(file.path(path.tower, "EuroFlux - SitesList.csv")) 
+
+
+# 1c. Reading in locations of FLUXNET 2015 data
 fluxnet <- googlesheets4::read_sheet(ss="1urdK0oxAWOnEI5pdAmsaQRdTaqbaYxnLL0Ouh4vYxiU")
 summary(fluxnet)
 fluxnet.sp <- st_as_sf(fluxnet, coords=c("LOCATION_LONG", "LOCATION_LAT"))
