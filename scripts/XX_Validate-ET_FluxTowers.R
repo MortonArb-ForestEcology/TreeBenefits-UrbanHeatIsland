@@ -93,6 +93,10 @@ for(i in 1:nrow(amerifluxUse)){
   summary(test)
   names(test)
   summary(test$LE)
+  
+  if(!"LE" %in% names(test)) next
+  if(length(which(!is.na(test$LE)))==0) next
+  
   # If no variable TA, need to extract or calculate the value for the highest sensor
   # Multiple TAs are _H_V_R, with V=1 beig the highest veritcal position
   if(!"TA" %in% names(test)){
@@ -134,6 +138,13 @@ for(i in 1:nrow(amerifluxUse)){
   towerETlist[[towerNOW]] <- testYr
 }
 
+towerET <- dplyr::bind_rows(towerETlist)
+towerET$ISOURBID <- as.factor(towerET$ISOURBID)
+towerET$ISO3 <- as.factor(towerET$ISO3)
+towerET$SITE_ID <- as.factor(towerET$SITE_ID)
+summary(towerET)
+
+write.csv(towerET, file.path(path.tower, "AmerifluxSites_ET_summerMeans.csv"), row.names=F)
 
 # Pulling International Data from places used in Ukkola et al 2021: https://essd.copernicus.org/articles/14/449/2022/
 # OzFlux, La Thuile, Fluxnet 2015
@@ -156,11 +167,12 @@ for(i in 1:nrow(amerifluxUse)){
 # 
 # euroflux.urb <- st_filter(euroflux.sp, sdei.urb)
 # summary(euroflux.urb) # 48 cities in our city footprints and CC-BY-4.0 license
-# data.frame(euroflux.urb[,c("Site.Code", "Site.Name", "Fluxes", "IGBP.Code")])
+data.frame(euroflux.urb[,c("Site.Code", "Site.Name", "Fluxes", "IGBP.Code")])
 
 
 # 1c. Reading in locations of FLUXNET 2015 data
 fluxnet <- googlesheets4::read_sheet(ss="1urdK0oxAWOnEI5pdAmsaQRdTaqbaYxnLL0Ouh4vYxiU")
+fluxnet <- fluxnet[!is.na(fluxnet$FLUXNET2015) & !fluxnet$SITE_ID %in% ameriflux.urb2$SITE_ID,]
 summary(fluxnet)
 fluxnet.sp <- st_as_sf(fluxnet, coords=c("LOCATION_LONG", "LOCATION_LAT"))
 st_crs(fluxnet.sp) <- st_crs(sdei.urb)
@@ -168,11 +180,87 @@ st_crs(fluxnet.sp) <- st_crs(sdei.urb)
 fluxnet.urb <- st_filter(fluxnet.sp, sdei.urb)
 summary(fluxnet.urb)
 data.frame(fluxnet.urb)
-summary(fluxnet.urb[!is.na(fluxnet.urb$FLUXNET2015),]) # 15 sites in our 2k cities
-summary(fluxnet.urb[!is.na(fluxnet.urb$FLUXNET2015) & !grepl("US-", fluxnet.urb$SITE_ID),]) # 12 international cities
-data.frame(fluxnet.urb[!is.na(fluxnet.urb$FLUXNET2015) & !grepl("US-", fluxnet.urb$SITE_ID),])
+# summary(fluxnet.urb[!is.na(fluxnet.urb$FLUXNET2015),]) # 12 sites in addition to the Ameriflux cities
 
 fluxnet.yrs <- read.csv(file.path(path.tower, "FLUXENT_Site-Years_2014.csv"))
 fluxnet.yrs <- fluxnet.yrs[fluxnet.yrs$Year.Site.ID %in% fluxnet.urb$SITE_ID,]
 fluxnet.yrs # Looks like all 20 have at least some data for valdiation
 
+fluxnet.urb2 <- st_join(fluxnet.urb, sdei.urb[,c("ISOURBID", "ISO3", "NAME")], largest=F)
+fluxnet.urb2 <- merge(data.frame(fluxnet.urb2), fluxnet, all.y=F)
+summary(fluxnet.urb2)
+data.frame(fluxnet.urb2)
+length(unique(fluxnet.urb2$ISOURBID)) # 11 unique cities
+
+write.csv(data.frame(fluxnet.urb2), file.path(path.tower, "FluxnetSites_Use.csv"), row.names=F)
+
+
+fFluxnet <- list.dirs(file.path(path.tower, "Fluxnet2015 - Urban Sites"), full.names=F)
+# Doing a test file
+fluxnetUse <- data.frame(fluxnet.urb2[sapply(fluxnet.urb2$SITE_ID, FUN=function(x) {any(grepl(x, fFluxnet))}),])
+summary(fluxnetUse)
+
+fluxnetETlist <- list()
+
+pb <- txtProgressBar(min=0, max=nrow(fluxnet.urb2), style=3)
+for(i in 1:nrow(fluxnetUse)){
+  setTxtProgressBar(pb, i)
+  towerNOW <- fluxnetUse$SITE_ID[i]
+  # tableROW <- which(fluxnetUse$SITE_ID==towerNOW)
+  summerMO <- ifelse(fluxnetUse$LOCATION_LAT[i]<0, 1, 7)
+  
+  fnow <- fFluxnet[grep(towerNOW, fFluxnet)] # Find the directory name
+  ftest <- dir(file.path(path.tower, "Fluxnet2015 - Urban Sites", fnow), "DD") 
+  test <- read.csv(file=file.path(path.tower, "Fluxnet2015 - Urban Sites", fnow, ftest))
+  test$YEAR <- as.numeric(substr(test$TIMESTAMP, 1, 4))
+  test$MONTH <- as.numeric(substr(test$TIMESTAMP, 5, 6))
+  test$DAY <- as.numeric(substr(test$TIMESTAMP, 7, 8))
+  test$DATE <- as.Date(paste(test$YEAR, test$MONTH, test$DAY, sep="-"))
+  test$DOY <- lubridate::yday(test$DATE)
+  # test$YEAR <- 
+  summary(test)
+  
+  test <- test[test$YEAR>=2000 & test$YEAR<=2020 & test$MONTH %in% summerMO:(summerMO+1),]
+  summary(test)
+  names(test)
+  
+  # Renaming things for my sanity
+  # https://fluxnet.org/data/fluxnet2015-dataset/subset-data-product/
+  test$TA <- test$TA_F
+  test$LE <- test$LE_F_MDS # gapfilled LE
+
+
+  # Convert LE to ET: https://ameriflux.lbl.gov/sites/siteinfo/US-INb
+  # LE is in W/m2; MODIS ET is in kg/m2/8day
+  # According to stack exchange: https://earthscience.stackexchange.com/questions/20733/fluxnet15-how-to-convert-latent-heat-flux-to-actual-evapotranspiration
+  # ET = LE/lambda; lambda = 2.501 - (2.361e-3)*Ta; Ta = air temp in deg. c; 
+  # lambda in MJ/kg; x 10^6 to convert MJ to J
+  # LE = latent heat flux in W/m2 = J/s/m2
+  # lambda = latent heat of evaporation = ~2257 J/g (W = J/s)
+  # library(bigleaf)
+  # bigET <- LE.to.ET(test$LE, test$TA)*60*60*24
+  # summary(bigET)
+  test$ET <- test$LE/((2.501 - 2.361e-3*test$TA)*10^6)*60*60*24 # ET In kg/m2/s convert to daily
+  summary(test)
+  
+  testDay <- aggregate(cbind(ET, TA) ~ YEAR + MONTH + DAY + DOY, data=test, FUN=mean)
+  summary(testDay)
+  
+  testYr <- aggregate(cbind(ET, TA) ~ YEAR, data=testDay, FUN=mean)
+  testYr
+  
+  testYr[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG")] <- fluxnetUse[i, c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "LOCATION_LAT", "LOCATION_LONG")]
+  testYr <- testYr[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG", "YEAR", "TA", "ET")]
+  testYr
+  
+  # Aggregating 
+  fluxnetETlist[[towerNOW]] <- testYr
+}
+
+fluxnetET <- dplyr::bind_rows(fluxnetETlist)
+fluxnetET$ISOURBID <- as.factor(fluxnetET$ISOURBID)
+fluxnetET$ISO3 <- as.factor(fluxnetET$ISO3)
+fluxnetET$SITE_ID <- as.factor(fluxnetET$SITE_ID)
+summary(fluxnetET)
+
+write.csv(fluxnetET, file.path(path.tower, "FluxnetSites_ET_summerMeans.csv"), row.names=F)
