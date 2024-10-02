@@ -153,21 +153,119 @@ write.csv(towerET, file.path(path.tower, "AmerifluxSites_ET_summerMeans.csv"), r
 
 # # 1b. Reading in locations of Euroflux data <- This has been a NIGHTMARE to work with!
 # # https://www.europe-fluxdata.eu/home/sites-list
-# eurofluxAll <- read.csv(file.path(path.tower, "EuroFlux - SitesList.csv")) 
-# eurofluxAll <- eurofluxAll[!is.na(eurofluxAll$Site.Longitude) & eurofluxAll$Site.Longitude>-180,]
-# summary(eurofluxAll)
-# head(eurofluxAll)
+eurofluxAll <- read.csv(file.path(path.tower, "EuroFlux - SitesList.csv"))
+eurofluxAll <- eurofluxAll[!is.na(eurofluxAll$Site.Longitude) & eurofluxAll$Site.Longitude>-180,]
+summary(eurofluxAll)
+head(eurofluxAll)
 # 
 # # Look for just sites that have LE
-# eurofluxLE <- eurofluxAll[grepl("LE", eurofluxAll$Fluxes),]
-# summary(eurofluxLE)
-# 
-# euroflux.sp <- st_as_sf(eurofluxLE, coords=c("Site.Longitude", "Site.Latitude"))
-# st_crs(euroflux.sp) <- st_crs(sdei.urb)
-# 
-# euroflux.urb <- st_filter(euroflux.sp, sdei.urb)
-# summary(euroflux.urb) # 48 cities in our city footprints and CC-BY-4.0 license
+eurofluxLE <- eurofluxAll[grepl("LE", eurofluxAll$Fluxes),]
+summary(eurofluxLE)
+
+euroflux.sp <- st_as_sf(eurofluxLE, coords=c("Site.Longitude", "Site.Latitude"))
+st_crs(euroflux.sp) <- st_crs(sdei.urb)
+
+euroflux.urb <- st_filter(euroflux.sp, sdei.urb)
+summary(euroflux.urb) # 48 cities in our city footprints and CC-BY-4.0 license
 data.frame(euroflux.urb[,c("Site.Code", "Site.Name", "Fluxes", "IGBP.Code")])
+
+euroflux.urb2 <- st_join(euroflux.urb, sdei.urb[,c("ISOURBID", "ISO3", "NAME")], largest=F)
+euroflux.urb2 <- merge(data.frame(euroflux.urb2), eurofluxAll, all.y=F)
+summary(euroflux.urb2)
+data.frame(euroflux.urb2)
+length(unique(euroflux.urb2$ISOURBID)) # 32 unique cities
+
+write.csv(data.frame(euroflux.urb2), file.path(path.tower, "EurofluxSites_Use.csv"), row.names=F)
+
+
+feuroflux <- dir(file.path(path.tower, "Euroflux_Sites"), "EFDC_L2_Flx")
+# Doing a test file
+eurofluxUse <- data.frame(euroflux.urb2[sapply(euroflux.urb2$Site.Code, FUN=function(x) {any(grepl(gsub("-", "", x), feuroflux))}),])
+summary(eurofluxUse) # 20 sites!
+eurofluxUse$Site.Code
+
+eurofluxETlist <- list()
+
+pb <- txtProgressBar(min=0, max=nrow(eurofluxUse), style=3)
+for(i in 1:nrow(eurofluxUse)){
+  setTxtProgressBar(pb, i)
+  towerNOW <- eurofluxUse$Site.Code[i]
+  towerLookUp <- gsub("-", "", towerNOW)
+  # tableROW <- which(eurofluxUse$SITE_ID==towerNOW)
+  summerMO <- ifelse(eurofluxUse$Site.Latitude[i]<0, 1, 7)
+  
+  fnow <- feuroflux[grep(towerLookUp, feuroflux)] # Find the directory name
+  testYr <- data.frame(YEAR=rep(NA, length(fnow)), ET=rep(NA, length(fnow)), TA=rep(NA, length(fnow)))
+  for(j in seq_along(fnow)){
+    test <- read.csv(file=file.path(path.tower, "Euroflux_Sites", fnow[j]))
+    test[test==-9999] <- NA
+    test$YEAR <- as.numeric(substr(test$TIMESTAMP_START, 1, 4))
+    test$MONTH <- as.numeric(substr(test$TIMESTAMP_START, 5, 6))
+    test$DAY <- as.numeric(substr(test$TIMESTAMP_START, 7, 8))
+    test$DATE <- as.Date(paste(test$YEAR, test$MONTH, test$DAY, sep="-"))
+    test$DOY <- lubridate::yday(test$DATE)
+    
+    if(!"LE" %in% names(test) | all(is.na(test$LE)) |
+       !"TA" %in% names(test) | all(is.na(test$TA))){
+      testYr$YEAR[j] <- test$YEAR[1]
+      next
+    }
+
+    # test$YEAR <- 
+    summary(test)
+    
+    test <- test[test$YEAR>=2000 & test$YEAR<=2020 & test$MONTH %in% summerMO:(summerMO+1),]
+    if(nrow(test)==0 | all(is.na(test$LE)) | all(is.na(test$TA))){
+      testYr$YEAR[j] <- test$YEAR[1]
+      next
+    }
+    
+    
+    summary(test)
+    names(test)
+    
+
+    # Convert LE to ET: https://ameriflux.lbl.gov/sites/siteinfo/US-INb
+    # LE is in W/m2; MODIS ET is in kg/m2/8day
+    # According to stack exchange: https://earthscience.stackexchange.com/questions/20733/euroflux15-how-to-convert-latent-heat-flux-to-actual-evapotranspiration
+    # ET = LE/lambda; lambda = 2.501 - (2.361e-3)*Ta; Ta = air temp in deg. c; 
+    # lambda in MJ/kg; x 10^6 to convert MJ to J
+    # LE = latent heat flux in W/m2 = J/s/m2
+    # lambda = latent heat of evaporation = ~2257 J/g (W = J/s)
+    # library(bigleaf)
+    # bigET <- LE.to.ET(test$LE, test$TA)*60*60*24
+    # summary(bigET)
+    test$ET <- test$LE/((2.501 - 2.361e-3*test$TA)*10^6)*60*60*24 # ET In kg/m2/s convert to daily
+    summary(test)
+    
+    testDay <- aggregate(cbind(ET, TA) ~ YEAR + MONTH + DAY + DOY, data=test, FUN=mean)
+    summary(testDay)
+    
+    testYr[j,] <- aggregate(cbind(ET, TA) ~ YEAR, data=testDay, FUN=mean)
+    
+  }
+  testYr
+
+  
+  testYr[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG")] <- eurofluxUse[i, c("ISOURBID", "ISO3", "NAME", "Site.Code", "IGBP.Code", "Site.Latitude", "Site.Longitude")]
+  testYr <- testYr[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG", "YEAR", "TA", "ET")]
+  testYr
+  
+  # Aggregating 
+  eurofluxETlist[[towerNOW]] <- testYr
+}
+
+eurofluxET <- dplyr::bind_rows(eurofluxETlist)
+eurofluxET$ISOURBID <- as.factor(eurofluxET$ISOURBID)
+eurofluxET$ISO3 <- as.factor(eurofluxET$ISO3)
+eurofluxET$SITE_ID <- as.factor(eurofluxET$SITE_ID)
+summary(eurofluxET)
+
+write.csv(eurofluxET, file.path(path.tower, "EurofluxSites_ET_summerMeans.csv"), row.names=F)
+
+
+
+
 
 
 # 1c. Reading in locations of FLUXNET 2015 data
