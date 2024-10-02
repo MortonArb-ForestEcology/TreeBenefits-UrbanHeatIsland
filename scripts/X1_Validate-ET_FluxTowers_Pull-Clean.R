@@ -1,6 +1,5 @@
 # Validate ET models using available Flux Tower data
-# -- figure out what Ameriflux of Fluxnet towers are in the footprint of our analyzed cities
-# -- extract the mean summer ET estimate for the pixel of the flux tower
+# Step 1: figure out what Ameriflux of Fluxnet towers are in the footprint of our analyzed cities
 
 
 library(raster); library(sp); library(terra); library(sf) 
@@ -114,15 +113,16 @@ for(i in 1:nrow(amerifluxUse)){
   # Convert LE to ET: https://ameriflux.lbl.gov/sites/siteinfo/US-INb
   # LE is in W/m2; MODIS ET is in kg/m2/8day
   # According to stack exchange: https://earthscience.stackexchange.com/questions/20733/fluxnet15-how-to-convert-latent-heat-flux-to-actual-evapotranspiration
-  # ET = LE/lambda; lambda = 2.501 - (2.361e-3)*Ta; Ta = air temp in deg. c; 
-  # lambda in MJ/kg; x 10^6 to convert MJ to J
+  # ET = LE/lambda; lambda = 2.501 - (2.361e-3)*Ta; 
+  # Ta = air temp in deg. c; lambda in MJ/kg; x 10^6 to convert MJ to J
   # LE = latent heat flux in W/m2 = J/s/m2
   # lambda = latent heat of evaporation = ~2257 J/g (W = J/s)
+  test$ET <- test$LE/((2.501 - 2.361e-3*test$TA)*10^6)*60*60*24 # ET In kg/m2/s convert to daily
+  summary(test)
+
   # library(bigleaf)
   # bigET <- LE.to.ET(test$LE, test$TA)*60*60*24
   # summary(bigET)
-  test$ET <- test$LE/((2.501 - 2.361e-3*test$TA)*10^6)*60*60*24 # ET In kg/m2/s convert to daily
-  summary(test)
   
   testDay <- aggregate(cbind(ET, TA) ~ YEAR + MONTH + DAY + DOY, data=test, FUN=mean)
   summary(testDay)
