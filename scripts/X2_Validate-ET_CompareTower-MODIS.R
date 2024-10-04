@@ -16,7 +16,18 @@ path.google <- file.path("~/Google Drive/")
 path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4/data_processed_final")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
 
+# Loading data we'll need to do the model ET calculation
+path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
 
+
+files.elev <- dir(path.EEout, "elevation")
+files.temp <- dir(path.EEout, "GLDAS21_annualMeans")
+files.tree <- dir(path.EEout, "PercentTree")
+files.veg <- dir(path.EEout, "PercentOtherVeg")
+files.et <- dir(path.EEout, "ETmean")
+
+
+# Now getting the flux tower data
 ameriflux <- read.csv(file.path(path.tower, "AmerifluxSites_ET_summerMeans.csv"))
 ameriflux$Dataset <- "Ameriflux"
 
@@ -38,22 +49,51 @@ length(unique(datTower$SITE_ID))
 length(unique(datTower$ISOURBID))
 hist(datTower$ET)
 
+
 # We need to get the tower coords in MODIS projection, so we need to make it a spatial file
-projMODIS <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+# Opening an example raster to pull what we need
+testElev <- raster(file.path(path.EEout, "USA31965_elevation.tif"))
+plot(testElev)
+testElev
+elevPTs <- data.frame(elev=getValues(testElev))
+elevPTs[,c("x", "y")] <- coordinates(testElev)
+summary(elevPTs)
+
+# # DON'T USE This because the projection won't align with our actual data!  
+#  # DON'T DO IT # # projMODIS <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs" #  # DON'T DO IT # # 
+projMODISorig <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs" #  # DON'T DO 
+projMODISnew <- "+proj=sinu +lon_0=0 +lat_0=0 +x_0=16200 +y_0=16200 +datum=WGS84 +units=m +no_defs" #  # DON'T DO IT # #
+
+# I THINK What we need to do is convert the sinu projection offset of c(-20015109.354, 10007554.677) to an offset of c(lon, y)
+# The values in MODISnew above are currently the xTrans and yTrans divided by the resolution time 1.5
+-20015109.354/926.625433056
+10007554.677/-926.625433055
+# c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677)
+# [xScale, xShearing, xTranslation, yShearing, yScale, yTranslation]
+# "SR-ORG:6974"
 
 sdei.urb <- read_sf("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp")
 sdei.urb <- sdei.urb[sdei.urb$ES00POP>100e3 & sdei.urb$SQKM_FINAL>100,]
-sdei.urb <- st_transform(sdei.urb, crs(projMODIS))
-summary(sdei.urb)
-# summary(sdi.urb[sdei.urb$])
 
-# ggplot(data=sdei.urb) +
-#   # coord_cartesian(xlim=c(-60,-80), ylim=c(40,60)) +
-#   geom_sf() +
-#   # scale_x_continuous(limits=c(-90, -70)) +
-#   # scale_y_continuous(limits=c(30,45))
-#   scale_x_continuous(limits=c(12032742, 12749003)) +
-#   scale_y_continuous(limits=c(3642276,4086117))
+summary(sdei.urb)
+head(sdei.urb[sdei.urb$ISO3=="USA",])
+
+cityOrig <- st_transform(sdei.urb[sdei.urb$ISOURBID=="USA31965",], projMODISorig)
+cityNew <- st_transform(sdei.urb[sdei.urb$ISOURBID=="USA31965",], projMODISnew)
+testCityOrig <- st_coordinates(cityOrig)
+testCityNew <- st_coordinates(cityNew)
+
+ggplot() +
+  # coord_cartesian(xlim=c(-60,-80), ylim=c(40,60)) +
+  coord_equal() +
+  geom_tile(data=elevPTs, aes(x=x,y=y, fill=elev)) +
+  geom_polygon(data=testCityOrig, aes(x=X, y=Y), fill=NA, color="black") +
+  geom_polygon(data=testCityNew, aes(x=X, y=Y), fill=NA, color="red2")
+# geom_sf(data=testSHP, default_crs=crs(projMODIS)) #+
+  # scale_x_continuous(limits=c(-90, -70)) +
+  # scale_y_continuous(limits=c(30,45))
+  # scale_x_continuous(limits=c(12032742, 12749003)) +
+  # scale_y_continuous(limits=c(3642276,4086117))
   
 
 towerSP <- st_as_sf(datTower, coords=c("TOWER_LONG", "TOWER_LAT"))
@@ -63,16 +103,6 @@ summary(towerSP)
 datTower[,c("x", "y")] <- st_coordinates(towerSP)
 summary(datTower)
 # plot(towerSP)
-
-# Loading data we'll need to do the model ET calculation
-path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
-
-
-files.elev <- dir(path.EEout, "elevation")
-files.temp <- dir(path.EEout, "GLDAS21_annualMeans")
-files.tree <- dir(path.EEout, "PercentTree")
-files.veg <- dir(path.EEout, "PercentOtherVeg")
-files.et <- dir(path.EEout, "ETmean")
 
 
 for(CITY in unique(datTower$ISOURBID)){
