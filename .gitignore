@@ -5,3 +5,4 @@ data_raw/*
 scripts/.Rapp.history
 scripts/.RData
 .DS_Store
+/data_shapefiles
