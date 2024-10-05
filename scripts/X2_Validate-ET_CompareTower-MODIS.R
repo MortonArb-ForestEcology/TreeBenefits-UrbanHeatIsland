@@ -268,8 +268,22 @@ write.csv(datTower, file.path(path.tower, "FluxTower_ETcomparison_AllTowers.csv"
 
 datTower$Error.Pixel <- datTower$ET.pixel - datTower$ET
 datTower$Error.Modis <- datTower$ET.modis - datTower$ET
+datTower$Error.PixelSD <- datTower$Error.Pixel/datTower$ET
 summary(datTower)
 
+summary(datTower[abs(datTower$Error.Pixel)>abs(datTower$Error.Modis) & !is.na(datTower$Error.Modis),])
+summary(datTower[abs(datTower$Error.Pixel)>1,])
+
+ggplot(data=datTower) +
+  geom_histogram(aes(x=Error.Pixel, fill=IGBP)) +
+  geom_vline(xintercept=0, linetype="dashed") +
+  theme_bw()
+
+# ggplot(data=datTower) +
+#   geom_histogram(aes(x=Error.PixelSD, fill=IGBP)) +
+#   geom_vline(xintercept=0, linetype="dashed") +
+#   # coord_cartesian(xlim=c(-5,10)) +
+#   theme_bw()
 
 ggplot(data=datTower) +
   geom_point(aes(x=ET.pixel, y=ET)) +
@@ -289,18 +303,22 @@ summary(lmTA)
 lmETgldas <- lm(ET ~ ET.gldas, data=datTower)
 summary(lmETgldas)
 
-lmETmodis <- lm(ET ~ ET.modis, data=datTower)
+lmETmodis <- lm(ET ~ ET.modis, data=datTower[,])
 summary(lmETmodis)
 
-lmETpixel <- lm(ET ~ ET.pixel, data=datTower)
+# When comparing the fit with MODIS, important to make sure we're doing apples-to-apples
+lmETpixel <- lm(ET ~ ET.pixel, data=datTower[!is.na(datTower$ET.modis),])
 summary(lmETpixel)
 
 lmETpg <- lm(ET.gldas ~ ET.pixel, data=datTower)
 summary(lmETpg)
 
 
-lmETtower <- lm(ET ~ ET.modTower, data=datTower)
+lmETtower <- lm(ET ~ ET.modTower, data=datTower[!is.na(datTower$ET.modis),])
 summary(lmETtower)
+
+lmETtowerAll <- lm(ET ~ ET.modTower, data=datTower)
+summary(lmETtowerAll)
 
 
 aggTower <- aggregate(cbind(ET, TA, ET.pixel, ET.modTower, ET.gldas, Error.Pixel)~ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean)
