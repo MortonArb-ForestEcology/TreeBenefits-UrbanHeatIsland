@@ -8,6 +8,17 @@ library(ggplot2)
 library(mgcv)
 library(nlme)
 
+library(rgee); 
+ee_check() # For some reason, it's important to run this before initializing right now
+rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
+path.google <- "/Volumes/GoogleDrive/My Drive"
+GoogleFolderSave <- "UHI_Analysis_TowerValidation"
+assetHome <- ee_get_assethome()
+
+# Loading data we'll need to do the model ET calculation
+path.EEoutSpat <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
+
+
 ETColors <- c('#ffffff', '#fcd163', '#99b718', '#66a000', '#3e8601', '#207401', '#056201',
               '#004c00', '#011301')
 
@@ -16,8 +27,6 @@ path.google <- file.path("~/Google Drive/")
 path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4/data_processed_final")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
 
-# Loading data we'll need to do the model ET calculation
-path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
 
 
 files.elev <- dir(path.EEout, "elevation")
@@ -49,60 +58,120 @@ length(unique(datTower$SITE_ID))
 length(unique(datTower$ISOURBID))
 hist(datTower$ET)
 
+# Getting our SDEI data layer
+sdei.urb <- read_sf("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp")
+sdei.urb <- sdei.urb[sdei.urb$ES00POP>100e3 & sdei.urb$SQKM_FINAL>100,]
 
-# We need to get the tower coords in MODIS projection, so we need to make it a spatial file
-# Opening an example raster to pull what we need
+ee_sdei <- sf_as_ee(sdei.urb[sdei.urb$ISOURBID %in% datTower$ISOURBID,])
+
+
+
+towerSP <- st_as_sf(datTower, coords=c("TOWER_LONG", "TOWER_LAT"), crs=st_crs(sdei.urb))
+
+ee_tower <- sf_as_ee(towerSP)
+Map$addLayer(ee_tower, visParams = list(
+  pointRadius = 10,
+  color = "FF0000"
+), 'Flux Towers')
+
+
+vegMask <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask")
+# Map$addLayer(vegMask)
+
+projMask = vegMask$projection()
+projCRS = projMask$crs()
+projTransform <- unlist(projMask$getInfo()$transform)
+
+ee_print(ee_tower)
+ee_tower2 <- ee_tower$map(function(x){ 
+  x$transform(projMask)
+  })
+ee_print(ee_tower2)
+
+ee_sdei2 <- ee_sdei$map(function(x){ 
+  x$transform(projMask, maxError=42) # 42 because why not... it's the answer to life, the universe and everything
+})
+ee_print(ee_sdei2)
+
+
+tower2 <- ee_as_sf(ee_tower2, via="drive", dsn="test3.shp", crs=projCRS, timePrefix = F)
+sdei2 <- ee_as_sf(ee_sdei2, via="drive", dsn="SDEI-tower.shp", crs=projCRS, timePrefix = F)
+# 
+# ee_as_sf(ee_tower2, via="drive", dsn="Tower-test2.csv", crs=projCRS)
+
+sfTest <- read_sf("~/Desktop/drive-download-20241004T235806Z-001/test2_2024_10_04_18_56_56.shp")
+st_crs(sfTest)
+
+sfSDEI <- read_sf("")
+
+# # We need to get the tower coords in MODIS projection, so we need to make it a spatial file
+# # Opening an example raster to pull what we need
 testElev <- raster(file.path(path.EEout, "USA31965_elevation.tif"))
 plot(testElev)
 testElev
 elevPTs <- data.frame(elev=getValues(testElev))
 elevPTs[,c("x", "y")] <- coordinates(testElev)
 summary(elevPTs)
-
-# # DON'T USE This because the projection won't align with our actual data!  
-#  # DON'T DO IT # # projMODIS <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs" #  # DON'T DO IT # # 
-projMODISorig <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs" #  # DON'T DO 
-projMODISnew <- "+proj=sinu +lon_0=0 +lat_0=0 +x_0=16200 +y_0=16200 +datum=WGS84 +units=m +no_defs" #  # DON'T DO IT # #
-
-# I THINK What we need to do is convert the sinu projection offset of c(-20015109.354, 10007554.677) to an offset of c(lon, y)
-# The values in MODISnew above are currently the xTrans and yTrans divided by the resolution time 1.5
--20015109.354/926.625433056
-10007554.677/-926.625433055
-# c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677)
-# [xScale, xShearing, xTranslation, yShearing, yScale, yTranslation]
-# "SR-ORG:6974"
-
-sdei.urb <- read_sf("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp")
-sdei.urb <- sdei.urb[sdei.urb$ES00POP>100e3 & sdei.urb$SQKM_FINAL>100,]
-
-summary(sdei.urb)
-head(sdei.urb[sdei.urb$ISO3=="USA",])
-
+# 
+# # # DON'T USE This because the projection won't align with our actual data!  
+# #  # DON'T DO IT # # projMODIS <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs" #  # DON'T DO IT # # 
+# projMODISorig <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs" #  # DON'T DO 
+# 
+# 
+# 
+# 
+# sdei.urb <- read_sf("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp")
+# sdei.urb <- sdei.urb[sdei.urb$ES00POP>100e3 & sdei.urb$SQKM_FINAL>100,]
+# sdei.urb2 <- st_transform(sdei.urb, crs(projMODISorig))
+# # plot(sdei.urb2)
+# 
+# # I THINK What we need to do is convert the sinu projection offset of c(-20015109.354, 10007554.677) to an offset of c(lon, y)
+# # The values in MODISnew above are currently the xTrans and yTrans divided by the resolution time 1.5
+# # c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677)
+# # [xScale, xShearing, xTranslation, yShearing, yScale, yTranslation]
+# # -20015109.354/926.625433056
+# # 10007554.677/-926.625433055
+# # "SR-ORG:6974"
+# ptDF <- data.frame(x=c(-20015109.354/926, 0), y=c(10007554.677/926, 0), name=c("offset", "zeros"))
+# ptSP <- st_as_sf(ptDF, coords=c("x", "y"))
+# st_crs(ptSP) <- st_crs(projMODISorig)
+# ptSPnew <- st_transform(ptSP, crs("+proj=longlat"))
+# st_coordinates(ptSPnew)
+# # plot(ptSPnew)
+# 
+# 
+# # projcrs <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+# # st_crs(sdei.urb)
+# projMODISnew <- "+proj=sinu +x_0=0 +y_0=0 +k_0=926 +lon_0=0 +lat_0=0 +datum=WGS84 +units=m +no_defs" #  # DON'T DO IT # #
+# 
+# # summary(sdei.urb)
+# # head(sdei.urb[sdei.urb$ISO3=="USA",])
+# 
 cityOrig <- st_transform(sdei.urb[sdei.urb$ISOURBID=="USA31965",], projMODISorig)
-cityNew <- st_transform(sdei.urb[sdei.urb$ISOURBID=="USA31965",], projMODISnew)
+cityNew <- sdei2[sdei2$ISOURBID=="USA31965",]
 testCityOrig <- st_coordinates(cityOrig)
 testCityNew <- st_coordinates(cityNew)
-
+# 
 ggplot() +
   # coord_cartesian(xlim=c(-60,-80), ylim=c(40,60)) +
   coord_equal() +
   geom_tile(data=elevPTs, aes(x=x,y=y, fill=elev)) +
   geom_polygon(data=testCityOrig, aes(x=X, y=Y), fill=NA, color="black") +
   geom_polygon(data=testCityNew, aes(x=X, y=Y), fill=NA, color="red2")
-# geom_sf(data=testSHP, default_crs=crs(projMODIS)) #+
-  # scale_x_continuous(limits=c(-90, -70)) +
-  # scale_y_continuous(limits=c(30,45))
-  # scale_x_continuous(limits=c(12032742, 12749003)) +
-  # scale_y_continuous(limits=c(3642276,4086117))
-  
-
-towerSP <- st_as_sf(datTower, coords=c("TOWER_LONG", "TOWER_LAT"))
-st_crs(towerSP) <- st_crs(sdei.urb)
-towerSP <- st_transform(towerSP, crs(projMODIS))
-summary(towerSP)
-datTower[,c("x", "y")] <- st_coordinates(towerSP)
-summary(datTower)
-# plot(towerSP)
+# # geom_sf(data=testSHP, default_crs=crs(projMODIS)) #+
+#   # scale_x_continuous(limits=c(-90, -70)) +
+#   # scale_y_continuous(limits=c(30,45))
+#   # scale_x_continuous(limits=c(12032742, 12749003)) +
+#   # scale_y_continuous(limits=c(3642276,4086117))
+#   
+# 
+# towerSP <- st_as_sf(datTower, coords=c("TOWER_LONG", "TOWER_LAT"), crs(sdei.urb))
+# st_crs(towerSP) <- st_crs(sdei.urb)
+# towerSP <- st_transform(towerSP, crs(projMODIS))
+# summary(towerSP)
+# datTower[,c("x", "y")] <- st_coordinates(towerSP)
+# summary(datTower)
+# # plot(towerSP)
 
 
 for(CITY in unique(datTower$ISOURBID)){
