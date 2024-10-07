@@ -8,25 +8,146 @@ library(nlme)
 path.google <- file.path("~/Google Drive/")
 path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4/data_processed_final")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
+# path.figsMS <- file.path(path.google, "figures_manuscript")
 
 datTower <- read.csv(file.path(path.tower, "FluxTower_ETcomparison_AllTowers.csv"))
 summary(datTower)
 
-datTower$Error.Pixel <- datTower$ET.pixel - datTower$ET
-datTower$Error.Modis <- datTower$ET.modis - datTower$ET
-datTower$Error.PixelSD <- datTower$Error.Pixel/datTower$ET
+datTower$Error.pixel <- datTower$ET.pixel - datTower$ET
+datTower$Error.modis <- datTower$ET.modis - datTower$ET
+datTower$Error.gldas <- datTower$ET.gldas - datTower$ET
+datTower$Error.pixel2 <- datTower$Error.pixel^2
+datTower$Error.modis2 <- datTower$Error.modis^2
+datTower$Error.gldas2 <- datTower$Error.gldas^2
 summary(datTower)
 
-summary(datTower[abs(datTower$Error.Pixel)>abs(datTower$Error.Modis) & !is.na(datTower$Error.Modis),])
-summary(datTower[abs(datTower$Error.Pixel)>1,])
+# Pull in our model data to add some of those stats
+cities.et <- read.csv(file.path(path.cities, "../UHIs-FinalCityDataForAnalysis.csv"))
+summary(cities.et)
+
+
+# Aggregating to to Tower level to get some summary stats
+aggTower <- aggregate(cbind(ET, TA, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, Error.pixel2, Error.modis2, Error.gldas2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean, na.rm=T)
+aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")] <- sqrt(aggTower[,c("Error.pixel2", "Error.modis2", "Error.gldas2")])
+aggTower$YEARS <- NA
+aggTower$n.YRS <- NA
+
+aggTowerSD <- aggregate(cbind(ET, TA, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, Error.pixel2, Error.modis2, Error.gldas2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=sd, na.rm=T)
+
+
+for(i in 1:nrow(aggTower)){
+  SITE <- aggTower$SITE_ID[i]
+  datSite <- datTower[datTower$SITE_ID==SITE,]
+  CITY <- aggTower$ISOURBID[i]
+  
+  rowDatAll <- which(cities.et$ISOURBID==CITY)
+  aggTower[i, "ETmodel.R2adj"] <- cities.et$ETmodel.R2adj[rowDatAll]
+  aggTower[i, "ETmodel.RMSE"] <- cities.et$ETmodel.RMSE[rowDatAll]
+  
+  YRS <- unique(datSite$YEAR)
+  aggTower[i,"YEARS"] <- paste(YRS, collapse=" ")
+  aggTower[i,"YR.min"] <- min(YRS)
+  aggTower[i,"YR.max"] <- max(YRS)
+  aggTower[i, "n.YRS"] <- length(YRS)
+  
+  if(length(YRS)>2){
+    lmSitePix <- lm(ET ~ ET.pixel, data=datSite)
+    lmSiteMod <- lm(ET ~ ET.modis, data=datSite)
+    lmSiteGld <- lm(ET ~ ET.gldas, data=datSite)
+    summary(lmSitePix)
+    summary(lmSiteMod)
+    summary(lmSiteGld)
+    
+    aggTower[i,"R2.pixel"] <- summary(lmSitePix)$r.squared
+    aggTower[i,"R2.modis"] <- summary(lmSiteMod)$r.squared
+    aggTower[i,"R2.gldas"] <- summary(lmSiteGld)$r.squared
+  }
+}
+summary(aggTower)
+
+# aggTower <- aggTower[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG", "YEARS", "n.YRS", "ET", "TA", "ETmodel.R2adj", "ETmodel.RMSE", "ET.pixel", "ET.modis", "ET.gldas", "Error.pixel", "Error.modis", "Error.gldas", "RMSE.pixel", "RMSE.modis", "RMSE.gldas", "R2.pixel", "R2.modis", "R2.gldas")]
+
+write.csv(aggTower, file.path(path.tower, "FluxTower_ETcomparison_AllTowers-Aggregated.csv"), row.names=F)
+
+# create a function to paste mean & sd
+# SigFig = significant figures
+pasteXSD <- function(x, stdDev, SigFig){ paste0(round(x, SigFig), " (", round(stdDev, SigFig), ")")}
+
+# Create a supplement-worth table summarizing stats for each tower ----
+aggTowerTable <- aggTower[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG", "n.YRS", "YR.min", "YR.max")]
+aggTowerTable[,c("ETmodel.R2adj", "ETmodel.RMSE")] <- round(aggTower[,c("ETmodel.R2adj", "ETmodel.RMSE")], 2)
+aggTowerTable$ET.tower <- pasteXSD(x=aggTower$ET, stdDev=aggTowerSD$ET, SigFig=2)
+aggTowerTable$ET.model <- pasteXSD(x=aggTower$ET.pixel, stdDev=aggTowerSD$ET.pixel, SigFig=2)
+aggTowerTable$ET.modis <- pasteXSD(x=aggTower$ET.modis, stdDev=aggTowerSD$ET.modis, SigFig=2)
+aggTowerTable$ET.gldas <- pasteXSD(x=aggTower$ET.gldas, stdDev=aggTowerSD$ET.gldas, SigFig=2)
+aggTowerTable$Error.model <- pasteXSD(x=aggTower$Error.pixel, stdDev=aggTowerSD$Error.pixel, SigFig=2)
+aggTowerTable$Error.modis <- pasteXSD(x=aggTower$Error.modis, stdDev=aggTowerSD$Error.modis, SigFig=2)
+aggTowerTable$Error.gldas <- pasteXSD(x=aggTower$Error.gldas, stdDev=aggTowerSD$Error.gldas, SigFig=2)
+aggTowerTable[,c("RMSE.model", "RMSE.modis", "RMSE.gldas", "R2.model", "R2.modis", "R2.gldas")] <- round(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas", "R2.pixel", "R2.modis", "R2.gldas")], 2)
+
+head(aggTowerTable)
+write.csv(aggTowerTable, file.path(path.tower, "SUPPLEMENT_FluxTower_ETcomparison_AllTowers-Aggregated-Clean.csv"), row.names=F)
+
+
+# Create a supplement-worth table summarizing stats for each LC type ----
+aggLCmean <- aggregate(cbind(n.YRS, ET, TA, ETmodel.R2adj, ETmodel.RMSE, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, RMSE.pixel, RMSE.modis, RMSE.gldas, R2.pixel, R2.modis, R2.gldas) ~ IGBP , data=aggTower, FUN=mean, na.rm=T)
+aggLCsd <- aggregate(cbind(n.YRS, ET, TA, ETmodel.R2adj, ETmodel.RMSE, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, RMSE.pixel, RMSE.modis, RMSE.gldas, R2.pixel, R2.modis, R2.gldas) ~ IGBP , data=aggTower, FUN=sd, na.rm=T)
+
+for(i in 1:nrow(aggLCmean)){
+  IGBP <- aggLCmean$IGBP[i]
+  aggLCmean[i,"nCities"] <- length(unique(aggTower$ISOURBID[aggTower$IGBP==IGBP]))
+  aggLCmean[i, "nTowers"] <- length(unique(aggTower$SITE_ID[aggTower$IGBP==IGBP]))
+}
+aggLCmean
+
+aggLCTable <- aggLCmean[,c("IGBP", "nCities", "nTowers")]
+aggLCTable$n.YRS <- pasteXSD(x=aggLCmean$n.YRS, stdDev=aggLCsd$n.YRS, SigFig=2)
+aggLCTable$ETmodel.R2adj <- pasteXSD(x=aggLCmean$ETmodel.R2adj, stdDev=aggLCsd$ETmodel.R2adj, SigFig=2)
+aggLCTable$ETmodel.RMSE <- pasteXSD(x=aggLCmean$ETmodel.RMSE, stdDev=aggLCsd$ETmodel.RMSE, SigFig=2)
+aggLCTable$ET.tower <- pasteXSD(x=aggLCmean$ET, stdDev=aggLCsd$ET, SigFig=2)
+aggLCTable$ET.model <- pasteXSD(x=aggLCmean$ET.pixel, stdDev=aggLCsd$ET.pixel, SigFig=2)
+aggLCTable$ET.modis <- pasteXSD(x=aggLCmean$ET.modis, stdDev=aggLCsd$ET.modis, SigFig=2)
+aggLCTable$ET.gldas <- pasteXSD(x=aggLCmean$ET.gldas, stdDev=aggLCsd$ET.gldas, SigFig=2)
+aggLCTable$Error.model <- pasteXSD(x=aggLCmean$Error.pixel, stdDev=aggLCsd$Error.pixel, SigFig=2)
+aggLCTable$Error.modis <- pasteXSD(x=aggLCmean$Error.modis, stdDev=aggLCsd$Error.modis, SigFig=2)
+aggLCTable$Error.gldas <- pasteXSD(x=aggLCmean$Error.gldas, stdDev=aggLCsd$Error.gldas, SigFig=2)
+aggLCTable$RMSE.model <- pasteXSD(x=aggLCmean$RMSE.pixel, stdDev=aggLCsd$RMSE.pixel, SigFig=2)
+aggLCTable$RMSE.modis <- pasteXSD(x=aggLCmean$RMSE.modis, stdDev=aggLCsd$RMSE.modis, SigFig=2)
+aggLCTable$RMSE.gldas <- pasteXSD(x=aggLCmean$RMSE.gldas, stdDev=aggLCsd$RMSE.gldas, SigFig=2)
+aggLCTable$R2.model <- pasteXSD(x=aggLCmean$R2.pixel, stdDev=aggLCsd$R2.pixel, SigFig=2)
+aggLCTable$R2.modis <- pasteXSD(x=aggLCmean$R2.modis, stdDev=aggLCsd$R2.modis, SigFig=2)
+aggLCTable$R2.gldas <- pasteXSD(x=aggLCmean$R2.gldas, stdDev=aggLCsd$R2.gldas, SigFig=2)
+
+
+aggLCTable
+write.csv(aggLCTable, file.path(path.tower, "SUPPLEMENT_FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
+
+
+
+
+
+# Number of towers where our model does better than MODIS
+nrow(aggTower)
+length(which(aggTower$RMSE.pixel<aggTower$RMSE.modis))
+length(which(aggTower$RMSE.pixel<aggTower$RMSE.gldas))
+
+length(which(!is.na(aggTower$R2.pixel)))
+length(which(aggTower$R2.pixel>aggTower$R2.modis))
+length(which(aggTower$R2.pixel>aggTower$R2.gldas))
+
+
+
+
+summary(datTower[abs(datTower$Error.pixel)>abs(datTower$Error.modis) & !is.na(datTower$Error.modis),])
+summary(datTower[abs(datTower$Error.pixel)>1,])
 
 ggplot(data=datTower) +
-  geom_histogram(aes(x=Error.Pixel, fill=IGBP)) +
+  geom_histogram(aes(x=Error.pixel, fill=IGBP)) +
   geom_vline(xintercept=0, linetype="dashed") +
   theme_bw()
 
 # ggplot(data=datTower) +
-#   geom_histogram(aes(x=Error.PixelSD, fill=IGBP)) +
+#   geom_histogram(aes(x=Error.pixelSD, fill=IGBP)) +
 #   geom_vline(xintercept=0, linetype="dashed") +
 #   # coord_cartesian(xlim=c(-5,10)) +
 #   theme_bw()
@@ -67,7 +188,6 @@ lmETtowerAll <- lm(ET ~ ET.modTower, data=datTower)
 summary(lmETtowerAll)
 
 
-aggTower <- aggregate(cbind(ET, TA, ET.pixel, ET.modis, ET.gldas, Error.Pixel)~ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean)
 
 lmETavg <- lm(ET ~ ET.modTower, data=aggTower, na.action=na.omit)
 summary(lmETavg)
