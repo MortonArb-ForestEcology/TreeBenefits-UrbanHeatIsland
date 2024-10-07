@@ -335,16 +335,25 @@ ggplot(data=aggTower) +
   geom_abline(intercept=0, slope=1, color="black")
 
 
-lmET <- lme(ET ~ ET.modTower, random=list(SITE_ID=~1), data=datTower, na.action=na.omit)
-summary(lmET)
-MuMIn::r.squaredGLMM(lmET)
+lmeETpix <- lme(ET ~ ET.pixel, random=list(ISOURBID=~1, SITE_ID=~1), data=datTower, na.action=na.omit)
+# summary(lmeETpix)
+MuMIn::r.squaredGLMM(lmeETpix)
 
-lmETgldas <- lme(ET ~ ET.gldas, random=list(SITE_ID=~1), data=datTower, na.action=na.omit)
-summary(lmETgldas)
+lmeETpix2 <- lme(ET ~ ET.pixel, random=list(ISOURBID=~1, SITE_ID=~1), data=datTower[!is.na(datTower$ET.modis),], na.action=na.omit)
+# summary(lmeETpix2)
+MuMIn::r.squaredGLMM(lmeETpix2)
+
+lmeETmodis <- lme(ET ~ ET.modis, random=list(ISOURBID=~1, SITE_ID=~1), data=datTower, na.action=na.omit)
+# summary(lmeETmodis)
+MuMIn::r.squaredGLMM(lmETmodis)
+
+
+lmETgldas <- lme(ET ~ ET.gldas, random=list(ISOURBID=~1, SITE_ID=~1), data=datTower, na.action=na.omit)
+# summary(lmETgldas)
 MuMIn::r.squaredGLMM(lmETgldas)
 
 lmETgldas2 <- lme(ET.gldas ~ ET.modTower, random=list(SITE_ID=~1), data=datTower, na.action=na.omit)
-summary(lmETgldas2)
+# summary(lmETgldas2)
 MuMIn::r.squaredGLMM(lmETgldas2)
 
 
@@ -359,3 +368,26 @@ ggplot(data=datTower) +
   geom_point(aes(x=ET.pixel, y=ET, color=IGBP)) +
   geom_abline(intercept=0, slope=1, color="black")
 dev.off()
+
+png(file.path(path.tower, "FluxTower_ETcomparison_Urban.png"), height=8, width=8, units="in", res=220)
+ggplot(data=datTower[datTower$IGBP=="URB",]) +
+  geom_point(aes(x=ET.pixel, y=ET, color=IGBP)) +
+  geom_abline(intercept=0, slope=1, color="black")
+dev.off()
+
+
+lmeETpixUrbMod <- lme(ET ~ ET.modis, random=list(SITE_ID=~1), data=datTower[datTower$IGBP=="URB",], na.action=na.omit)
+summary(lmeETpixUrbMod)
+MuMIn::r.squaredGLMM(lmeETpixUrbMod) 
+
+lmeETpixUrb <- lme(ET ~ ET.pixel, random=list(SITE_ID=~1), data=datTower[datTower$IGBP=="URB",], na.action=na.omit)
+summary(lmeETpixUrb)
+MuMIn::r.squaredGLMM(lmeETpixUrb) 
+
+lmeETpixUrb2 <- lme(ET ~ ET.pixel, random=list(SITE_ID=~1), data=datTower[datTower$IGBP=="URB" & !is.na(datTower$ET.modis),], na.action=na.omit)
+summary(lmeETpixUrb2)
+MuMIn::r.squaredGLMM(lmeETpixUrb2) 
+
+lmETpixUrb <- lm(ET ~ ET.pixel, data=datTower[datTower$IGBP=="URB",], na.action=na.omit)
+summary(lmETpixUrb)
+# MuMIn::r.squaredGLMM(lmeETpixUrb)
