@@ -101,7 +101,7 @@ for(i in 1:nrow(aggLCmean)){
 aggLCmean
 
 aggLCTable <- aggLCmean[,c("IGBP", "nCities", "nTowers")]
-aggLCTable$n.YRS <- pasteXSD(x=aggLCmean$n.YRS, stdDev=aggLCsd$n.YRS, SigFig=2)
+aggLCTable$n.YRS <- pasteXSD(x=aggLCmean$n.YRS, stdDev=aggLCsd$n.YRS, SigFig=0)
 aggLCTable$ETmodel.R2adj <- pasteXSD(x=aggLCmean$ETmodel.R2adj, stdDev=aggLCsd$ETmodel.R2adj, SigFig=2)
 aggLCTable$ETmodel.RMSE <- pasteXSD(x=aggLCmean$ETmodel.RMSE, stdDev=aggLCsd$ETmodel.RMSE, SigFig=2)
 aggLCTable$ET.tower <- pasteXSD(x=aggLCmean$ET, stdDev=aggLCsd$ET, SigFig=2)
