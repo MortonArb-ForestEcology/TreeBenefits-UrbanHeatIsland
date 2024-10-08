@@ -11,7 +11,10 @@ path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/
 # path.figsMS <- file.path(path.google, "figures_manuscript")
 
 datTower <- read.csv(file.path(path.tower, "FluxTower_ETcomparison_AllTowers.csv"))
-summary(datTower)
+datTower <- datTower[!is.na(datTower$ET.pixel),]
+length(unique(datTower$SITE_ID))
+length(unique(datTower$ISOURBID))
+dim(datTower)
 
 datTower$Error.pixel <- datTower$ET.pixel - datTower$ET
 datTower$Error.modis <- datTower$ET.modis - datTower$ET
@@ -123,7 +126,59 @@ aggLCTable
 write.csv(aggLCTable, file.path(path.tower, "SUPPLEMENT_FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
 
 
+aggTowerStack <- stack(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")])
+names(aggTowerStack) <- c("RMSE", "dataset")
+aggTowerStack$IGBP <- aggTower$IGBP
+aggTowerStack$ISOURBID <- aggTower$ISOURBID
+aggTowerStack$R2 <- stack(aggTower[,c("R2.pixel", "R2.modis", "R2.gldas")])[,"values"]
+aggTowerStack$dataset <- car::recode(aggTowerStack$dataset, "'RMSE.pixel'='Model'; 'RMSE.modis'='MODIS'; 'RMSE.gldas'='GLDAS'")
+aggTowerStack$dataset <- factor(aggTowerStack$dataset, levels=c("Model", "MODIS", "GLDAS"))
+summary(aggTowerStack)
 
+nlcdPaletteGG = c("Urban-Open"= '#dec5c5', "Urban-Low"='#d99282', "Urban-Medium"='#eb0000', "Urban-High"= '#ab0000', "Forest" = '#68ab5f', "Grassland"='#dfdfc2', "Crop"='#ab6c28');
+
+biomeCode.pall.all = c("Tai"= "#2c5c74", 
+                       "Tun"="#6d8e9d",
+                       "TeBF" = "#7f310f",
+                       "TeCF" = "#4d1e10",
+                       "TeGS" = "#b09c41",
+                       "MGS" = "#a0b8c7",
+                       "Med" = "#bf772e",
+                       "Des" = "#c89948",
+                       "FGS" = "#e0dfa1",
+                       "TrGS" = "#a6b39e",
+                       "TrDBF" = "#7a9c64",
+                       "TrCF" = "#488458",
+                       "TrMBF"= "#266240",
+                       "Man" = "#9c8c94")
+
+colorsIGBP <- c("WET" = "#6c9fb8", "EBF" = "#1c5f2c", "DBF" = "#68ab5f", "MF" = "#b5c58f", "OSH" = "#ccb879", "GRA" = "#dfdfc2", "CRO" = "#ab6c28", "URB" = "#eb0000")
+colorIGBPdf <- data.frame(IGBP.Code=names(colorsIGBP), color=colorsIGBP, description=c("Wetland", "Crop", "Grassland", "Urban", "Forest, Dcd. Brd.", "Forest, Evg. Brd.", "Shrubland", "Forest, Mixed"))
+
+order.IGBP <- c("WET", "EBF", "DBF", "MF", "OSH", "GRA", "CRO", "URB")
+aggTowerStack$IGBP <- factor(aggTowerStack$IGBP, levels=order.IGBP)
+colorIGBPdf$IGBP.Code <- factor(colorIGBPdf$IGBP.Code, levels=order.IGBP)
+colorIGBPdf <- colorIGBPdf[sort(colorIGBPdf$IGBP.Code),]
+  
+
+aggTowerStack2 <- stack(aggTowerStack[,c("RMSE", "R2")])
+aggTowerStack2[,c("dataset", "IGBP", "ISOURBID")] <- aggTowerStack[,c("dataset", "IGBP", "ISOURBID")]
+summary(aggTowerStack2)
+
+valMeans <- aggregate(values ~ dataset + ind, data=aggTowerStack2, FUN=mean, na.rm=T)
+
+png(file.path(path.tower, "FluxTower_Validation_SummaryStats.png"), height=8, width=8, units="in", res=220)
+ggplot(data=aggTowerStack2) +
+  facet_grid(dataset~ind, scales="free_x") +
+  geom_histogram(aes(x=values, fill=IGBP)) +
+  geom_vline(data=valMeans, aes(xintercept=values), linetype="dashed", linewidth=1.5) +
+  scale_fill_manual(values=c("WET" = "#6c9fb8", "EBF" = "#1c5f2c", "DBF" = "#68ab5f", "MF" = "#b5c58f", "OSH" = "#ccb879", "GRA" = "#dfdfc2", "CRO" = "#ab6c28", "URB" = "#eb0000"),
+                    labels=c("Wetland", "Forest, Evg. Broad.", "Forest, Dec. Broad", "Forest, Mixed", "Shrubland", "Grassland", "Cropland", "Urban")) +
+  theme_bw()
+dev.off()
+
+mean(aggTower$RMSE.pixel); sd(aggTower$RMSE.pixel)
+mean(aggTower$RMSE.modis); sd(aggTower$RMSE.modis)
 
 
 # Number of towers where our model does better than MODIS

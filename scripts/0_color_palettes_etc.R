@@ -61,6 +61,10 @@ biomeCode.pall.all = c("Tai"= "#2c5c74",
                        "Man" = "#9c8c94")
 
 
+nlcd.palette <- data.frame(value=c(11, 12, 21, 22, 23, 24, 31, 41, 42, 43, 51, 52, 71, 72, 73, 74, 81, 82, 90,95),
+                           color=c("#466b9f", "#d1def8", "#dec5c5", "#d99282", "#eb0000", "#ab0000", "#b3ac9f", "#68ab5f", "#1c5f2c", "#b5c58f", "#af963c", "#ccb879", "#dfdfc2", "#d1d182", "#a3cc51", "#82ba9e", "#dcd939", "#ab6c28", "#b8d9eb", "#6c9fb8"),
+                           lcType = c("water", "ice/snow", "developed, open", "developed, low", "developed, medium", "developed, high", "barren", "forest, deciduous", "forest, evergreen", "forest, mixed", "scrub, dwarf", "shrub/scrub", "grassland", "sedge/herb", "lichens", "moss", "pasture/hay", "crops", "wetlands, woody", "wetlands, herbaceous"))
+
 world <- ggplot2::map_data("world"); 
 world <- world[!world$long>180,]
 
