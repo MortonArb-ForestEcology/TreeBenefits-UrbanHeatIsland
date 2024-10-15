@@ -62,6 +62,57 @@ cmip6$modET.Precip[cmip6$modET.Precip==Inf] <- NA
 # cmip6$modET.PrecipLog <- log(cmip6$modET.Precip)
 summary(cmip6)
 
+# Looking at the distribution of cities by model & scenario based on comments from R3
+png(file.path(path.figsExplore, "CMIP6-EnsembleMembers_ET_vs_Precip_Log.png"), height=8, width=10, units="in", res=320)
+ggplot(data=cmip6[cmip6$Time=="2100" & !is.na(cmip6$modET.Precip) , ]) +
+  # facet_grid(Scenario~.) +
+  facet_wrap(~GCM) +
+  geom_violin(aes(x=Scenario, y=log(modET.Precip), fill=biomeCode), scale="width", linewidth=0.1) +
+  geom_hline(yintercept=0, linewidth=0.2, linetype="dashed") +
+  scale_fill_manual(values=biomeCode.pall.all) +
+  # scale_color_manual(values=biomeCode.pall.all) +
+  theme_bw()
+dev.off()
+
+
+png(file.path(path.figsExplore, "CMIP6-EnsembleMembers_TempChange.png"), height=8, width=10, units="in", res=320)
+ggplot(data=cmip6[cmip6$Time=="2100"  , ]) +
+  # facet_grid(Scenario~.) +
+  facet_wrap(~GCM) +
+  geom_violin(aes(x=Scenario, y=tas.diff, fill=biomeCode), scale="width", linewidth=0.1) +
+  geom_hline(yintercept=0, linewidth=0.2, linetype="dashed") +
+  scale_fill_manual(values=biomeCode.pall.all) +
+  scale_y_continuous(name="Temp change (˚C)") +
+  # scale_color_manual(values=biomeCode.pall.all) +
+  theme_bw()
+dev.off()
+
+
+png(file.path(path.figsExplore, "CMIP6-EnsembleMembers_PrecipChange.png"), height=8, width=10, units="in", res=320)
+ggplot(data=cmip6[cmip6$Time=="2100"  , ]) +
+  # facet_grid(Scenario~.) +
+  facet_wrap(~GCM) +
+  coord_cartesian(ylim=c(0,2.5)) +
+  # geom_violin(aes(x=Scenario, y=log(pr.per), fill=biomeCode), scale="width", linewidth=0.1) +
+  geom_violin(aes(x=Scenario, y=pr.per, fill=biomeCode), scale="width", linewidth=0.1) +
+  geom_hline(yintercept=1, linewidth=0.2, linetype="dashed") +
+  scale_fill_manual(values=biomeCode.pall.all) +
+  scale_y_continuous(name="Precip. change (%)") +
+  # scale_color_manual(values=biomeCode.pall.all) +
+  theme_bw()
+dev.off()
+
+
+ggplot(data=cmip6[cmip6$Time=="2100" & !is.na(cmip6$modET.Precip) , ]) +
+  # facet_grid(Scenario~.) +
+  facet_wrap(~GCM) +
+  geom_violin(aes(x=Scenario, y=log(modET.Precip), fill=biomeCode), scale="width", linewidth=0.1) +
+  scale_fill_manual(values=biomeCode.pall.all) +
+  # scale_color_manual(values=biomeCode.pall.all) +
+  theme_bw()
+
+# geom_violin(aes(x=biomeCode, y=log(modET.Precip), fill=biomeCode, color=biomeCode), binaxis="y", stackdir="center", alpha=0.5, dotsize=0.2)
+
 # Checking the distribution of values of the ET/Precip ratio to figure out whether we should rely on mean or median
 # This doesn't look bad!
 ggplot(data=cmip6) +
