@@ -8,7 +8,7 @@ overwrite=F
 # path.cities <- "../data_processed/data_cities_all"
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4/data_processed_final")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
 
 if(!dir.exists(path.cities)) dir.create(path.cities, recursive=T, showWarnings = F)
 file.cityStatsRegion <- file.path(path.cities, "../city_stats_all.csv")
@@ -75,8 +75,12 @@ if(!file.exists(file.cityStatsRegion) | overwrite){
   cityStatsRegion[,c("biome", "biome.prop", "n.pixels", "LST.mean", "LST.sd", "LST.min", "LST.max", "tree.mean", "tree.sd", "tree.min", "tree.max", "veg.mean", "veg.sd", "veg.min", "veg.max", "elev.mean", "elev.sd", "elev.min", "elev.max", "ET.mean", "ET.sd", "ET.min", "ET.max")] <- NA
   
   # Save the key info from the full model
-  cityStatsRegion[,c("LST.NoVeg.model.R2adj", "LST.NoVeg.model.AIC")] <- NA
-  cityStatsRegion[,c("LSTmodel.R2adj", "LSTmodel.AIC", "LSTmodel.tree.slope", "LSTmodel.veg.slope", "LSTmodel.elev.slope", "LSTmodel.tree.p", "LSTmodel.veg.p", "LSTmodel.elev.p")] <- NA
+  cityStatsRegion[,c("LST.NoVeg.model.R2adj", "LST.NoVeg.model.AIC", "LST.NoVeg.model.RMSE")] <- NA
+  cityStatsRegion[,c("LSTmodel.R2adj", "LSTmodel.AIC", "LSTmodel.RMSE")] <- NA
+  cityStatsRegion[,c("LSTmodelSCover.R2adj", "LSTmodelSCover.AIC", "LSTmodelSCover.RMSE")] <- NA
+  cityStatsRegion[,c("LSTmodelLog.R2adj", "LSTmodelLog.AIC", "LSTmodelLog.RMSE")] <- NA
+  
+  cityStatsRegion[,c("LSTmodel.tree.slope", "LSTmodel.veg.slope", "LSTmodel.elev.slope", "LSTmodel.tree.p", "LSTmodel.veg.p", "LSTmodel.elev.p")] <- NA
   # cityStatsRegion[,c("ETmodel.R2adj", "ETmodel.AIC", "ETmodel.tree.slope", "ETmodel.veg.slope", "ETmodel.elev.slope", "ETmodel.tree.p", "ETmodel.veg.p", "ETmodel.elev.p")] <- NA
   
   # I had run this, but removed it because we don't have ET everywhere we need/want it
@@ -431,6 +435,9 @@ for(CITY in citiesAnalyze){
   
   valsCity$LST.NoVeg.gam.pred <- predict(modLSTnull, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
   valsCity$LST.NoVeg.gam.resid <- valsCity$LST_Day - valsCity$LST.NoVeg.gam.pred # Hand-calculating te residuals... gives the same thing
+  cityStatsRegion$LST.NoVeg.model.RMSE[row.city] <- sqrt(mean(valsCity$LST.NoVeg.gam.resid^2, na.rm=T))
+  
+  
   save(modLSTnull, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST-NoVegNull_gam.RData")))
   
   png(file.path(path.cities, CITY, paste0(CITY, "LST-NoVegNull_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
@@ -466,12 +473,78 @@ for(CITY in citiesAnalyze){
   # Save the key stats from the big LST model
   cityStatsRegion$LSTmodel.R2adj[row.city] <- sum.modLSTCity$r.sq
   cityStatsRegion$LSTmodel.AIC[row.city] <- AIC(modLSTCity)
+  cityStatsRegion$LSTmodel.RMSE[row.city] <- sqrt(mean(valsCity$LSTgam.resid^2, na.rm=T))
+  
   cityStatsRegion[row.city,c("LSTmodel.tree.slope", "LSTmodel.veg.slope", "LSTmodel.elev.slope")] <- sum.modLSTCity$p.coeff[c("cover.tree", "cover.veg", "elevation")]
   cityStatsRegion[row.city,c("LSTmodel.tree.p", "LSTmodel.veg.p", "LSTmodel.elev.p")] <- sum.modLSTCity$p.pv[c("cover.tree", "cover.veg", "elevation")]
   # cityStatsRegion[row.city,]
   
   
-
+  # -----------------------
+  # Adding in two alternate non-linear models to satisfy reviewers --> just doing the summary stats for now to make life easier
+  # -----------------------
+  # --------------
+  # Same smoothing spline formulation as we use for ET
+  # --------------
+  modLSTCitySCover <- gam(LST_Day ~ s(cover.tree) + s(cover.veg) + elevation + s(x,y) + as.factor(year)-1, data=valsCity)
+  sum.modLSTCitySCover <- summary(modLSTCitySCover)
+  valsCity$LSTgamSCover.pred <- predict(modLSTCitySCover, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
+  valsCity$LSTgamSCover.resid <- valsCity$LST_Day - valsCity$LSTgamSCover.pred # Hand-calculating te residuals... gives the same thing
+  save(modLSTCitySCover, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-SCover.RData")))
+  # par(mfrow=c(1,1)); plot(modLSTCity)
+  
+  png(file.path(path.cities, CITY, paste0(CITY, "LST_GAM-SCover_qaqc.png")), height=6, width=6, units="in", res=120)
+  par(mfrow=c(2,2))
+  plot(modLSTCitySCover)
+  hist(valsCity$LSTgamSCover.resid)
+  plot(LSTgamSCover.resid ~ LSTgamSCover.pred, data=valsCity); abline(h=0, col="red")
+  plot(LST_Day ~ LSTgamSCover.pred, data=valsCity); abline(a=0, b=1, col="red")
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  
+  # Save the key stats from the big LST model
+  cityStatsRegion$LSTmodelSCover.R2adj[row.city] <- sum.modLSTCitySCover$r.sq
+  cityStatsRegion$LSTmodelSCover.AIC[row.city] <- AIC(modLSTCitySCover)
+  cityStatsRegion$LSTmodelSCover.RMSE[row.city] <- sqrt(mean(valsCity$LSTgamSCover.resid^2, na.rm=T))
+  # --------------
+  
+  
+  # --------------
+  # Using a log function like we originally explored back in 2019; 
+  # Note: This requires having no 0 values
+  # --------------
+  valsCity2 <- valsCity
+  valsCity2$cover.tree[valsCity$cover.tree==0] <- 0.1
+  valsCity2$cover.veg[valsCity$cover.veg==0] <- 0.1
+  modLSTCityLog <- gam(LST_Day ~ log(cover.tree) + log(cover.veg) + elevation + s(x,y) + as.factor(year)-1, data=valsCity2)
+  sum.modLSTCityLog <- summary(modLSTCityLog)
+  valsCity$LSTgamLog.pred <- predict(modLSTCityLog, newdata=valsCity2) # Shifting to the newdata version to predict for where we have missing data
+  valsCity$LSTgamLog.resid <- valsCity$LST_Day - valsCity$LSTgamLog.pred # Hand-calculating te residuals... gives the same thing
+  save(modLSTCityLog, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-Log.RData")))
+  # par(mfrow=c(1,1)); plot(modLSTCity)
+  
+  png(file.path(path.cities, CITY, paste0(CITY, "LST_GAM-Log_qaqc.png")), height=6, width=6, units="in", res=120)
+  par(mfrow=c(2,2))
+  plot(modLSTCityLog)
+  hist(valsCity$LSTgamLog.resid)
+  plot(LSTgamLog.resid ~ LSTgamLog.pred, data=valsCity); abline(h=0, col="red")
+  plot(LST_Day ~ LSTgamLog.pred, data=valsCity); abline(a=0, b=1, col="red")
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  
+  # Save the key stats from the big LST model
+  cityStatsRegion$LSTmodelLog.R2adj[row.city] <- sum.modLSTCityLog$r.sq
+  cityStatsRegion$LSTmodelLog.AIC[row.city] <- AIC(modLSTCityLog)
+  cityStatsRegion$LSTmodelLog.RMSE[row.city] <- sqrt(mean(valsCity$LSTgamLog.resid^2, na.rm=T))
+  
+  # --------------
+  # -----------------------
+  
+  
+  
+  
   # ------------
   
   # Adding a quick analysis of how things change through time
