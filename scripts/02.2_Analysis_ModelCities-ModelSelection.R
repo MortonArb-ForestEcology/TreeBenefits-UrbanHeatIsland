@@ -1,4 +1,15 @@
-# This script will just pull the data and run some LST models to decide which one we should move forward withlibrary(raster); library(sp); library(terra); library(sf) library(ggplot2)library(mgcv)overwrite=T# file paths for where to put the processed data# path.cities <- "../data_processed/data_cities_all"# user.google <- dir("~/Library/CloudStorage/")path.google <- file.path("~/Google Drive/")path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
+# This script will just pull the data and run some LST models to decide which one we should move forward with
+library(raster); library(sp); library(terra); library(sf) 
+library(ggplot2)
+library(mgcv)
+
+overwrite=T
+
+# file paths for where to put the processed data
+# path.cities <- "../data_processed/data_cities_all"
+# user.google <- dir("~/Library/CloudStorage/")
+path.google <- file.path("~/Google Drive/")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
 
 file.cityStatsRegion <- file.path(path.cities, "../city_stats_model-selection.csv")
 

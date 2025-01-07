@@ -150,7 +150,7 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   dfIntercept$Intercept.Mean[rowCity] <- mean(modETCitySum$p.coeff[intYear])
   dfIntercept$Temp.Mean[rowCity] <- mean(modETCity$model$Tair_f_inst_mean)
   
-  intDiffs <- modETCitySum$p.coeff[intYear]-mean(modETCitySum$p.coeff[intYear])
+  intDiffs <- abs(modETCitySum$p.coeff[intYear]-mean(modETCitySum$p.coeff[intYear]))
   indMeanI  <- which(intDiffs==min(intDiffs))
   yearMean <- as.numeric(stringr::str_sub(names(modETCitySum$p.coeff[intYear])[indMeanI], start=-4))
   
