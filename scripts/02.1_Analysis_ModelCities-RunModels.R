@@ -79,6 +79,7 @@ if(!file.exists(file.cityStatsRegion) | overwrite){
   cityStatsRegion[,c("LST.NoVeg.model.R2adj", "LST.NoVeg.model.AIC", "LST.NoVeg.model.RMSE")] <- NA
   cityStatsRegion[,c("LSTmodel.R2adj", "LSTmodel.AIC", "LSTmodel.RMSE")] <- NA
   cityStatsRegion[,c("LSTmodelSCover.R2adj", "LSTmodelSCover.AIC", "LSTmodelSCover.RMSE")] <- NA
+  cityStatsRegion[,c("LSTmodelSCoverTree.R2adj", "LSTmodelSCoverTree.AIC", "LSTmodelSCoverTree.RMSE")] <- NA
   cityStatsRegion[,c("LSTmodelLog.R2adj", "LSTmodelLog.AIC", "LSTmodelLog.RMSE")] <- NA
   
 
@@ -459,7 +460,7 @@ for(CITY in citiesAnalyze){
   sum.modLSTCitySCover <- summary(modLSTCitySCover)
   valsCity$LSTgamSCover.pred <- predict(modLSTCitySCover, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
   valsCity$LSTgamSCover.resid <- valsCity$LST_Day - valsCity$LSTgamSCover.pred # Hand-calculating te residuals... gives the same thing
-  save(modLSTCitySCover, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-SCover.RData")))
+  saveRDS(modLSTCitySCover, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-SCover.RDS")))
   # par(mfrow=c(1,1)); plot(modLSTCity)
   
   png(file.path(path.cities, CITY, paste0(CITY, "LST_GAM-SCover_qaqc.png")), height=6, width=6, units="in", res=120)
@@ -476,6 +477,32 @@ for(CITY in citiesAnalyze){
   cityStatsRegion$LSTmodelSCover.R2adj[row.city] <- sum.modLSTCitySCover$r.sq
   cityStatsRegion$LSTmodelSCover.AIC[row.city] <- AIC(modLSTCitySCover)
   cityStatsRegion$LSTmodelSCover.RMSE[row.city] <- sqrt(mean(valsCity$LSTgamSCover.resid^2, na.rm=T))
+  # --------------
+
+  # --------------
+  # Same smoothing spline formulation as we use for ET
+  # --------------
+  modLSTCitySCoverTree <- gam(LST_Day ~ s(cover.tree) + elevation + s(x,y) + as.factor(year)-1, data=valsCity)
+  sum.modLSTCitySCoverTree <- summary(modLSTCitySCoverTree)
+  valsCity$LSTgamSCoverTree.pred <- predict(modLSTCitySCoverTree, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
+  valsCity$LSTgamSCoverTree.resid <- valsCity$LST_Day - valsCity$LSTgamSCoverTree.pred # Hand-calculating te residuals... gives the same thing
+  saveRDS(modLSTCitySCoverTree, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-SCoverTree.RDS")))
+  # par(mfrow=c(1,1)); plot(modLSTCity)
+  
+  png(file.path(path.cities, CITY, paste0(CITY, "LST_GAM-SCoverTreeOnly_qaqc.png")), height=6, width=6, units="in", res=120)
+  par(mfrow=c(3,2))
+  plot(modLSTCitySCoverTree)
+  hist(valsCity$LSTgamSCoverTree.resid)
+  plot(LSTgamSCoverTree.resid ~ LSTgamSCoverTree.pred, data=valsCity); abline(h=0, col="red")
+  plot(LST_Day ~ LSTgamSCoverTree.pred, data=valsCity); abline(a=0, b=1, col="red")
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  
+  # Save the key stats from the big LST model
+  cityStatsRegion$LSTmodelSCoverTree.R2adj[row.city] <- sum.modLSTCitySCoverTree$r.sq
+  cityStatsRegion$LSTmodelSCoverTree.AIC[row.city] <- AIC(modLSTCitySCoverTree)
+  cityStatsRegion$LSTmodelSCoverTree.RMSE[row.city] <- sqrt(mean(valsCity$LSTgamSCoverTree.resid^2, na.rm=T))
   # --------------
   
   
