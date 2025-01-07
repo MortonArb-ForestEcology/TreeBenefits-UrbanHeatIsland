@@ -58,14 +58,18 @@ summary(cityStatsRegion); dim(cityStatsRegion)
 
 
 # Find the cities that we need to analyze
-citiesAnalyze <- cityStatsRegion$ISOURBID[is.na(cityStatsRegion$LSTmodelFinal.tree.p) & !is.na(cityStatsRegion$n.pixels)]
+rowsAnalyze <- which(is.na(cityStatsRegion$LSTmodelFinal.tree.p) & !is.na(cityStatsRegion$n.pixels))
 length(citiesAnalyze)
 
+pb <- txtProgressBar(min=0, max=length(rowsAnalyze), style=3)
 # # Start City Loop -----
-for(CITY in citiesAnalyze){
+for(i in seq_along(rowsAnalyze)){
+  setTxtProgressBar(pb, i)
   # # Good Test Cities: Sydney (AUS66430)
   # CITY="AUS66430"; CITY="USA26687"
-  rowCity <- which(cityStatsRegion$ISOURBID==CITY)
+  # print(CITY)
+  rowCity <- rowsAnalyze[i]
+  CITY=cityStatsRegion$ISOURBID[rowCity]
   
   # -----------------------
   # READ IN VALUES AND APPROPRIATE MODEL FROM SCRIPT 2.1
@@ -93,6 +97,7 @@ for(CITY in citiesAnalyze){
   modSum <- summary(modLSTCitySCover)
   
   cityStatsRegion[rowCity, c("LSTmodelFinal.tree.p", "LSTmodelFinal.veg.p")] <- modSum$s.table[c("s(cover.tree)", "s(cover.veg)"), "p-value"]
+  cityStatsRegion$LSTmodelFinal.elev.p <- modSum$p.table["elevation", "Pr(>|t|)"]
   
 
   # Pulling out some intercept info to help with modeling
@@ -158,13 +163,13 @@ for(CITY in citiesAnalyze){
       
   write.csv(summaryCity[, !names(summaryCity) %in% c("year")], file.path(path.cities, CITY, paste0(CITY, "_CityStats_Pixels.csv")), row.names=F)
   
-  saveRDS(splineTree, file=file.path(path.google, "LSTModel_Spline_PartialEffects_CoverTree.rds"))
-  saveRDS(splineVeg, file=file.path(path.google, "LSTModel_Spline_PartialEffects_CoverVeg.rds"))
+  saveRDS(splineTree, file=file.path(path.cities, "../LSTModel_Spline_PartialEffects_CoverTree.rds"))
+  saveRDS(splineVeg, file=file.path(path.cities, "../LSTModel_Spline_PartialEffects_CoverVeg.rds"))
   
   
   write.csv(cityStatsRegion, file.cityStatsRegion, row.names=F)  # Write our city stats file each time in case it bonks
 
-  print("") # Just give a clean return before moving on
+  # print("") # Just give a clean return before moving on
   
   # Remove a bunch of stuff for our own sanity
   # rm(elevCity, treeCity, vegCity, lstCity, modLSTCity, valsCity, summaryCity, coordsCity, biome, sp.city, plot.corr.LST.Tree, plot.corr.LST.Veg, plot.corr.Tree.Veg, plot.lst.trend, plot.tree.trend, plot.veg.trend, plot.elev, plot.lst, plot.tree, plot.veg, veg.lst, veg.tree, tree.lst, veg.out, tree.out, sum.corrTreeLST, sum.corrVegLST, sum.corrVegTree, sum.modLSTCity)
