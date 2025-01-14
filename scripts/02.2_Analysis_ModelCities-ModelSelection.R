@@ -1,7 +1,5 @@
 # This script will just pull the data and run some LST models to decide which one we should move forward with
-library(raster); library(sp); library(terra); library(sf) 
 library(ggplot2)
-library(mgcv)
 
 overwrite=T
 
@@ -36,6 +34,7 @@ cityStatsRegion$dRMSEperc.Log <- cityStatsRegion$dRMSE.Log/cityStatsRegion$LSTmo
 
 cityStatsRegion$dRMSEperc.SCover <- cityStatsRegion$dRMSE.SCover/cityStatsRegion$LSTmodel.RMSE
 cityStatsRegion$dRMSEperc.SCoverTree <- cityStatsRegion$dRMSE.SCoverTree/cityStatsRegion$LSTmodel.RMSE
+cityStatsRegion$dRMSEperc.SCoverTree2 <- cityStatsRegion$dRMSE.SCoverTree/cityStatsRegion$LSTmodelSCover.RMSE
 
 summary(cityStatsRegion)
 

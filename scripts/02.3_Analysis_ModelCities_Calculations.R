@@ -1,4 +1,3 @@
-library(raster); library(sp); library(terra); library(sf) 
 library(ggplot2)
 library(mgcv)
 
@@ -59,7 +58,7 @@ summary(cityStatsRegion); dim(cityStatsRegion)
 
 # Find the cities that we need to analyze
 rowsAnalyze <- which(is.na(cityStatsRegion$LSTmodelFinal.tree.p) & !is.na(cityStatsRegion$n.pixels))
-length(citiesAnalyze)
+length(rowsAnalyze)
 
 pb <- txtProgressBar(min=0, max=length(rowsAnalyze), style=3)
 # # Start City Loop -----
@@ -78,7 +77,7 @@ for(i in seq_along(rowsAnalyze)){
   summary(valsCity)
   
   # modLSTCitySCover
-  load(file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-SCover.RData")))
+  modLSTCitySCover <- readRDS(file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-SCover.RDS")))
   summary(modLSTCitySCover)
   
   saveRDS(modLSTCitySCover, file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-Final.RDS")))
@@ -97,7 +96,7 @@ for(i in seq_along(rowsAnalyze)){
   modSum <- summary(modLSTCitySCover)
   
   cityStatsRegion[rowCity, c("LSTmodelFinal.tree.p", "LSTmodelFinal.veg.p")] <- modSum$s.table[c("s(cover.tree)", "s(cover.veg)"), "p-value"]
-  cityStatsRegion$LSTmodelFinal.elev.p <- modSum$p.table["elevation", "Pr(>|t|)"]
+  cityStatsRegion$LSTmodelFinal.elev.p[rowCity] <- modSum$p.table["elevation", "Pr(>|t|)"]
   
 
   # Pulling out some intercept info to help with modeling
