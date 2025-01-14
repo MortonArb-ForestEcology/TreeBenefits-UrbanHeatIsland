@@ -13,7 +13,7 @@ if(!dir.exists(path.cities)) dir.create(path.cities, recursive=T, showWarnings =
 file.cityStatsRegion <- file.path(path.cities, "../city_stats_model.csv")
 
 # Which model to use based off of script 2
-modelUse <- "SCover"
+modelUse <- ""
 nInterval = 50 # Number of divisions for plotting partial effects
 
 # Path to where Earth Engine is saving the spatial extractions
