@@ -35,6 +35,7 @@ if(!file.exists(file.cityStatsRegion) | overwrite){
   cityStatsRegion <- cityStatsBase[, !grepl("model", names(cityStatsBase))]
   cityStatsRegion[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE")] <- cityStatsBase[,paste0("LSTmodel", modelUse, c(".R2adj", ".RMSE"))]
   cityStatsRegion[,c("LSTmodelFinal.tree.p", "LSTmodelFinal.veg.p", "LSTmodelFinal.elev.p", "LSTmodelFinal.Intercept.Mean")] <- NA
+  cityStatsRegion[,c("LSTslope.tree", "LSTslope.veg")] <- NA
   cityStatsRegion[,c("LSTEffect.tree", "LSTEffect.veg")] <- NA
 
   # Also look at the correlation tree & veg cover
@@ -76,11 +77,14 @@ for(i in seq_along(rowsAnalyze)){
   valsCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_values-All.csv")))
   summary(valsCity)
   
-  # modLSTCitySCover
-  modLSTCitySCover <- readRDS(file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-SCover.RDS")))
-  summary(modLSTCitySCover)
+  # modNow
+  # modfName <- grep(modelNa)
+  # modNow <- readRDS(file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam", modelUse, ".RDS")))
+  load(file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam", modelUse, ".RData")))
+  modNow <- modLSTCity
+  summary(modNow)
   
-  saveRDS(modLSTCitySCover, file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-Final.RDS")))
+  saveRDS(modNow, file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-Final.RDS")))
   
   # Quick check on the correlation between tree & veg cover
   # plot(cover.veg ~ cover.tree, data=valsCity)
@@ -93,9 +97,25 @@ for(i in seq_along(rowsAnalyze)){
   cityStatsRegion$corr.tree.veg.Rsq[rowCity] <- sumTreeVeg$r.squared
   
   # Extract the p-value for our key effects --> with the spline we do NOT have handy coefficients to pull out
-  modSum <- summary(modLSTCitySCover)
+  modSum <- summary(modNow)
   
-  cityStatsRegion[rowCity, c("LSTmodelFinal.tree.p", "LSTmodelFinal.veg.p")] <- modSum$s.table[c("s(cover.tree)", "s(cover.veg)"), "p-value"]
+  # Soft-coding the names of the tree & non-tree veg effect
+  if("cover.tree" %in% row.names(modSum$p.table)){
+    cityStatsRegion[rowCity, c("LSTmodelFinal.tree.p")] <- modSum$p.table[c("cover.tree"), "Pr(>|t|)"]
+    cityStatsRegion[rowCity, c("LSTslope.tree")] <- modSum$p.table[c("cover.tree"), "Estimate"]
+    
+  } else {
+    cityStatsRegion[rowCity, c("LSTmodelFinal.tree.p")] <- modSum$s.table[c("s(cover.tree)"), "p-value"]
+  }
+
+  if("cover.veg" %in% row.names(modSum$p.table)){
+    cityStatsRegion[rowCity, c("LSTmodelFinal.veg.p")] <- modSum$p.table[c("cover.veg"), "Pr(>|t|)"]
+    cityStatsRegion[rowCity, c("LSTslope.veg")] <- modSum$p.table[c("cover.veg"), "Estimate"]
+    
+  } else {
+    cityStatsRegion[rowCity, c("LSTmodelFinal.veg.p")] <- modSum$s.table[c("s(cover.veg)"), "p-value"]
+  }
+  
   cityStatsRegion$LSTmodelFinal.elev.p[rowCity] <- modSum$p.table["elevation", "Pr(>|t|)"]
   
 
@@ -123,12 +143,20 @@ for(i in seq_along(rowsAnalyze)){
 
   
   # Worth pulling out the partial effects here for each pixel as well as the range of values like we do for ET
-  effCity <- data.frame(predict(modLSTCitySCover, type="terms", newdata=summaryCity, exclude="as.factor(year)"))
+  
+  effCity <- data.frame(predict(modNow, type="terms", newdata=summaryCity, exclude="as.factor(year)"))
   effCity$intercept <- intMean
   summary(effCity)
   summaryCity$LST.predict <- apply(effCity, 1, sum)
   summaryCity$LST.resid <- summaryCity$LST_Day - summaryCity$LST.predict
-  summaryCity[,c("LSTEffect.elevation", "LSTEffect.tree", "LSTEffect.veg", "LSTeffect.xy")] <- effCity[,c("elevation", "s.cover.tree.", "s.cover.veg.", "s.x.y.")]
+  
+  # Real ugly way of soft-coding the tree var, but so it goes
+  varTree <- ifelse("s.cover.tree." %in% names(effCity), "s.cover.tree.", "cover.tree")
+  varVeg <- ifelse("s.cover.veg." %in% names(effCity), "s.cover.veg.", "cover.veg")
+  varTree2 <- ifelse("s.cover.tree." %in% names(effCity), "s(cover.tree)", "cover.tree")
+  varVeg2 <- ifelse("s.cover.veg." %in% names(effCity), "s(cover.veg)", "cover.veg")
+  
+  summaryCity[,c("LSTEffect.elevation", "LSTEffect.tree", "LSTEffect.veg", "LSTeffect.xy")] <- effCity[,c("elevation", varTree, varVeg, "s.x.y.")]
   summary(summaryCity)
   
   # plot(LST_Day ~ LST.predict, data=summaryCity); abline(a=0, b=1, col="red2")
@@ -139,24 +167,24 @@ for(i in seq_along(rowsAnalyze)){
   cityStatsRegion[rowCity, c("LSTEffect.tree", "LSTEffect.veg")] <- apply(summaryCity[,c("LSTEffect.tree", "LSTEffect.veg")], 2, mean)
   cityStatsRegion[rowCity, c("LSTEffect.tree.city", "LSTEffect.veg.city")] <- apply(summaryCity[summaryCity$cityBounds, c("LSTEffect.tree", "LSTEffect.veg")], 2, mean)
   
-  dfTree <- data.frame(cover.tree=seq(min(modLSTCitySCover$model$cover.tree), max(modLSTCitySCover$model$cover.tree), length.out=nInterval),
-                      cover.veg=mean(modLSTCitySCover$model$cover.veg),
-                      elevation=mean(modLSTCitySCover$model$elevation),
-                      x=mean(modLSTCitySCover$model$x),
-                      y=mean(modLSTCitySCover$model$y),
+  dfTree <- data.frame(cover.tree=seq(min(modNow$model$cover.tree), max(modNow$model$cover.tree), length.out=nInterval),
+                      cover.veg=mean(modNow$model$cover.veg),
+                      elevation=mean(modNow$model$elevation),
+                      x=mean(modNow$model$x),
+                      y=mean(modNow$model$y),
                       year=yearMean)
-  splineTree[[CITY]] <- data.frame(ISOURBID=CITY, cover.tree=dfTree$cover.tree, LST.pred=predict(modLSTCitySCover, newdata=dfTree),
-                                   effect.tree = as.vector(predict(modLSTCitySCover, newdata=dfTree, type="terms", exclude=c("s(cover.veg)", "s(x,y)", "elevation", "as.factor(year)"))))
+  splineTree[[CITY]] <- data.frame(ISOURBID=CITY, cover.tree=dfTree$cover.tree, LST.pred=predict(modNow, newdata=dfTree),
+                                   effect.tree = as.vector(predict(modNow, newdata=dfTree, type="terms", exclude=c(varVeg2, "s(x,y)", "elevation", "as.factor(year)"))))
   summary(splineTree[[CITY]])
 
-  dfVeg <- data.frame(cover.veg=seq(min(modLSTCitySCover$model$cover.veg), max(modLSTCitySCover$model$cover.veg), length.out=nInterval),
-                       cover.tree=mean(modLSTCitySCover$model$cover.tree),
-                       elevation=mean(modLSTCitySCover$model$elevation),
-                       x=mean(modLSTCitySCover$model$x),
-                       y=mean(modLSTCitySCover$model$y),
+  dfVeg <- data.frame(cover.veg=seq(min(modNow$model$cover.veg), max(modNow$model$cover.veg), length.out=nInterval),
+                       cover.tree=mean(modNow$model$cover.tree),
+                       elevation=mean(modNow$model$elevation),
+                       x=mean(modNow$model$x),
+                       y=mean(modNow$model$y),
                        year=yearMean)
-  splineVeg[[CITY]] <- data.frame(ISOURBID=CITY, cover.veg=dfVeg$cover.veg, LST.pred=predict(modLSTCitySCover, newdata=dfVeg),
-                                   effect.veg = as.vector(predict(modLSTCitySCover, newdata=dfVeg, type="terms", exclude=c("s(cover.tree)", "s(x,y)", "elevation", "as.factor(year)"))))
+  splineVeg[[CITY]] <- data.frame(ISOURBID=CITY, cover.veg=dfVeg$cover.veg, LST.pred=predict(modNow, newdata=dfVeg),
+                                   effect.veg = as.vector(predict(modNow, newdata=dfVeg, type="terms", exclude=c(varTree2, "s(x,y)", "elevation", "as.factor(year)"))))
   summary(splineVeg[[CITY]])
   
       

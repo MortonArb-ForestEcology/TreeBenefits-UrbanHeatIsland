@@ -413,7 +413,7 @@ for(CITY in citiesAnalyze){
   cityStatsRegion$LST.NoVeg.model.R2adj[row.city] <- sum.modLSTnull$r.sq
   cityStatsRegion$LST.NoVeg.model.AIC[row.city] <- AIC(modLSTnull)
   cityStatsRegion$LST.NoVeg.model.RMSE[row.city] <- sqrt(mean(valsCity$LST.NoVeg.gam.resid^2, na.rm=T))
-  save(modLSTnull, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST-NoVegNull_gam.RData")))
+  saveRDS(modLSTnull, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST-NoVegNull_gam.RDS")))
   
   png(file.path(path.cities, CITY, paste0(CITY, "LST-NoVegNull_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
   par(mfrow=c(2,2))
@@ -432,7 +432,7 @@ for(CITY in citiesAnalyze){
   sum.modLSTCity <- summary(modLSTCity)
   valsCity$LSTgam.pred <- predict(modLSTCity, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
   valsCity$LSTgam.resid <- valsCity$LST_Day - valsCity$LSTgam.pred # Hand-calculating te residuals... gives the same thing
-  save(modLSTCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam.RData")))
+  saveRDS(modLSTCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam.RDS")))
   # par(mfrow=c(1,1)); plot(modLSTCity)
   
   png(file.path(path.cities, CITY, paste0(CITY, "LST_GAM_qaqc.png")), height=6, width=6, units="in", res=120)
@@ -517,7 +517,7 @@ for(CITY in citiesAnalyze){
   sum.modLSTCityLog <- summary(modLSTCityLog)
   valsCity$LSTgamLog.pred <- predict(modLSTCityLog, newdata=valsCity2) # Shifting to the newdata version to predict for where we have missing data
   valsCity$LSTgamLog.resid <- valsCity$LST_Day - valsCity$LSTgamLog.pred # Hand-calculating te residuals... gives the same thing
-  save(modLSTCityLog, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-Log.RData")))
+  saveRDS(modLSTCityLog, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-Log.RDS")))
   # par(mfrow=c(1,1)); plot(modLSTCity)
   
   png(file.path(path.cities, CITY, paste0(CITY, "LST_GAM-Log_qaqc.png")), height=6, width=6, units="in", res=120)
