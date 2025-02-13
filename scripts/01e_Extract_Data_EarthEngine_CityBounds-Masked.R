@@ -1,4 +1,5 @@
 # Migrating the Trees & Urban Heat Island workflow to using Google Earth Engine
+# Note: This script creates a second buffer layer where we've masked out other urban areas (whether in our sample or not) from the buffer.  
 
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
@@ -26,13 +27,28 @@ cityIDsAll <- sdei.df$ISOURBID
 
 sdei <- ee$FeatureCollection('users/crollinson/sdei-global-uhi-2013');
 # print(sdei.first())
+ee_print(sdei)
+
+sdeiSimple <- sdei$map(function(x){
+  x$setGeometry(x$geometry()$simplify(100))
+})
+ee_print(sdeiSimple)
 
 # Right now, just set all cities with >100k people in the metro area and at least 100 sq km in size
 citiesUse <- sdei$filter(ee$Filter$gte('ES00POP', 100e3))$filter(ee$Filter$gte('SQKM_FINAL', 1e2)) 
-
+ee_print(citiesUse)
 
 # Making the buffer file a separate thing!
 citiesBuff <- citiesUse$map(function(f){f$buffer(10e3)})
+
+# Excluding other cities (that meet our analysis criteria or not) 
+citiesBuffExcl <- citiesBuff$map(function(x){
+  geom <- x$geometry()
+  diff_geom <- geom$difference(sdeiSimple$geometry(), ee$ErrorMargin(1))
+  x$setGeometry(diff_geom)
+})
+ee_print(citiesBuffExcl)
+# Map$addLayer(citiesBuffExcl)
 #####################
 
 
@@ -67,7 +83,7 @@ extractCityMask <- function(cityBuff, cityRaw, CityNames, BASE, GoogleFolderSave
     cityID <- CityNames[i]
     # cityNow <- citiesUse$filter('NAME=="Chicago"')$first()
     cityNow <- cityRaw$filter(ee$Filter$eq('ISOURBID', cityID))
-    cityNowBuff <- cityBuff$filter(ee$Filter$eq('ISOURBID', cityID)) # Note: this is only getting used for the geometry arguement.  We'll see how it works
+    cityNowBuff <- citiesBuffExcl$filter(ee$Filter$eq('ISOURBID', cityID)) # Note: this is only getting used for the geometry arguement.  We'll see how it works
     # Map$centerObject(cityNow) # NOTE: THIS IS REALLY IMPORTANT APPARENTLY!
     # Map$addLayer(cityNow)
     
@@ -79,9 +95,9 @@ extractCityMask <- function(cityBuff, cityRaw, CityNames, BASE, GoogleFolderSave
     # Map$addLayer(baseCity)
     baseCity <- BASE$clip(cityNow)
     # Map$addLayer(baseCity)
-
+    
     # Save elevation only if it's worth our while -- Note: Still doing the extraction & computation first since we use it as our base
-    export.mask <- ee_image_to_drive(image=baseCity, description=paste0(cityID, "_CityMask"), fileNamePrefix=paste0(cityID, "_CityMask"), folder=GoogleFolderSave, timePrefix=F, region=cityNowBuff$geometry(), maxPixels=5e6, crs=projCRS, crsTransform=projTransform)
+    export.mask <- ee_image_to_drive(image=baseCity, description=paste0(cityID, "_Buffer-NoUrb"), fileNamePrefix=paste0(cityID, "_Buffer-NoUrbz"), folder=GoogleFolderSave, timePrefix=F, region=cityNowBuff$geometry(), maxPixels=5e6, crs=projCRS, crsTransform=projTransform)
     export.mask$start()
     # ee_monitoring(export.elev)
     #-------
@@ -103,7 +119,7 @@ cityIdN <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0]
 cityRemove <- vector()
 if(!overwrite){
   ### Filter out sites that have been done!
-  mask.done <- dir(file.path(path.google, GoogleFolderSave), "CityMask.tif")
+  mask.done <- dir(file.path(path.google, GoogleFolderSave), "_Buffer-NoUrb.tif")
   
   # Check to make sure a city has all three layers; if it doesn't do it again
   cityRemove <- unlist(lapply(strsplit(mask.done, "_"), function(x){x[1]}))
@@ -127,6 +143,12 @@ buffNorth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 # 
 # testBuff <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_CityMask.tif")))
 # plot(testBuff)
+# testBuff2 <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_CityMask-UrbMask.tif")))
+# plot(testBuff2)
+# testdf <- data.frame(coordinates(testBuff2))
+# testdf$valsOrig <- getValues(testBuff)
+# testdf$valsBuff <- getValues(testBuff2)
+# summary(testdf)
 
 if(length(cityIdS)>0){
   extractCityMask(cityBuff=buffSouth, cityRaw=citiesSouth, CityNames=cityIdS, BASE=vegMask, GoogleFolderSave, overwrite=T)
