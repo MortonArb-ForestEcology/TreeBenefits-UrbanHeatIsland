@@ -1,13 +1,16 @@
 # # Script to go through the pixel-level data and calculate the core vs buffer stats
 library(ggplot2); library(RColorBrewer); library(cowplot)
+library(raster); library(sp); library(terra); library(sf) 
 
 
 ###########################################
 # Establish file paths etc ----
 ###########################################
 # user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
+path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
 path.cities <- file.path(path.google, "data_processed_final")
+# Path to where Earth Engine is saving the spatial extractions
+path.EEout <- file.path("~/Google Drive/My Drive", "UHI_Analysis_Output_Final_v4")
 
 path.figs <- file.path(path.google, "figures_exploratory")
 dir.create(path.figs, recursive=T, showWarnings=F)
@@ -16,6 +19,31 @@ dir.create(path.figs, recursive=T, showWarnings=F)
 ###########################################
 # Work with the cityAll.stats file to start re-building the core vs. buffer stats
 ###########################################
+# Read in metro shapefile so we can update the buffer
+sdei.urb <- read_sf("../data_shapefiles/SDEI-Towers_MODISproj.shp")
+sdei.urb <- sdei.urb[sdei.urb$ES00POP>100e3 & sdei.urb$SQKM_FINAL>100,]
+summary(sdei.urb)
+plot(sdei.urb)
+
+# A couple original extractions to try to figure out overlapping metro cores
+files.tree <- dir(path.EEout, "PercentTree")
+files.mask <- dir(path.EEout, "CityMask")
+
+cityTest <- strsplit(files.tree[1], "_")[[1]][1]
+
+treeTest <- rast(file.path(path.EEout, files.tree[1]))
+plot(treeTest[[1]])
+crs(treeTest)
+# # Convert SDEI file into projection of our tree & mask
+# projMODIS <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+# # sdei.urb <- st_transform(sdei.urb, crs(projMODIS))
+# # summary(sdei.urb)
+# 
+# crs()
+# sdei.urb <- st_transform(sdei.urb, crs(projMODIS))
+plot(treeTest[[1]]); plot(sdei.urb[sdei.urb$ISOURBID==cityTest,], add=T)
+
+
 cityAll.stats <- read.csv(file.path(path.cities, "..", "city_stats_all.csv"))
 head(cityAll.stats)
 
@@ -60,6 +88,13 @@ for(i in 1:nrow(cityAll.stats)){
   if(!file.exists(file.path(path.cities, URBID, paste0(URBID, "_CityStats_Pixels.csv")))) next
   datAll <- read.csv(file.path(path.cities, URBID, paste0(URBID, "_CityStats_Pixels.csv")))
   summary(datAll)
+  
+  # Need to figure out parts of the metro buffer intersect with another metroregion
+  fTREE <- files.tree[grep(URBID, files.tree)]
+  fMASK <- files.mask[grep(URBID, files.mask)]
+  
+  treeCity <- rast(file.path(path.EEout, fTREE[length(fTREE)]))
+  plot(treeCity)
   
   if(nrow(datAll)<50 | length(unique(datAll$cityBounds))<2) next # For some reason we have some cities with only 2 pixels?
   # Calculate some summary stats

@@ -4,7 +4,7 @@ library(ggplot2)
 
 library(rgee); 
 ee_check() # For some reason, it's important to run this before initializing right now
-rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
+rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T, project="urbanecodrought")
 path.google <- "~/Google Drive/My Drive/"
 GoogleFolderSave <- "UHI_Analysis_Output_Final_Shapefiles"
 assetHome <- ee_get_assethome()
@@ -20,7 +20,10 @@ path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought
 
 
 # Load a standardized raster image
-vegMask <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask")
+# projects/crollinson/assets
+# vegMask <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask")
+
+vegMask <- ee$Image("projects/earthengine-legacy/assets/users/crollinson/MOD44b_1km_Reproj_VegMask")
 # Map$addLayer(vegMask)
 
 # Pulling all the components even though we just need the whole projection
@@ -58,10 +61,11 @@ length(citiesList)
 # Put things in earth engine
 # Put things in earth engine
 sdei <- ee$FeatureCollection('users/crollinson/sdei-global-uhi-2013');
-# print(sdei.first())
+# print(sdei)
 
 # Right now, just set all cities with >100k people in the metro area and at least 100 sq km in size
 citiesUse <- sdei$filter(ee$Filter$gte('ES00POP', 100e3))$filter(ee$Filter$gte('SQKM_FINAL', 1e2)) 
+ee_print(citiesUse)
 
 ee_sdeiTrans <- citiesUse$map(function(x){ 
   x$transform(projMask, maxError=42) # 42 because why not... it's the answer to life, the universe and everything
@@ -102,13 +106,16 @@ ecoTrans <- ecoregions$map(function(x){
 
 EcoRegionSave <- "UHI_Analysis_Output_Final_Shapefiles-Ecoregions"
 assetHome <- ee_get_assethome()
-if(!file.exists(file.path(path.google, EcoRegionSave))) dir.create(file.path(path.google, EcoRegionSave), recursive = T)
+
+# "~/Google Drive/My Drive/"
+if(!file.exists(file.path(path.google, "My Drive", EcoRegionSave))) dir.create(file.path(path.google, EcoRegionSave), recursive = T)
 
 
-citiesUseBuff <- citiesUse$map(function(f){f$buffer(10e3)})
+citiesUseBuff <- ee_sdeiTrans$map(function(f){f$buffer(10e3)})
+ee_print(citiesUseBuff)
 
 pb <- txtProgressBar(min=0, max=length(sdei.df$ISOURBID), style=3)
-for(i in 1:length(sdei.df)){
+for(i in 1:nrow(sdei.df)){
   setTxtProgressBar(pb, i)
   cityID <- sdei.df$ISOURBID[i]
   # 648 = Chicago
@@ -118,14 +125,60 @@ for(i in 1:length(sdei.df)){
   # Map$addLayer(cityNow)
   # Map$addLayer(ecoTrans)
   
+  cityNow <- cityNow$map(function(x){x$transform(projMask, maxError=42)})
+  
+  ee_print(cityNow)
+  
+  
   # biomeNow <- ecoTrans$filterBounds(cityNow)
   biomeNow <- ecoTrans$map(function(x){
-    x$intersection(cityNow$first(), maxError=100)
+    x$intersection(cityNow$first(), maxError=1)
   })
   # Map$addLayer(biomeNow)
   # ee_print(biomeNow)
   
-  saveEco <- ee_table_to_drive(biomeNow, description = paste0(cityID, "_Ecoregions_MODISproj"), fileFormat="SHP", folder=GoogleFolderSave, timePrefix = F)
+  # Trying to figure out how we can get rid of empty layers
+  print(biomeNow$size()$getInfo())
+  
+  biomeNow$map(function(x) {
+    ee$Feature(NULL, list(
+      area=x$geometry()$area(),
+      valid=x$geometry()$isValid(),
+      simple=x$geometry()$isSimple())
+    )
+  })$getInfo() %>% print()
+  
+  
+  # Filter out empty geompetries
+  # biomeNow <- biomeNow$map(function(x){
+  #   ee$Feature(ee$Algorithms$If(ee$Number(x$geometry()$area())$gt(0), x, NULL))
+  # }, TRUE)
+  # ee_print(biomeNow)
+  # 
+  biomeNowTrans <- biomeNow$map(function(x){ 
+    x$transform(projMask, maxError=1) # 42 because why not... it's the answer to life, the universe and everything
+  })
+  ee_print(biomeNowTrans)
+  # print(biomeNowTrans$size()$getInfo())
+  
+  
+  # valList <- biomeNowTrans$reduceRegion(
+  #   reducer=ee$Reducer$toList()
+  #   geometry = cityNow
+  #   
+  #   
+  # )
+  # 
+  # biomeTransFilter <- biomeNowTrans$map(function(x){
+  #   # ee$Feature(ee$Algorithms$If(x$geometry()$isEmpty(), NULL, x))
+  #   # ee$Feature(ee$Algorithms$If(x$geometry()$isEmpty(), NULL, x))
+  #   # ee$Feature(ee$Algorithms$If(ee$Geometry$isEmpty(x$geometry()), NULL, x))
+  #   ee$Feature(ee$Algorithms$If(ee$Algorithms$IsEqual(x$geometry()$area(), 0), NULL, x))
+  # })$filter(ee$Filter$notNull(list("geometry")))
+  # ee_print(biomeTransFilter)
+  # 
+  
+  saveEco <- ee_table_to_drive(biomeNowTrans, description = paste0(cityID, "_Ecoregions_MODISproj"), fileFormat="SHP", folder=GoogleFolderSave, timePrefix = F)
   saveEco$start()
   
 }
