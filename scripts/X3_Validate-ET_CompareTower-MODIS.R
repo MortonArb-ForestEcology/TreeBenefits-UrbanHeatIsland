@@ -67,7 +67,13 @@ for(i in 1:nrow(aggTower)){
   }
 }
 summary(aggTower)
+mean(aggTower$RMSE.pixel); sd(aggTower$RMSE.pixel)
+mean(aggTower$RMSE.modis); sd(aggTower$RMSE.modis)
+mean(aggTower$RMSE.gldas); sd(aggTower$RMSE.gldas)
 
+mean(aggTower$R2.pixel, na.rm=T); sd(aggTower$R2.pixel, na.rm=T)
+mean(aggTower$R2.modis, na.rm=T); sd(aggTower$R2.modis, na.rm=T)
+mean(aggTower$R2.gldas, na.rm=T); sd(aggTower$R2.gldas, na.rm=T)
 # aggTower <- aggTower[,c("ISOURBID", "ISO3", "NAME", "SITE_ID", "IGBP", "TOWER_LAT", "TOWER_LONG", "YEARS", "n.YRS", "ET", "TA", "ETmodel.R2adj", "ETmodel.RMSE", "ET.pixel", "ET.modis", "ET.gldas", "Error.pixel", "Error.modis", "Error.gldas", "RMSE.pixel", "RMSE.modis", "RMSE.gldas", "R2.pixel", "R2.modis", "R2.gldas")]
 
 write.csv(aggTower, file.path(path.tower, "FluxTower_ETcomparison_AllTowers-Aggregated.csv"), row.names=F)
