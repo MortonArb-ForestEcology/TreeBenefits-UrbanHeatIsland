@@ -42,12 +42,12 @@ ee_print(citiesUse)
 citiesBuff <- citiesUse$map(function(f){f$buffer(10e3)})
 
 # Excluding other cities (that meet our analysis criteria or not) 
-citiesBuffExcl <- citiesBuff$map(function(x){
-  geom <- x$geometry()
-  diff_geom <- geom$difference(sdeiSimple$geometry(), ee$ErrorMargin(1))
-  x$setGeometry(diff_geom)
-})
-ee_print(citiesBuffExcl)
+# citiesBuffExcl <- citiesBuff$map(function(x){
+#   geom <- x$geometry()
+#   diff_geom <- geom$difference(sdeiSimple$geometry(), ee$ErrorMargin(1))
+#   x$setGeometry(diff_geom)
+# })
+# ee_print(citiesBuffExcl)
 # Map$addLayer(citiesBuffExcl)
 #####################
 
@@ -82,10 +82,22 @@ extractCityMask <- function(cityBuff, cityRaw, CityNames, BASE, GoogleFolderSave
     # cityID="USA26687" # Chicago
     cityID <- CityNames[i]
     # cityNow <- citiesUse$filter('NAME=="Chicago"')$first()
-    cityNow <- cityRaw$filter(ee$Filter$eq('ISOURBID', cityID))
-    cityNowBuff <- citiesBuffExcl$filter(ee$Filter$eq('ISOURBID', cityID)) # Note: this is only getting used for the geometry arguement.  We'll see how it works
-    # Map$centerObject(cityNow) # NOTE: THIS IS REALLY IMPORTANT APPARENTLY!
-    # Map$addLayer(cityNow)
+    cityNowBuff <- cityBuff$filter(ee$Filter$eq('ISOURBID', cityID)) # Note: this is only getting used for the geometry arguement.  We'll see how it works
+    # Map$centerObject(cityNowBuff) # NOTE: THIS IS REALLY IMPORTANT APPARENTLY!
+    # Map$addLayer(cityNowBuff)
+    cityRawClip <- cityRaw$map(function(x){
+      x$intersection(cityNowBuff$geometry(), ee$ErrorMargin(1))
+    })
+    # Map$centerObject(cityNowBuff) # NOTE: THIS IS REALLY IMPORTANT APPARENTLY!
+    # Map$addLayer(cityRawClip)
+    
+    # Now removing the clip area from the buffer
+    cityBuffExcl <- cityNowBuff$map(function(x){
+      geom <- x$geometry()
+      diff_geom <- geom$difference(cityRawClip$geometry(), ee$ErrorMargin(1))
+      x$setGeometry(diff_geom)
+    })
+    # Map$addLayer(cityBuffExcl)
     
     #-------
     # extracting elevation -- 
@@ -93,11 +105,11 @@ extractCityMask <- function(cityBuff, cityRaw, CityNames, BASE, GoogleFolderSave
     #-------
     # baseCity <- BASE$clip(cityNowBuff)
     # Map$addLayer(baseCity)
-    baseCity <- BASE$clip(cityNow)
+    baseCity <- BASE$clip(cityBuffExcl)
     # Map$addLayer(baseCity)
     
     # Save elevation only if it's worth our while -- Note: Still doing the extraction & computation first since we use it as our base
-    export.mask <- ee_image_to_drive(image=baseCity, description=paste0(cityID, "_Buffer-NoUrb"), fileNamePrefix=paste0(cityID, "_Buffer-NoUrbz"), folder=GoogleFolderSave, timePrefix=F, region=cityNowBuff$geometry(), maxPixels=5e6, crs=projCRS, crsTransform=projTransform)
+    export.mask <- ee_image_to_drive(image=baseCity, description=paste0(cityID, "_Buffer-NoUrb"), fileNamePrefix=paste0(cityID, "_Buffer-NoUrb"), folder=GoogleFolderSave, timePrefix=F, region=cityNowBuff$geometry(), maxPixels=5e6, crs=projCRS, crsTransform=projTransform)
     export.mask$start()
     # ee_monitoring(export.elev)
     #-------
@@ -131,19 +143,19 @@ if(!overwrite){
 length(cityIdS); length(cityIdN)
 
 
-citiesSouth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
-citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
+# citiesSouth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
+# citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 
 buffSouth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
 buffNorth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 
 # TEST CITY
 # CITY = "SWE3477"
-# extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=CITY, BASE=vegMask, GoogleFolderSave, overwrite=T)
+# extractCityMask(cityBuff=buffNorth, cityRaw=sdei, CityNames=CITY, BASE=vegMask, GoogleFolderSave, overwrite=T)
 # 
 # testBuff <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_CityMask.tif")))
 # plot(testBuff)
-# testBuff2 <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_CityMask-UrbMask.tif")))
+# testBuff2 <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_Buffer-NoUrb.tif")))
 # plot(testBuff2)
 # testdf <- data.frame(coordinates(testBuff2))
 # testdf$valsOrig <- getValues(testBuff)
@@ -151,11 +163,11 @@ buffNorth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
 # summary(testdf)
 
 if(length(cityIdS)>0){
-  extractCityMask(cityBuff=buffSouth, cityRaw=citiesSouth, CityNames=cityIdS, BASE=vegMask, GoogleFolderSave, overwrite=T)
+  extractCityMask(cityBuff=buffSouth, cityRaw=sdei, CityNames=cityIdS, BASE=vegMask, GoogleFolderSave, overwrite=T)
 }
 
 if(length(cityIdN)>0){
-  extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=cityIdN, BASE=vegMask, GoogleFolderSave, overwrite=T)
+  extractCityMask(cityBuff=buffNorth, cityRaw=sdei, CityNames=cityIdN, BASE=vegMask, GoogleFolderSave, overwrite=T)
 }
 
 

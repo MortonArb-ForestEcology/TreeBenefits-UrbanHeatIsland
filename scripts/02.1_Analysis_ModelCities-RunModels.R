@@ -211,9 +211,48 @@ for(CITY in citiesAnalyze){
   coordsCity$elevation <- getValues(elevCity)
   coordsCity$cityBounds <- getValues(maskCity)
   coordsCity$cityBounds <- !is.na(coordsCity$cityBounds) # NA = buffer = FALSE citybounds
-  coordsCity$bufferNoUrb <- getValues(buffCity) # NA = buffer = FALSE citybounds
-  coordsCity$bufferNoUrb <- !is.na(coordsCity$bufferNoUrb) # T = non-urban buffer
   
+  coordsBuff <- data.frame(coordinates(buffCity))
+  coordsBuff$location <- paste0("x", coordsBuff$x, "y", coordsBuff$y)
+  coordsBuff$bufferNoUrb <- getValues(buffCity) # NA = buffer = FALSE citybounds
+  coordsBuff$bufferNoUrb <- !is.na(coordsBuff$bufferNoUrb) # T = non-urban buffer
+  
+  if(all(coordsBuff$location == coordsCity$location)){
+    coordsCity$bufferNoUrb <- coordsBuff$bufferNoUrb
+    # valsCity <- merge(coordsCity, valsCityVeg, all.x=T, all.y=T)
+    
+  } else if(nrow(coordsBuff)==nrow(coordsCity)) {
+    # Checking to make sure the offset is minimal
+    datComb <- data.frame(x1=coordsBuff$x, y1=coordsBuff$y, x2 = coordsCity$x, y2 = coordsCity$y)
+    datComb$x.diff <- datComb$x1 - datComb$x2
+    datComb$y.diff <- datComb$y1 - datComb$y2
+    # summary(datComb) # For this example, it's a stupid tiny offset
+    
+    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
+      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
+      # cityStatsRegion$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
+      coordsCity$bufferNoUrb <- coordsBuff$bufferNoUrb
+    }  else {
+      stop("Something's really off")
+    }
+    
+  } else if( any(coordsVeg$location %in% coordsCity$location)) {  
+    print(warning("Veg and Elev Layer Coords don't match, but at least some do"))
+    # valsCity <- valsCityVeg[,]
+    coordsCity <- merge(coordsCity, coordsBuff, all.x=T, all.y=F)
+  } else {
+    print(warning("Veg and Elev Layer doesn't match. :-( skipping for now to see how prevalent that is"))
+    next
+  }
+  
+  # ggplot(data=coordsCity, aes(x=x, y=y, fill=elevation)) +
+  #   coord_equal() +
+  #   geom_tile() +
+  #   geom_tile(data=coordsCity[coordsCity$cityBounds,], color="orange2", alpha=0.5)+
+  #   geom_tile(data=coordsCity[coordsCity$bufferNoUrb,], color="red2", alpha=0.8)
+  # geom_tile(data=coordsCity[coordsCity$cityBounds,], aes(fill="core"))+
+  # geom_tile(data=coordsCity[coordsCity$bufferNoUrb,], aes(fill="buffer"), alpha=0.8)
+    
   # Double Checking the mask 
   coordsMask <- data.frame(coordinates(maskCity))
   coordsMask$location <- paste0("x", coordsMask$x, "y", coordsMask$y)
