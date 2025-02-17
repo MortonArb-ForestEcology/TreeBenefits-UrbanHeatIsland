@@ -105,7 +105,9 @@ files.et <- dir(path.EEout, "ETmean")
 files.tree <- dir(path.EEout, "PercentTree")
 files.veg <- dir(path.EEout, "PercentOtherVeg")
 files.mask <- dir(path.EEout, "CityMask")
-length(files.elev); length(files.lst); length(files.et); length(files.tree); length(files.veg); length(files.mask)
+files.buff <- dir(path.EEout, "Buffer-NoUrb")
+
+length(files.elev); length(files.lst); length(files.et); length(files.tree); length(files.veg); length(files.mask); length(files.buff)
 # Note: We're missing 3 cities for ET data
 
 # Figure out which cities have all the layers needed to be analyzed
@@ -115,11 +117,12 @@ cities.et <- unlist(lapply(files.et, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.tree <- unlist(lapply(files.tree, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.veg <- unlist(lapply(files.veg, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 cities.mask <- unlist(lapply(files.mask, FUN=function(x){strsplit(x, "_")[[1]][1]}))
+cities.buff <- unlist(lapply(files.buff, FUN=function(x){strsplit(x, "_")[[1]][1]}))
 
 
 # citiesDone <- unique(cities.lst)
 
-citiesDone <- unique(cities.lst[cities.lst %in% cities.et & cities.lst %in% cities.elev & cities.lst %in% cities.tree & cities.lst %in% cities.veg & cities.lst %in% cities.mask])
+citiesDone <- unique(cities.lst[cities.lst %in% cities.et & cities.lst %in% cities.elev & cities.lst %in% cities.tree & cities.lst %in% cities.veg & cities.lst %in% cities.mask & cities.lst %in% cities.buff])
 length(citiesDone)
 
 # Now compare the done list to what needs to be analyzed
@@ -134,11 +137,11 @@ for(CITY in citiesAnalyze){
   print(CITY)
   citySP <- sdei.urb[sdei.urb$ISOURBID==CITY, ]
   cityBuff <- st_buffer(citySP, dist=10e3)
-  # plot(cityBuff[1], add=T); 
+  # plot(cityBuff[1]); 
   # plot(citySP[1], add=F)
   biome <- st_intersection(ecoregions[,c("BIOME", "biome.name")], cityBuff[,"ISOURBID"])
   summary(biome)
-  # plot(ecoregions)
+  # plot(biome)
   
   # # data.frame(biome)
   if(nrow(biome)>0){ # Some aren't quite aligning-- we'll figure those out later
@@ -168,6 +171,7 @@ for(CITY in citiesAnalyze){
   # length(files.elev); length(files.lst); length(files.tree); length(files.veg); length(files.mask)
   # Circuitous coding, but it will be more resilient to multiple versions
   fMASK <- files.mask[grep(CITY, files.mask)]
+  fBUFF <- files.buff[grep(CITY, files.buff)]
   fELEV <- files.elev[grep(CITY, files.elev)]
   fLST <- files.lst[grep(CITY, files.lst)]
   fTREE <- files.tree[grep(CITY, files.tree)]
@@ -176,11 +180,17 @@ for(CITY in citiesAnalyze){
   
   # The length statements will grab the newest file if there's more than one
   maskCity <- raster(file.path(path.EEout, fMASK[length(fMASK)]))
+  buffCity <- raster(file.path(path.EEout, fBUFF[length(fBUFF)]))
   elevCity <- raster(file.path(path.EEout, fELEV[length(fELEV)]))
   lstCity <- brick(file.path(path.EEout, fLST[length(fLST)]))-273.15
   treeCity <- brick(file.path(path.EEout, fTREE[length(fTREE)]))
   vegCity <- brick(file.path(path.EEout, fVEG[length(fVEG)]))
   etCity <- brick(file.path(path.EEout, fET[length(fET)]))
+  
+
+  # par(mfrow=c(1,2))
+  # plot(maskCity); plot(buffCity)
+  # par(mfrow=c(1,1))
   
   # par(mfrow=c(1,2))
   # plot(elevCity); plot(maskCity)
@@ -201,6 +211,8 @@ for(CITY in citiesAnalyze){
   coordsCity$elevation <- getValues(elevCity)
   coordsCity$cityBounds <- getValues(maskCity)
   coordsCity$cityBounds <- !is.na(coordsCity$cityBounds) # NA = buffer = FALSE citybounds
+  coordsCity$bufferNoUrb <- getValues(buffCity) # NA = buffer = FALSE citybounds
+  coordsCity$bufferNoUrb <- !is.na(coordsCity$bufferNoUrb) # T = non-urban buffer
   
   # Double Checking the mask 
   coordsMask <- data.frame(coordinates(maskCity))
@@ -248,6 +260,7 @@ for(CITY in citiesAnalyze){
     valsCity <- valsCityVeg[,]
     valsCity$elevation <- coordsCity$elevation
     valsCity$cityBounds <- coordsCity$cityBounds
+    valsCity$bufferNoUrb <- coordsCity$bufferNoUrb
     # valsCity <- merge(coordsCity, valsCityVeg, all.x=T, all.y=T)
     
   } else if(nrow(coordsVeg)==nrow(coordsCity)) {
@@ -264,6 +277,7 @@ for(CITY in citiesAnalyze){
       valsCity <- valsCityVeg[,]
       valsCity$elevation <- coordsCity$elevation
       valsCity$cityBounds <- coordsCity$cityBounds
+      valsCity$cityBoundsbufferNoUrb<- coordsCity$bufferNoUrb
     }  else {
       stop("Something's really off")
     }
@@ -546,7 +560,7 @@ for(CITY in citiesAnalyze){
 
   # Calculating pixel-based summary stats to do some trend correlations
   # For computational tractability, need to run each pixel independently.  Doing Hobart as a loop just takes a few seconds
-  summaryCity <- aggregate(cbind(LST_Day, cover.tree, cover.veg, elevation, ET) ~ x+y+location + cityBounds, data=valsCity, FUN=mean)
+  summaryCity <- aggregate(cbind(LST_Day, cover.tree, cover.veg, elevation, ET) ~ x+y+location + cityBounds + bufferNoUrb, data=valsCity, FUN=mean)
   names(summaryCity)[names(summaryCity) %in% c("LST_Day", "cover.tree", "cover.veg", "ET")] <- c("LST.mean", "tree.mean", "veg.mean", "ET.mean")
   summary(summaryCity)
   
