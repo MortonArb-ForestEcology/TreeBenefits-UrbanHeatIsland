@@ -210,12 +210,12 @@ for(CITY in citiesAnalyze){
   coordsCity$location <- paste0("x", coordsCity$x, "y", coordsCity$y)
   coordsCity$elevation <- getValues(elevCity)
   coordsCity$cityBounds <- getValues(maskCity)
-  coordsCity$cityBounds <- !is.na(coordsCity$cityBounds) # NA = buffer = FALSE citybounds
+  coordsCity$cityBounds <- !is.na(coordsCity$cityBounds) & coordsCity$cityBounds>0 # NA = buffer = FALSE citybounds
   
   coordsBuff <- data.frame(coordinates(buffCity))
   coordsBuff$location <- paste0("x", coordsBuff$x, "y", coordsBuff$y)
   coordsBuff$bufferNoUrb <- getValues(buffCity) # NA = buffer = FALSE citybounds
-  coordsBuff$bufferNoUrb <- !is.na(coordsBuff$bufferNoUrb) # T = non-urban buffer
+  coordsBuff$bufferNoUrb <- !is.na(coordsBuff$bufferNoUrb) & coordsBuff$bufferNoUrb>0 # T = non-urban buffer
   
   if(all(coordsBuff$location == coordsCity$location)){
     coordsCity$bufferNoUrb <- coordsBuff$bufferNoUrb
