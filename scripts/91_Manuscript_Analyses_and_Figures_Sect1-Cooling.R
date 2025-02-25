@@ -13,7 +13,7 @@
 #  1.3. In terms of current peak summer water use vs. output, XXX% of cities receive more water than our 
 library(ggplot2)
 
-path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
 path.cities <- file.path(path.google, "data_processed_final")
 
 path.figsMS <- file.path(path.google, "figures_manuscript")

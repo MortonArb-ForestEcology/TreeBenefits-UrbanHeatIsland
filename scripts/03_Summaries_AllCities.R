@@ -247,14 +247,14 @@ summary(dfSplineTree)
 ggplot(data=dfSplineTree, aes(x=cover.tree, y=LST.pred)) +
   facet_wrap(~biomeName) +
   geom_line(aes(group=ISOURBID), linewidth=0.1, alpha=0.5) + 
-  geom_smooth(aes(color=biomeName)) +
+  geom_smooth(aes(color=biomeName), method="lm") +
   scale_color_manual(values=biome.pall.all[]) +
   theme_bw()
 
 ggplot(data=dfSplineTree[!dfSplineTree$biomeName %in% c("Tundra", "Flooded Grassland/Savanna", "Tropical Conifer Forest", "Mangroves")], aes(x=cover.tree, y=LST.pred)) +
   # facet_wrap(~biomeName) +
   # geom_line(aes(group=ISOURBID), linewidth=0.1, alpha=0.5) + 
-  geom_smooth(aes(color=biomeName)) +
+  geom_smooth(aes(color=biomeName), method="lm") +
   scale_color_manual(values=biome.pall.all[]) +
   theme_bw()
 
@@ -262,7 +262,7 @@ ggplot(data=dfSplineTree[!dfSplineTree$biomeName %in% c("Tundra", "Flooded Grass
 ggplot(data=dfSplineTree, aes(x=cover.tree, y=effect.tree)) +
   facet_wrap(~biomeName) +
   geom_line(aes(group=ISOURBID), linewidth=0.1, alpha=0.5) + 
-  geom_smooth(aes(color=biomeName)) +
+  geom_smooth(aes(color=biomeName), method="lm") +
   scale_color_manual(values=biome.pall.all[]) +
   # coord_cartesian(ylim=c(-5,5)) +
   theme_bw()
@@ -652,8 +652,8 @@ dev.off()
 
 
 # Calculating the effect trees & veg have on regional temperatures
-cityAll.stats$effect.tree.degC <- cityAll.stats$tree.mean*cityAll.stats$LSTmodelFinal.tree.slope
-cityAll.stats$effect.veg.degC <- cityAll.stats$veg.mean*cityAll.stats$LSTmodelFinal.veg.slope
+cityAll.stats$effect.tree.degC <- cityAll.stats$tree.mean*cityAll.stats$LSTslope.tree
+cityAll.stats$effect.veg.degC <- cityAll.stats$veg.mean*cityAll.stats$LSTslope.veg
 summary(cityAll.stats)
 
 # Comparing temperature effects attributed to different veg covers
@@ -699,191 +699,194 @@ summary(cityAll.stats[,c("effect.tree.degC", "effect.veg.degC")])
 
 # ##########################################
 
-# ##########################################
-# Now looking at regional trends in cover & temperature ----
-# ##########################################
 
-grad.lst <- c("#2c7bb6", "#abd9e9", "#f7f7f7", "#fdae61", "#d7191c") # ends with teal
-grad.tree <- c("#a6611a", "#dfc27d", "#f5f5f5", "#80cdc1", "#018571") # ends with teal
-grad.other <- c("#d01c8b", "#f1b6da", "#f7f7f7", "#b8e186", "#4dac26") # ends with green
-
-summary(cityAll.stats[,c("trend.LST.slope", "trend.tree.slope", "trend.veg.slope")])
-
-trendLST.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  coord_equal(expand=0, ylim=c(-65,80)) +
-  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.LST.slope), size=0.5) +
-  scale_color_gradientn(name="LST Trend\n(deg. C / yr)", colors=grad.lst, limits=c(-0.32, 0.32)) +
-  theme_bw() +
-  theme(legend.position="right",
-        legend.title=element_text(color="black", face="bold"),
-        legend.text=element_text(color="black"),
-        legend.background=element_blank(),
-        panel.background = element_rect(fill="black"),
-        panel.grid = element_blank(),
-        axis.text=element_blank(),
-        axis.ticks=element_blank(),
-        axis.title=element_blank(),
-        plot.margin=margin(0,0.5,0,1, "lines"))
-
-trendTree.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  coord_equal(expand=0, ylim=c(-65,80)) +
-  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.tree.slope), size=0.5) +
-  scale_color_gradientn(name="Tree Trend\n(% cover / yr)", colors=grad.tree, limits=c(-1,1)) +
-  theme_bw() +
-  theme(legend.position="right",
-        legend.title=element_text(color="black", face="bold"),
-        legend.text=element_text(color="black"),
-        legend.background=element_blank(),
-        panel.background = element_rect(fill="black"),
-        panel.grid = element_blank(),
-        axis.text=element_blank(),
-        axis.ticks=element_blank(),
-        axis.title=element_blank(),
-        plot.margin=margin(0,0.5,0,1, "lines"))
-
-trendVeg.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  coord_equal(expand=0, ylim=c(-65,80)) +
-  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.tree.slope), size=0.5) +
-  scale_color_gradientn(name="Veg Trend\n(% cover / yr)", colors=grad.other, limits=c(-1.8,1.8)) +
-  theme_bw() +
-  theme(legend.position="right",
-        legend.title=element_text(color="black", face="bold"),
-        legend.text=element_text(color="black"),
-        legend.background=element_blank(),
-        panel.background = element_rect(fill="black"),
-        panel.grid = element_blank(),
-        axis.text=element_blank(),
-        axis.ticks=element_blank(),
-        axis.title=element_blank(),
-        plot.margin=margin(0,0.5,0,1, "lines"))
-
-
-png(file.path(path.figs, "Trends_LST-Tree-Veg_map.png"), height=10, width=10, units="in", res=220)
-plot_grid(trendLST.map, trendTree.map, trendVeg.map, ncol=1)
-dev.off()
-
-
-# Translating tree trends into 
-cityAll.stats$trend.tree.degC <- cityAll.stats$trend.tree.slope*cityAll.stats$LSTmodelFinal.tree.slope
-cityAll.stats$trend.veg.degC <- cityAll.stats$trend.veg.slope*cityAll.stats$LSTmodelFinal.veg.slope
-summary(cityAll.stats[,c("trend.tree.degC", "trend.veg.degC")]*20)
-
-# Without changes in tree canopy, temperatures would have risen X% more
-summary((cityAll.stats$trend.tree.degC + cityAll.stats$trend.LST.slope)/cityAll.stats$trend.LST.slope)
-
-
-summary(cityAll.stats$trend.tree.degC/(cityAll.stats$trend.tree.degC + cityAll.stats$trend.LST.slope))
-
-
-
-trendLSTSD.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  coord_equal(expand=0, ylim=c(-65,80)) +
-  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trendYear.LST.sd.slope), size=0.5) +
-  scale_color_gradientn(name="LST SD Trend\n(deg. C / yr)", colors=grad.lst, limits=c(-0.17, 0.17)) +
-  theme_bw() +
-  theme(legend.position="right",
-        legend.title=element_text(color="black", face="bold"),
-        legend.text=element_text(color="black"),
-        legend.background=element_blank(),
-        panel.background = element_rect(fill="black"),
-        panel.grid = element_blank(),
-        axis.text=element_blank(),
-        axis.ticks=element_blank(),
-        axis.title=element_blank(),
-        plot.margin=margin(0,0.5,0,1, "lines"))
-
-trendTreeSD.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  coord_equal(expand=0, ylim=c(-65,80)) +
-  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.tree.slope), size=0.5) +
-  scale_color_gradientn(name="Tree SD Trend\n(% cover / yr)", colors=grad.tree, limits=c(-0.45,0.45)) +
-  theme_bw() +
-  theme(legend.position="right",
-        legend.title=element_text(color="black", face="bold"),
-        legend.text=element_text(color="black"),
-        legend.background=element_blank(),
-        panel.background = element_rect(fill="black"),
-        panel.grid = element_blank(),
-        axis.text=element_blank(),
-        axis.ticks=element_blank(),
-        axis.title=element_blank(),
-        plot.margin=margin(0,0.5,0,1, "lines"))
-
-trendVegSD.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  coord_equal(expand=0, ylim=c(-65,80)) +
-  geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.tree.slope), size=0.5) +
-  scale_color_gradientn(name="Veg SD Trend\n(% cover / yr)", colors=grad.other, limits=c(-0.6,0.6)) +
-  theme_bw() +
-  theme(legend.position="right",
-        legend.title=element_text(color="black", face="bold"),
-        legend.text=element_text(color="black"),
-        legend.background=element_blank(),
-        panel.background = element_rect(fill="black"),
-        panel.grid = element_blank(),
-        axis.text=element_blank(),
-        axis.ticks=element_blank(),
-        axis.title=element_blank(),
-        plot.margin=margin(0,0.5,0,1, "lines"))
-
-
-png(file.path(path.figs, "Trends-SD_LST-Tree-Veg_map.png"), height=10, width=10, units="in", res=220)
-plot_grid(trendLSTSD.map, trendTreeSD.map, trendVegSD.map, ncol=1)
-dev.off()
-
-# Looking at how many places have *decreasing* SD of LST, Trees, & Veg --> decreasing SD indicates increasing equity
-summary(cityAll.stats)
-length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope)))
-
-length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope) & cityAll.stats$trendYear.LST.sd.slope<0 ))
-length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope) & cityAll.stats$trendYear.LST.sd.slope<0 & cityAll.stats$trendYear.LST.sd.p<0.05))
-
-length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope) & cityAll.stats$trendYear.LST.sd.slope>0 ))
-length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope) & cityAll.stats$trendYear.LST.sd.slope>0 & cityAll.stats$trendYear.LST.sd.p<0.05))
-
-
-
-length(which(!is.na(cityAll.stats$trendYear.tree.sd.slope) & cityAll.stats$trendYear.tree.sd.slope<0 ))
-# length(which(!is.na(cityAll.stats$trendYear.tree.sd.slope) & cityAll.stats$trendYear.tree.sd.slope<0 & cityAll.stats$trendYear.tree.sd.p<0.05))
-
-length(which(!is.na(cityAll.stats$trendYear.veg.sd.slope) & cityAll.stats$trendYear.veg.sd.slope<0 ))
-# length(which(!is.na(cityAll.stats$trendYear.veg.sd.slope) & cityAll.stats$trendYear.veg.sd.slope<0 & cityAll.stats$trendYear.veg.sd.p<0.05))
-
-plot.trendCorrTree <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biomeName),]) +
-  facet_wrap(~biomeName) +
-  geom_hline(yintercept=0, size=0.25) +
-  geom_vline(xintercept=0, size=0.25) +
-  geom_point(aes(x=trendYear.tree.mean.slope, y=trendYear.tree.sd.slope, color=biomeName), size=0.5, alpha=0.5) +
-  stat_smooth(method="lm" ,aes(x=trendYear.tree.mean.slope, y=trendYear.tree.sd.slope, color=biomeName, fill=biomeName)) +
-  labs(x="mean tree cover trend (%/yr)", y="sd tree cover trend (%/yr)") +
-  annotate(geom="text", x=0.6, y=-0.30, label="+ cover\n - inequality\n(Good)", size=3) +
-  annotate(geom="text", x=-0.6, y=+0.30, label="- cover\n + inequality\n(Bad)", size=3) +
-  scale_color_manual(name="biome", values=biome.pall.all) +
-  scale_fill_manual(name="biome", values=biome.pall.all) +
-  theme_bw() +
-  theme(legend.position="right",
-        legend.title=element_text(color="black", face="bold"),
-        legend.text=element_text(color="black"),
-        panel.grid=element_blank(),
-        axis.text=element_text(color="black"),
-        axis.title=element_text(color="black", face="bold"))
-
-png(file.path(path.figs, "Trends-mean-sd_Tree_corr.png"), height=10, width=12, units="in", res=220)
-plot.trendCorrTree
-dev.off()
-
-# ##########################################
-
-
-# ##########################################
-# Looking at some of the ET stuff ----
-# ##########################################
-summary(cityAll.stats)
-ggplot(data=cityAll.stats) +
-  geom_point(aes(x=aet, y=ET.mean))
-
-# ##########################################
+# # I don't think we do this anymore!
+# # ##########################################
+# # Now looking at regional trends in cover & temperature ----
+# # ##########################################
+# 
+# grad.lst <- c("#2c7bb6", "#abd9e9", "#f7f7f7", "#fdae61", "#d7191c") # ends with teal
+# grad.tree <- c("#a6611a", "#dfc27d", "#f5f5f5", "#80cdc1", "#018571") # ends with teal
+# grad.other <- c("#d01c8b", "#f1b6da", "#f7f7f7", "#b8e186", "#4dac26") # ends with green
+# 
+# I don't th
+# summary(cityAll.stats[,c("trend.LST.slope", "trend.tree.slope", "trend.veg.slope")])
+# 
+# trendLST.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+#   coord_equal(expand=0, ylim=c(-65,80)) +
+#   geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
+#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.LST.slope), size=0.5) +
+#   scale_color_gradientn(name="LST Trend\n(deg. C / yr)", colors=grad.lst, limits=c(-0.32, 0.32)) +
+#   theme_bw() +
+#   theme(legend.position="right",
+#         legend.title=element_text(color="black", face="bold"),
+#         legend.text=element_text(color="black"),
+#         legend.background=element_blank(),
+#         panel.background = element_rect(fill="black"),
+#         panel.grid = element_blank(),
+#         axis.text=element_blank(),
+#         axis.ticks=element_blank(),
+#         axis.title=element_blank(),
+#         plot.margin=margin(0,0.5,0,1, "lines"))
+# 
+# trendTree.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+#   coord_equal(expand=0, ylim=c(-65,80)) +
+#   geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
+#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.tree.slope), size=0.5) +
+#   scale_color_gradientn(name="Tree Trend\n(% cover / yr)", colors=grad.tree, limits=c(-1,1)) +
+#   theme_bw() +
+#   theme(legend.position="right",
+#         legend.title=element_text(color="black", face="bold"),
+#         legend.text=element_text(color="black"),
+#         legend.background=element_blank(),
+#         panel.background = element_rect(fill="black"),
+#         panel.grid = element_blank(),
+#         axis.text=element_blank(),
+#         axis.ticks=element_blank(),
+#         axis.title=element_blank(),
+#         plot.margin=margin(0,0.5,0,1, "lines"))
+# 
+# trendVeg.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+#   coord_equal(expand=0, ylim=c(-65,80)) +
+#   geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
+#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.tree.slope), size=0.5) +
+#   scale_color_gradientn(name="Veg Trend\n(% cover / yr)", colors=grad.other, limits=c(-1.8,1.8)) +
+#   theme_bw() +
+#   theme(legend.position="right",
+#         legend.title=element_text(color="black", face="bold"),
+#         legend.text=element_text(color="black"),
+#         legend.background=element_blank(),
+#         panel.background = element_rect(fill="black"),
+#         panel.grid = element_blank(),
+#         axis.text=element_blank(),
+#         axis.ticks=element_blank(),
+#         axis.title=element_blank(),
+#         plot.margin=margin(0,0.5,0,1, "lines"))
+# 
+# 
+# png(file.path(path.figs, "Trends_LST-Tree-Veg_map.png"), height=10, width=10, units="in", res=220)
+# plot_grid(trendLST.map, trendTree.map, trendVeg.map, ncol=1)
+# dev.off()
+# 
+# 
+# # Translating tree trends into 
+# cityAll.stats$trend.tree.degC <- cityAll.stats$trend.tree.slope*cityAll.stats$LSTmodelFinal.tree.slope
+# cityAll.stats$trend.veg.degC <- cityAll.stats$trend.veg.slope*cityAll.stats$LSTmodelFinal.veg.slope
+# summary(cityAll.stats[,c("trend.tree.degC", "trend.veg.degC")]*20)
+# 
+# # Without changes in tree canopy, temperatures would have risen X% more
+# summary((cityAll.stats$trend.tree.degC + cityAll.stats$trend.LST.slope)/cityAll.stats$trend.LST.slope)
+# 
+# 
+# summary(cityAll.stats$trend.tree.degC/(cityAll.stats$trend.tree.degC + cityAll.stats$trend.LST.slope))
+# 
+# 
+# 
+# trendLSTSD.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+#   coord_equal(expand=0, ylim=c(-65,80)) +
+#   geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
+#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trendYear.LST.sd.slope), size=0.5) +
+#   scale_color_gradientn(name="LST SD Trend\n(deg. C / yr)", colors=grad.lst, limits=c(-0.17, 0.17)) +
+#   theme_bw() +
+#   theme(legend.position="right",
+#         legend.title=element_text(color="black", face="bold"),
+#         legend.text=element_text(color="black"),
+#         legend.background=element_blank(),
+#         panel.background = element_rect(fill="black"),
+#         panel.grid = element_blank(),
+#         axis.text=element_blank(),
+#         axis.ticks=element_blank(),
+#         axis.title=element_blank(),
+#         plot.margin=margin(0,0.5,0,1, "lines"))
+# 
+# trendTreeSD.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+#   coord_equal(expand=0, ylim=c(-65,80)) +
+#   geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
+#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.tree.slope), size=0.5) +
+#   scale_color_gradientn(name="Tree SD Trend\n(% cover / yr)", colors=grad.tree, limits=c(-0.45,0.45)) +
+#   theme_bw() +
+#   theme(legend.position="right",
+#         legend.title=element_text(color="black", face="bold"),
+#         legend.text=element_text(color="black"),
+#         legend.background=element_blank(),
+#         panel.background = element_rect(fill="black"),
+#         panel.grid = element_blank(),
+#         axis.text=element_blank(),
+#         axis.ticks=element_blank(),
+#         axis.title=element_blank(),
+#         plot.margin=margin(0,0.5,0,1, "lines"))
+# 
+# trendVegSD.map <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
+#   coord_equal(expand=0, ylim=c(-65,80)) +
+#   geom_polygon(data=world, aes(x=long, y=lat, group=group), fill="gray50") +
+#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=trend.tree.slope), size=0.5) +
+#   scale_color_gradientn(name="Veg SD Trend\n(% cover / yr)", colors=grad.other, limits=c(-0.6,0.6)) +
+#   theme_bw() +
+#   theme(legend.position="right",
+#         legend.title=element_text(color="black", face="bold"),
+#         legend.text=element_text(color="black"),
+#         legend.background=element_blank(),
+#         panel.background = element_rect(fill="black"),
+#         panel.grid = element_blank(),
+#         axis.text=element_blank(),
+#         axis.ticks=element_blank(),
+#         axis.title=element_blank(),
+#         plot.margin=margin(0,0.5,0,1, "lines"))
+# 
+# 
+# png(file.path(path.figs, "Trends-SD_LST-Tree-Veg_map.png"), height=10, width=10, units="in", res=220)
+# plot_grid(trendLSTSD.map, trendTreeSD.map, trendVegSD.map, ncol=1)
+# dev.off()
+# 
+# # Looking at how many places have *decreasing* SD of LST, Trees, & Veg --> decreasing SD indicates increasing equity
+# summary(cityAll.stats)
+# length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope)))
+# 
+# length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope) & cityAll.stats$trendYear.LST.sd.slope<0 ))
+# length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope) & cityAll.stats$trendYear.LST.sd.slope<0 & cityAll.stats$trendYear.LST.sd.p<0.05))
+# 
+# length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope) & cityAll.stats$trendYear.LST.sd.slope>0 ))
+# length(which(!is.na(cityAll.stats$trendYear.LST.sd.slope) & cityAll.stats$trendYear.LST.sd.slope>0 & cityAll.stats$trendYear.LST.sd.p<0.05))
+# 
+# 
+# 
+# length(which(!is.na(cityAll.stats$trendYear.tree.sd.slope) & cityAll.stats$trendYear.tree.sd.slope<0 ))
+# # length(which(!is.na(cityAll.stats$trendYear.tree.sd.slope) & cityAll.stats$trendYear.tree.sd.slope<0 & cityAll.stats$trendYear.tree.sd.p<0.05))
+# 
+# length(which(!is.na(cityAll.stats$trendYear.veg.sd.slope) & cityAll.stats$trendYear.veg.sd.slope<0 ))
+# # length(which(!is.na(cityAll.stats$trendYear.veg.sd.slope) & cityAll.stats$trendYear.veg.sd.slope<0 & cityAll.stats$trendYear.veg.sd.p<0.05))
+# 
+# plot.trendCorrTree <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biomeName),]) +
+#   facet_wrap(~biomeName) +
+#   geom_hline(yintercept=0, size=0.25) +
+#   geom_vline(xintercept=0, size=0.25) +
+#   geom_point(aes(x=trendYear.tree.mean.slope, y=trendYear.tree.sd.slope, color=biomeName), size=0.5, alpha=0.5) +
+#   stat_smooth(method="lm" ,aes(x=trendYear.tree.mean.slope, y=trendYear.tree.sd.slope, color=biomeName, fill=biomeName)) +
+#   labs(x="mean tree cover trend (%/yr)", y="sd tree cover trend (%/yr)") +
+#   annotate(geom="text", x=0.6, y=-0.30, label="+ cover\n - inequality\n(Good)", size=3) +
+#   annotate(geom="text", x=-0.6, y=+0.30, label="- cover\n + inequality\n(Bad)", size=3) +
+#   scale_color_manual(name="biome", values=biome.pall.all) +
+#   scale_fill_manual(name="biome", values=biome.pall.all) +
+#   theme_bw() +
+#   theme(legend.position="right",
+#         legend.title=element_text(color="black", face="bold"),
+#         legend.text=element_text(color="black"),
+#         panel.grid=element_blank(),
+#         axis.text=element_text(color="black"),
+#         axis.title=element_text(color="black", face="bold"))
+# 
+# png(file.path(path.figs, "Trends-mean-sd_Tree_corr.png"), height=10, width=12, units="in", res=220)
+# plot.trendCorrTree
+# dev.off()
+# 
+# # ##########################################
+# 
+# 
+# # ##########################################
+# # Looking at some of the ET stuff ----
+# # ##########################################
+# summary(cityAll.stats)
+# ggplot(data=cityAll.stats) +
+#   geom_point(aes(x=aet, y=ET.mean))
+# 
+# # ##########################################
