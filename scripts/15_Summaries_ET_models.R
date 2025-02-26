@@ -49,7 +49,7 @@ world <- map_data("world")
 # Read in Data; do some cleanup ----
 # ##########################################
 # Reading in our old, full dataset
-cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
+cityAll.stats <- read.csv(file.path(path.google, "city_stats_model.csv"))
 cityAll.stats$biome <- gsub("flodded", "flooded", cityAll.stats$biome) # Whoops, had a typo!  Not going to reprocess now.
 summary(as.factor(cityAll.stats$biome))
 

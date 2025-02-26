@@ -51,7 +51,7 @@ cityAnalyStats <- read.csv(file.path(path.google, "city_stats_all_ET.csv"))
 # cityAnalyStats <- cityAnalyStats[!is.na(cityAnalyStats$ETmodel.R2adj) & cityAnalyStats$ETmodel.R2adj>0,]
 summary(cityAnalyStats)
 
-cityStatsBase <- read.csv(file.path(path.google, "city_stats_all.csv"))
+cityStatsBase <- read.csv(file.path(path.google, "city_stats_model.csv"))
 summary(cityStatsBase)
 
 

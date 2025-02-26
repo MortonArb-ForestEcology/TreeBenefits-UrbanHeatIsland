@@ -55,7 +55,7 @@ if(file.exists(file.path(path.google, "city_stats_all_ET_scenarios.csv")) & !ove
   cityAnalyStats <- read.csv(file.path(path.google, "city_stats_all_ET_scenarios.csv"))
 } else {
   
-  cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
+  cityAll.stats <- read.csv(file.path(path.google, "city_stats_model.csv"))
   cityAll.stats$biomeName <- car::recode(cityAll.stats$biome, 
                                          "'boreal forest/taiga'='Taiga';
                                        'tundra'='Tundra';

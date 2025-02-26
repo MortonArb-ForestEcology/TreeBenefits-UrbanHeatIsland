@@ -41,7 +41,7 @@ world <- map_data("world")
 # Read in Data; do some cleanup ----
 # ##########################################
 # Reading in our old, full dataset
-cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
+cityAll.stats <- read.csv(file.path(path.google, "city_stats_model.csv"))
 summary(as.factor(cityAll.stats$biome))
 
 cityAll.stats$biomeName <- car::recode(cityAll.stats$biome, 
