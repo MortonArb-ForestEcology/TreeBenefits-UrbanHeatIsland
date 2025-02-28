@@ -167,7 +167,7 @@ cmip6BiomeSD585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, da
 cmip6BiomeSD585$tas.diff <- round(cmip6BiomeSD585$tas.diff, 1)
 cmip6BiomeSD585$pr.per <- round((cmip6BiomeSD585$pr.per)*100, 0)
 
-TableS6 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMean$biomeCode),
+TableS7 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMean$biomeCode),
                       Tmean.GLDAS = pasteMeanSD(climCurrentMean$Tmean.GLDAS, climCurrentSD$Tmean.GLDAS),
                       Precip.GLDAS = pasteMeanSD(climCurrentMean$Precip.GLDAS, climCurrentSD$Precip.GLDAS),
                       Tmean.diff.245 = pasteMeanSD(cmip6BiomeMean245$tas.diff, cmip6BiomeSD245$tas.diff),
@@ -176,7 +176,7 @@ TableS6 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMe
                       Pr.diff.585 = pasteMeanSD(cmip6BiomeMean585$pr.per, cmip6BiomeSD585$pr.per))
                       
 TableS6                      
-write.csv(TableS6, file.path(path.figsMS, "TableS6_ClimateStats_CMIP6.csv"), row.names=F)
+write.csv(TableS6, file.path(path.figsMS, "TableS7_ClimateStats_CMIP6.csv"), row.names=F)
 
 
 # # Not a huge difference with median, so lets just roll with mean
