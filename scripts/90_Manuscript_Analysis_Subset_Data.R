@@ -18,7 +18,7 @@ dir.create(path.figs, recursive=T, showWarnings=F)
 # 1. Read in base datasets -----
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # 1.1 the baseline data with the LST model
-cityAll.stats <- read.csv(file.path(path.google, "city_stats_all.csv"))
+cityAll.stats <- read.csv(file.path(path.google, "city_stats_model.csv"))
 cityAll.stats <- cityAll.stats[,!grepl("ET", names(cityAll.stats))] # Get rid of anythign ET from this dataframe
 summary(cityAll.stats[,])
 
@@ -96,7 +96,7 @@ summary(cityAll.gldas)
 #  -- Max Tree & veg cover for any pixel >10% (allow robust parameterization)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # Number of cities showing stat.sig UHI (p<0.01)
-citiesUHI <- CityBuffStats$ISOURBID[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.p<0.01]
+citiesUHI <- CityBuffStats$ISOURBID[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>0 & CityBuffStats$value.mean.diff.sig]
 length(citiesUHI)
 nrow(cityAll.stats)
 
@@ -112,8 +112,8 @@ lstDiffMean; lstDiffSD
 cityDiffCOLD <- CityBuffStats$ISOURBID[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff<lstDiffMean-4*lstDiffSD & !is.na(CityBuffStats$value.mean.diff)]
 cityDiffHOT <- CityBuffStats$ISOURBID[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.diff>lstDiffMean+4*lstDiffSD & !is.na(CityBuffStats$value.mean.diff)]
 
-# CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$ISOURBID %in% cityDiffCOLD,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "value.mean.core", "value.mean.buffer", "value.mean.diff", "value.mean.diff.p")]
-# CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$ISOURBID %in% cityDiffHOT,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "value.mean.core", "value.mean.buffer", "value.mean.diff", "value.mean.diff.p")]
+# CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$ISOURBID %in% cityDiffCOLD,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "value.mean.core", "value.mean.buffer", "value.mean.diff", "value.mean.diff.sig")]
+# CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$ISOURBID %in% cityDiffHOT,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "value.mean.core", "value.mean.buffer", "value.mean.diff", "value.mean.diff.sig")]
 
 cityAll.stats[cityAll.stats$ISOURBID %in% cityDiffCOLD,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biome.prop", "n.pixels")]
 cityAll.stats[cityAll.stats$ISOURBID %in% cityDiffHOT,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biome.prop", "n.pixels")]
@@ -135,8 +135,8 @@ cityCoreCOLD  <- CityBuffStats$ISOURBID[CityBuffStats$factor=="LST" & CityBuffSt
 cityCoreHOT <- CityBuffStats$ISOURBID[CityBuffStats$factor=="LST" & CityBuffStats$value.mean.core>lstCoreMean+4*lstCoreSD & !is.na(CityBuffStats$value.mean.core)]
 
 
-CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$ISOURBID %in% cityCoreCOLD,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "value.mean.core", "value.mean.buffer", "value.mean.diff", "value.mean.diff.p")]
-CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$ISOURBID %in% cityCoreHOT,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "value.mean.core", "value.mean.buffer", "value.mean.diff", "value.mean.diff.p")]
+CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$ISOURBID %in% cityCoreCOLD,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "value.mean.core", "value.mean.buffer", "value.mean.diff", "value.mean.diff.sig")]
+CityBuffStats[CityBuffStats$factor=="LST" & CityBuffStats$ISOURBID %in% cityCoreHOT,c("ISOURBID", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "value.mean.core", "value.mean.buffer", "value.mean.diff", "value.mean.diff.sig")]
 
 # Getting rid of 4-sigma outliers for LST std dev in the region --> most of these are mountainous or ecotonal cities that don't meet other criteria, but they also capture some of our oddest slopes too
 lstSDMean <- mean(cityAll.stats$LST.sd, na.rm=T)
@@ -150,8 +150,7 @@ length(cityNoET)
 
 summary(cityAll.stats)
 
-citiesUse <- !is.na(cityAll.stats$trend.LST.slope) & 
-  cityAll.stats$n.pixels>=1000 & 
+citiesUse <- cityAll.stats$n.pixels>=1000 & 
   cityAll.stats$biome.prop>=0.75 &
   # cityAll.stats$tree.max>10 & cityAll.stats$veg.max>10 &
   cityAll.stats$LST.sd >=1 & cityAll.stats$tree.sd >= 1 & cityAll.stats$veg.sd >= 1 & cityAll.stats$elev.sd >= 1 &
@@ -160,21 +159,21 @@ citiesUse <- !is.na(cityAll.stats$trend.LST.slope) &
 
 length(which(!cityAll.stats$ISOURBID %in% citiesUHI)) # NOT CRITERIA, but good to know
 
-# length(which(is.na(cityAll.stats$trend.LST.slope)))
-length(which(is.na(cityAll.stats$trend.LST.slope))) # Insufficient data temporally
+nrow(cityAll.stats)
+# length(which(is.na(cityAll.stats$trend.LST.slope))) # Insufficient data temporally
 length(which(cityAll.stats$n.pixels<1000)) # Too few pixels
 length(which(cityAll.stats$biome.prop<0.75)) # Too heterogenous a biome
+length(cityNoET)
 length(which(cityAll.stats$LST.sd<1)) # Too low variation in LST
 length(which(cityAll.stats$tree.sd<1)) # Too low variation in tree cover
 length(which(cityAll.stats$veg.sd<1)) # Too low variation in Veg
 length(which(cityAll.stats$elev.sd<1)) # Too low variation in topography
 length(cityDiffHOT)
 length(cityDiffCOLD)
-length(cityCoreHOT)
-length(cityCoreCOLD)
-length(citySDLo)
 length(citySDHi)
-length(cityNoET)
+length(citySDLo)
+# length(cityCoreHOT)
+# length(cityCoreCOLD)
 
 length(which(citiesUse)) # Final number 
 
@@ -187,7 +186,7 @@ cityStatsET <- cityAnalyET[which(citiesUse),]
 cityBuffAnaly <- CityBuffStats[CityBuffStats$ISOURBID %in% cityStatsAnaly$ISOURBID,]
 cityGLDASAnaly <- cityAll.gldas[cityAll.gldas$ISOURBID %in% cityStatsAnaly$ISOURBID,c("ISOURBID", "NAME","Tmean.GLDAS", "Precip.GLDAS", "ET.GLDAS")]
 summary(cityStatsAnaly)
-summary(citysStatsET)
+summary(cityStatsET)
 summary(cityGLDASAnaly)
 summary(as.factor(cityStatsAnaly$biomeName))
 dim(cityStatsAnaly)
@@ -199,24 +198,24 @@ cityStatsET[cityStatsET$ETmodel.R2adj < 0.35,]
 nrow(cityStatsAnaly)
 
 
-cityTree <- cityBuffAnaly[cityBuffAnaly$factor=="tree", c("ISOURBID", "value.mean.core", "value.mean.diff", "value.mean.diff.p", "trend.mean.core", "trend.p.core", "trend.mean.diff", "trend.mean.diff.p")]
+cityTree <- cityBuffAnaly[cityBuffAnaly$factor=="tree", c("ISOURBID", "value.mean.core", "value.mean.diff", "value.mean.diff.sig")]
 names(cityTree) <- gsub("mean", "tree", names(cityTree))
-names(cityTree)[which(names(cityTree)=="trend.p.core")] <- "trend.tree.p.core"
+# names(cityTree)[which(names(cityTree)=="trend.p.core")] <- "trend.tree.p.core"
 
-cityOther <- cityBuffAnaly[cityBuffAnaly$factor=="other veg", c("ISOURBID", "value.mean.core", "value.mean.diff", "value.mean.diff.p", "trend.mean.core", "trend.p.core", "trend.mean.diff", "trend.mean.diff.p")]
+cityOther <- cityBuffAnaly[cityBuffAnaly$factor=="other veg", c("ISOURBID", "value.mean.core", "value.mean.diff", "value.mean.diff.sig")]
 names(cityOther) <- gsub("mean", "other", names(cityOther))
-names(cityOther)[which(names(cityOther)=="trend.p.core")] <- "trend.other.p.core"
+# names(cityOther)[which(names(cityOther)=="trend.p.core")] <- "trend.other.p.core"
 
 cityVeg <- merge(cityTree, cityOther, all=T)
 summary(cityVeg)
 
-cityLST <- cityBuffAnaly[cityBuffAnaly$factor=="LST", c("ISOURBID", "value.mean.core", "value.mean.diff", "value.mean.diff.p", "trend.mean.core", "trend.p.core", "trend.mean.diff", "trend.mean.diff.p")]
+cityLST <- cityBuffAnaly[cityBuffAnaly$factor=="LST", c("ISOURBID", "value.mean.core", "value.mean.diff", "value.mean.diff.sig")]
 names(cityLST) <- gsub("mean", "LST", names(cityLST))
-names(cityLST)[which(names(cityLST)=="trend.p.core")] <- "trend.LST.p.core"
+# names(cityLST)[which(names(cityLST)=="trend.p.core")] <- "trend.LST.p.core"
 
-summary(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.tree.p", "LSTmodel.veg.slope", "LSTmodel.veg.p")])
+summary(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "LSTslope.tree", "LSTmodelFinal.tree.p", "LSTslope.veg", "LSTmodelFinal.veg.p")])
 
-StatsCombined <- merge(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "LSTmodel.R2adj", "LSTmodel.tree.slope", "LSTmodel.tree.p", "LSTmodel.veg.slope", "LSTmodel.veg.p", "trendYear.LST.mean.slope", "trendYear.LST.mean.p", "trendYear.tree.mean.slope", "trendYear.tree.mean.p", "trendYear.veg.mean.slope", "trendYear.veg.mean.p", 
+StatsCombined <- merge(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "LSTslope.tree", "LSTmodelFinal.tree.p", "LSTslope.veg", "LSTmodelFinal.veg.p",
                                          "LST.mean", "LST.sd", "LST.min", "LST.max",
                                          "tree.mean", "tree.sd", "tree.min", "tree.max",
                                          "veg.mean", "veg.sd", "veg.min", "veg.max")],
@@ -232,11 +231,15 @@ biome.order$n.cities <- aggregate(cbind(Tmean.GLDAS) ~ biomeName + biomeCode, da
 biome.order <- biome.order[order(biome.order$Tmean.GLDAS),]
 biome.order
 
-sum(biome.order$n.cities)
+biomeAll <- biome.order
+sum(biomeAll$n.cities[biome.order$n.cities<20])
+
+sum(biomeAll$n.cities)
 
 # Wokring only with cities where there are >20 cities in the biome
 biome.order <- biome.order[biome.order$n.cities>=20,]
 biome.order
+sum(biome.order$n.cities)
 
 write.csv(biome.order, file.path(path.google, "UHIs-FinalCityDataForAnalysis_BiomeOrder.csv"), row.names=F)
 

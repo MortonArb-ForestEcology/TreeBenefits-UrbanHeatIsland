@@ -210,7 +210,7 @@ map.ETratio.All <- ggplot(data=etSummary[,]) +
   coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=log(modET.Precip)), size=0.1, alpha=0.8) +
-  scale_color_stepsn(name="log(ET/precip)", colors=rev(grad.prcp), limits=c(-3, 3), n.breaks=13, oob=squish) + # Using breaks from IPCC AR6 figures
+  scale_color_stepsn(name="Precip.\nDeficit", colors=rev(grad.prcp), limits=c(-3, 3), n.breaks=13, oob=squish) + # Using breaks from IPCC AR6 figures
   theme(legend.position="left",
         legend.title=element_text(color="black", face="bold"),
         legend.text=element_text(color="black"),
@@ -236,12 +236,12 @@ plotRatioLog <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
   annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
   scale_fill_manual(values=biome.pall.all) +
-  labs(x="log(ET/Precip)", y="Biome") +
+  labs(x="Precipitation Deficit", y="Biome") +
   guides(fill="none") +
   theme_bw()
 plotRatioLog
 
-png(file.path(path.figsMS, "Figure3_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
+png(file.path(path.figsMS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
 cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -406,7 +406,7 @@ mapETfuture <- ggplot(data=cmip6AggMean[cmip6AggMean$Time==2100,]) +
         plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
 mapETfuture
 
-png(file.path(path.figsMS, "FigureS7_ET-ETchange_current-CMIP6.png"), height=6, width=9, units="in", res=320)
+png(file.path(path.figsMS, "FigureS6_ET-ETchange_current-CMIP6.png"), height=6, width=9, units="in", res=320)
 cowplot::plot_grid(mapETcurrent, mapETfuture, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
@@ -464,7 +464,7 @@ violinETper
 
 summary(cmip6AggMean)
 
-png(file.path(path.figsMS, "FigureS8_Climate-ET-Change_Biomes.png"), height=8, width=8, units="in", res=320)
+png(file.path(path.figsMS, "FigureS7_Climate-ET-Change_Biomes.png"), height=8, width=8, units="in", res=320)
 cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
 dev.off()
 
@@ -493,7 +493,7 @@ changeBiomeAggSD$modET <- round(changeBiomeAggSD$modET, 2)
 changeBiomeAggSD[,c("pr.per", "modET.perChange")] <- round(changeBiomeAggSD[,c("pr.per", "modET.perChange")],2)*100
 
 
-TableS7 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean$biomeCode),
+TableS8 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean$biomeCode),
                       N.Cities = etBiomeAggMean$N.Cities,
                       ET.current = pasteMeanSD(etBiomeAggMean$modET, etBiomeAggMean$ET.sd),
                       current.WaterRisk = paste0(round(etBiomeAggMean$N.Cities.Risk/etBiomeAggMean$N.Cities*100,0),"%"),
@@ -506,16 +506,53 @@ TableS7 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean
                       SSP585.CitiesDry.per = paste0(round(changeBiomeAggMean$N.Cities.Dry[changeBiomeAggMean$Scenario=="SSP5-8.5"]/etBiomeAggMean$N.Cities, 2)*100, "%"),
                       SSP585.CitiesRisk.per = paste0(round(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP5-8.5"]/etBiomeAggMean$N.Cities, 2)*100, "%")
                       )
-TableS7
+TableS8
 
-write.csv(TableS7, file.path(path.figsMS, "TableS7_ET-Risk_CMIP6.csv"), row.names=F)
+write.csv(TableS8, file.path(path.figsMS, "TableS8_ET-Risk_CMIP6.csv"), row.names=F)
 
 # Getting stats on percent changes in ET
 changeBiomeAggMedian
-median(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5"])
-median(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5"])
 
-median(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5"])-median(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5"])
+bootET245 <- vector(length=1000)
+bootET585 <- vector(length=1000)
+bootETDiff <- vector(length=1000)
+set.seed(1108)
+for(i in 1:length(bootET245)){
+  samp245 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5"))/3*2)
+  samp585 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5"))/3*2)
+  
+  bootET245[i] <- median(samp245)
+  bootET585[i] <- median(samp585)
+  bootETDiff[i] <- median(samp585) - median(samp245)
+}
+round(quantile(bootET245-1, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootET585-1, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootETDiff, c(0.5, 0.025, 0.975))*100, 0)
+
+
+bootDes245 <- vector(length=1000)
+bootDes585 <- vector(length=1000)
+bootTai245 <- vector(length=1000)
+bootTai585 <- vector(length=1000)
+set.seed(1219)
+for(i in 1:length(bootTai585)){
+  des245 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Des"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Des"))/3*2)
+  des585 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Des"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Des"))/3*2)
+
+  tai245 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Tai"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Tai"))/3*2)
+  tai585 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Tai"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Tai"))/3*2)
+  
+  bootDes245[i] <- median(des245)
+  bootDes585[i] <- median(des585)
+  bootTai245[i] <- median(tai245)
+  bootTai585[i] <- median(tai585)
+}
+round(quantile(bootDes245-1, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootDes585-1, c(0.5, 0.025, 0.975))*100, 0)
+
+round(quantile(bootTai245-1, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootTai585-1, c(0.5, 0.025, 0.975))*100, 0)
+
 
 # Getting Stats on number of cities drying
 sum(changeBiomeAggMean$N.Cities.Dry[changeBiomeAggMean$Scenario=="SSP2-4.5"])
@@ -526,9 +563,56 @@ sum(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP2-4.5"])/s
 sum(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP5-8.5"])/sum(etBiomeAggMean$N.Cities)
 
 # Looking at change in % cities with risk
-cbind(TableS7$Biome, as.numeric(gsub("%", "", TableS7$SSP245.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS7$current.WaterRisk)))
-cbind(TableS7$Biome, as.numeric(gsub("%", "", TableS7$SSP585.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS7$current.WaterRisk)))
+cbind(TableS8$Biome, as.numeric(gsub("%", "", TableS8$SSP245.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS8$current.WaterRisk)))
+cbind(TableS8$Biome, as.numeric(gsub("%", "", TableS8$SSP585.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS8$current.WaterRisk)))
 
 #-#-#-#-#-#-#-#-
+
+
+#-#-#-#-#-#-#-#-
+# Adding some figures that show variation by GCM
+#-#-#-#-#-#-#-#-
+
+ens245 <- ggplot(data=cmip6[!is.na(cmip6$biomeName) & cmip6$Time=="2100" & cmip6$Scenario=="SSP2-4.5",]) +
+  facet_wrap(biomeName~.) +
+  # coord_flip() +
+  # coord_cartesian(ylim=c(0,2.5), expand=0) +
+  geom_violin(aes(x=GCM, y=log(modET.Precip), fill=biomeName), scale="width") +
+  geom_hline(yintercept=0, linetype="dashed") +
+  # annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
+  # annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
+  # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
+  scale_fill_manual(values=biome.pall.all) +
+  labs(y="Precipitation Deficit", x="Ensemble Member") +
+  guides(fill="none") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=-90, hjust=0))
+
+png(file.path(path.figsMS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.png"), height=8, width=16, units="in", res=320)
+print(ens245)
+dev.off()
+
+
+ens585 <- ggplot(data=cmip6[!is.na(cmip6$biomeName) & cmip6$Time=="2100" & cmip6$Scenario=="SSP5-8.5",]) +
+  facet_wrap(biomeName~.) +
+  # coord_flip() +
+  # coord_cartesian(ylim=c(0,2.5), expand=0) +
+  geom_violin(aes(x=GCM, y=log(modET.Precip), fill=biomeName), scale="width") +
+  geom_hline(yintercept=0, linetype="dashed") +
+  # annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
+  # annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
+  # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
+  scale_fill_manual(values=biome.pall.all) +
+  labs(y="Precipitation Deficit", x="Ensemble Member") +
+  guides(fill="none") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=-90, hjust=0))
+
+png(file.path(path.figsMS, "FigureS9_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.png"), height=8, width=16, units="in", res=320)
+print(ens585)
+dev.off()
+#-#-#-#-#-#-#-#-
+
+
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
