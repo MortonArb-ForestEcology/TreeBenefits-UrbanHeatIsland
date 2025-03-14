@@ -470,6 +470,7 @@ length(which(StatsCombined$ETgreenBiomeTarget.Precip>1))/nrow(StatsCombined)
 
 length(which(StatsCombined$ETgreenCity25.Precip>1))
 length(which(StatsCombined$ETgreenCity25.Precip>1))/nrow(StatsCombined)
+length(which(StatsCombined$ETgreenCity25.Precip>1)) - length(which(StatsCombined$ETcurrent.Precip>1))
 
 median(StatsCombined$ET.PerInc.BiomeTarget); median(StatsCombined$modET.TreeTargetBottom25 - StatsCombined$modET.Base)
 
