@@ -1,6 +1,6 @@
 cff-version: 1.1.0
-message: If you use this code before acceptance/publication of the associated manuscript, please cite it as below."
-authors
+message: "If you use this code before acceptance/publication of the associated manuscript, please cite it as below."
+authors:
   - family-names: Rollinson
     given-names: Christine
     orcid: https://orcid.org/0000-0003-0181-7293
