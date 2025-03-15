@@ -177,8 +177,8 @@ TableS7 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMe
                       Tmean.diff.585 = pasteMeanSD(cmip6BiomeMean585$tas.diff, cmip6BiomeSD585$tas.diff),
                       Pr.diff.585 = pasteMeanSD(cmip6BiomeMean585$pr.per, cmip6BiomeSD585$pr.per))
                       
-TableS6                      
-write.csv(TableS6, file.path(path.figsMS, "TableS7_ClimateStats_CMIP6.csv"), row.names=F)
+TableS7                      
+write.csv(TableS7, file.path(path.figsMS, "TableS7_ClimateStats_CMIP6.csv"), row.names=F)
 
 
 # # Not a huge difference with median, so lets just roll with mean
@@ -246,6 +246,11 @@ plotRatioLog
 png(file.path(path.figsMS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
 cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
+
+pdf(file.path(path.figsMS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.pdf"), height=8, width=14)
+cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
+dev.off()
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -355,6 +360,10 @@ prFuture
 png(file.path(path.figsMS, "FigureS6_Climate_GLDAS_CMIP6-EnsembleMeans.png"), height=6, width=14, units="in", res=320)
 cowplot::plot_grid(tasGLDAS, prGLDAS, tasFuture, prFuture, ncol=2, rel_heights = c(0.45, 0.65), labels=c("A", "B", "C", "D"))
 dev.off()
+pdf(file.path(path.figsMS, "FigureS6_Climate_GLDAS_CMIP6-EnsembleMeans.pdf"), height=6, width=14)
+cowplot::plot_grid(tasGLDAS, prGLDAS, tasFuture, prFuture, ncol=2, rel_heights = c(0.45, 0.65), labels=c("A", "B", "C", "D"))
+dev.off()
+
 #-#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-
@@ -412,6 +421,9 @@ png(file.path(path.figsMS, "FigureS6_ET-ETchange_current-CMIP6.png"), height=6, 
 cowplot::plot_grid(mapETcurrent, mapETfuture, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
+pdf(file.path(path.figsMS, "FigureS6_ET-ETchange_current-CMIP6.pdf"), height=6, width=9)
+cowplot::plot_grid(mapETcurrent, mapETfuture, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
+dev.off()
 
 
 
@@ -470,6 +482,9 @@ png(file.path(path.figsMS, "FigureS7_Climate-ET-Change_Biomes.png"), height=8, w
 cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
 dev.off()
 
+pdf(file.path(path.figsMS, "FigureS7_Climate-ET-Change_Biomes.pdf"), height=8, width=8)
+cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
+dev.off()
 
 names(StatsCombined)
 # We need baseline N Cities; ET; % cities with water risk
@@ -594,6 +609,9 @@ png(file.path(path.figsMS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.png"),
 print(ens245)
 dev.off()
 
+pdf(file.path(path.figsMS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.pdf"), height=8, width=16)
+print(ens245)
+dev.off()
 
 ens585 <- ggplot(data=cmip6[!is.na(cmip6$biomeName) & cmip6$Time=="2100" & cmip6$Scenario=="SSP5-8.5",]) +
   facet_wrap(biomeName~.) +
@@ -611,6 +629,10 @@ ens585 <- ggplot(data=cmip6[!is.na(cmip6$biomeName) & cmip6$Time=="2100" & cmip6
   theme(axis.text.x = element_text(angle=-90, hjust=0))
 
 png(file.path(path.figsMS, "FigureS9_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.png"), height=8, width=16, units="in", res=320)
+print(ens585)
+dev.off()
+
+pdf(file.path(path.figsMS, "FigureS9_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.pdf"), height=8, width=16)
 print(ens585)
 dev.off()
 #-#-#-#-#-#-#-#-

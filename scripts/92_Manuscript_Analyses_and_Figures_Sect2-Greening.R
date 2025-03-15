@@ -271,6 +271,9 @@ png(file.path(path.figsMS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.png"), hei
 plotTempEffectsUHIonly
 dev.off()
 
+pdf(file.path(path.figsMS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.pdf"), height=6.5, width=3)
+plotTempEffectsUHIonly
+dev.off()
 
 
 
@@ -329,6 +332,10 @@ plotETratio
 # plotETcomb <- cowplot::plot_grid(plotET,NA, plotETratio, NA, ncol=2, rel_widths=c(0.75, 0.25))
 
 png(file.path(path.figsMS, "Figure4_TreeCover_Targets-ET.png"), height=6, width=6, units="in", res=320)
+cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
+dev.off()
+
+pdf(file.path(path.figsMS, "Figure4_TreeCover_Targets-ET.pdf"), height=6, width=6)
 cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
 dev.off()
 

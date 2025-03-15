@@ -90,10 +90,13 @@ biome.map <- ggplot(data=StatsCombined[,]) +
         plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
 
 # biome.map
-png(file.path(path.figsMS, "Figure1_CityDistribution_Biomes.png"), height=8, width=8, units="in", res=220)
+png(file.path(path.figsMS, "Figure1_CityDistribution_Biomes.png"), height=180, width=180, units="mm", res=300)
 plot_grid(biome.map, biome.hist, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
+pdf(file.path(path.figsMS, "Figure1_CityDistribution_Biomes.pdf"), height=7, width=7)
+plot_grid(biome.map, biome.hist, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
+dev.off()
 
 
 
@@ -146,6 +149,10 @@ mapETR2 <- ggplot(data=StatsCombined[,]) +
 
 
 png(file.path(path.figsMS, "FigureS1_Map_ModelR2_LST-ET.png"), height=10, width=8, units="in", res=320)
+cowplot::plot_grid(mapLSTR2, mapETR2, ncol=1, labels=c("A", "B"))
+dev.off()
+
+pdf(file.path(path.figsMS, "FigureS1_Map_ModelR2_LST-ET.pdf"), height=10, width=8)
 cowplot::plot_grid(mapLSTR2, mapETR2, ncol=1, labels=c("A", "B"))
 dev.off()
 
@@ -246,6 +253,9 @@ png(file.path(path.figsMS, "FigureS2_LSTmodel_PartialEffects_CoverTree-CoverVeg.
 coolingBiomeTreeVeg
 dev.off()
 
+pdf(file.path(path.figsMS, "FigureS2_LSTmodel_PartialEffects_CoverTree-CoverVeg.pdf"), height=8, width=10)
+coolingBiomeTreeVeg
+dev.off()
 
 coolingTreeSummary <- ggplot(data=dfEffectLST, aes()) +
   coord_cartesian(ylim=c(-10,1)) +
@@ -292,6 +302,10 @@ png(file.path(path.figsMS, "FigureS3_ETmodel_PartialEffects_CoverTree.png"), hei
 etBiomeTree
 dev.off()
 
+pdf(file.path(path.figsMS, "FigureS3_ETmodel_PartialEffects_CoverTree.pdf"), height=10, width=8)
+etBiomeTree
+dev.off()
+
 
 etTreeSummary <- ggplot(data=dfSplineTree, aes()) +
   coord_cartesian(ylim=c(0,5)) +
@@ -312,6 +326,9 @@ png(file.path(path.figsMS, "Figure2_Current_UHI-Tree-Cool-Water.png"), height=8,
 cowplot::plot_grid(plotMaps, plotPartialEffects, nrow=2, rel_heights = c(0.5, 0.5))
 dev.off()
 
+pdf(file.path(path.figsMS, "Figure2_Current_UHI-Tree-Cool-Water.pdf"), height=8, width=11)
+cowplot::plot_grid(plotMaps, plotPartialEffects, nrow=2, rel_heights = c(0.5, 0.5))
+dev.off()
 
 
 # Looking at the fluxtower validation
@@ -428,7 +445,12 @@ png(file.path(path.figsMS, "FigureS4_ETmodel_ValidationSummaries.png"), height=8
 cowplot::plot_grid(plot.model, plot.modis, plot.gldas, ncol=1, labels=c("A", "B", "C"))
 dev.off()
 
- #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+pdf(file.path(path.figsMS, "FigureS4_ETmodel_ValidationSummaries.pdf"), height=8, width=8)
+cowplot::plot_grid(plot.model, plot.modis, plot.gldas, ncol=1, labels=c("A", "B", "C"))
+dev.off()
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
 
