@@ -1,9 +1,9 @@
 cff-version: 1.1.0
-message: "If you use this code before acceptance/publication of the associated manuscript, please cite it as below."
-authors:
+message: If you use this code before acceptance/publication of the associated manuscript, please cite it as below."
+authors
   - family-names: Rollinson
     given-names: Christine
     orcid: https://orcid.org/0000-0003-0181-7293
-title: Code for peer-review of "Global risk of precipitation deficits for tree-based cooling in cities"
+title: Code for peer-review of Global risk of precipitation deficits for tree-based cooling in cities
 version: Submission2-ZenodoRelease
 date-released: 2024-07-24
