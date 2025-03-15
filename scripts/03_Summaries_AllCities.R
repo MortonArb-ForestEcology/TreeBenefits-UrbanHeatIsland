@@ -229,7 +229,6 @@ cowplot::plot_grid(r2.histo.biome+guides(fill="none"),
 dev.off()
 
 
-# ##########################
 
 summary(cityAll.stats)
 # ##########################
