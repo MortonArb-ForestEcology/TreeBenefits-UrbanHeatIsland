@@ -251,6 +251,7 @@ nrow(StatsCombined)
 
 write.csv(StatsCombined, file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
 
+write.csv(StatsCombined, file.path(path.google, "SupplementalData-1_UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-

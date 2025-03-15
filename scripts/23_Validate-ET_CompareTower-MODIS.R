@@ -8,6 +8,8 @@ library(nlme)
 path.google <- file.path("~/Google Drive/")
 path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
+path.analysis <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
+
 # path.figsMS <- file.path(path.google, "figures_manuscript")
 
 datTower <- read.csv(file.path(path.tower, "FluxTower_ETcomparison_AllTowers.csv"))
@@ -97,6 +99,7 @@ aggTowerTable[,c("RMSE.model", "RMSE.modis", "RMSE.gldas", "R2.model", "R2.modis
 head(aggTowerTable)
 write.csv(aggTowerTable, file.path(path.tower, "SUPPLEMENT_FluxTower_ETcomparison_AllTowers-Aggregated-Clean.csv"), row.names=F)
 
+write.csv(aggTowerTable, file.path(path.analysis, "SUPPLEMENT_FluxTower_ETcomparison_AllTowers-Aggregated-Clean.csv"), row.names=F)
 
 # Create a supplement-worth table summarizing stats for each LC type ----
 aggLCmean <- aggregate(cbind(n.YRS, ET, TA, ETmodel.R2adj, ETmodel.RMSE, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, RMSE.pixel, RMSE.modis, RMSE.gldas, R2.pixel, R2.modis, R2.gldas) ~ IGBP , data=aggTower, FUN=mean, na.rm=T)
@@ -129,7 +132,7 @@ aggLCTable$R2.gldas <- pasteXSD(x=aggLCmean$R2.gldas, stdDev=aggLCsd$R2.gldas, S
 
 
 aggLCTable
-write.csv(aggLCTable, file.path(path.tower, "SUPPLEMENT_FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
+write.csv(aggLCTable, file.path(path.tower, "SupplementalData-2_FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
 
 
 aggTowerStack <- stack(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")])

@@ -12,9 +12,11 @@
 #       -- The relationships between water use and tree canopy are non-linear
 #  1.3. In terms of current peak summer water use vs. output, XXX% of cities receive more water than our 
 library(ggplot2); library(cowplot)
+library(ggpmisc)
 
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
 path.cities <- file.path(path.google, "data_processed_final")
+path.tower <- file.path(path.google, "../ET Validation")
 
 path.figsMS <- file.path(path.google, "figures_manuscript")
 path.figsExplore <- file.path(path.google, "figures_exploratory")
@@ -37,6 +39,10 @@ summary(StatsCombined)
 
 length(unique(StatsCombined$ISOURBID))
 length(unique(StatsCombined$biomeName))
+
+aggTower <- read.csv(file.path(path.tower, "FluxTower_ETcomparison_AllTowers-Aggregated.csv"))
+summary(aggTower)
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -308,31 +314,121 @@ dev.off()
 
 
 
-modisET <- ggplot(data=StatsCombined) +
-  # coord_equal() +
-  geom_point(aes(x=ETpred.mean, y=ETobs.mean, color=biomeCode)) +
-  geom_abline(slope=1, intercept=0) +
-  annotate(geom="text", x=c(0.25, 4.75), y=c(4.5, 0.5), label=c("Observed (MODIS) higher", "Predicted higher"), hjust=c(0, 1)) +
-  scale_color_manual(name="Biome", values=biomeCode.pall.all) +
-  labs(x="modeled ET (mm/day)", y="MODIS ET (mm/day)") +
-  theme_bw() +
-  theme(legend.position="top")
+# Looking at the fluxtower validation
+aggTower <- merge(aggTower, StatsCombined[,c("ISOURBID", "biomeName", "biomeCode")], all.x=T, all.y=F)
+summary(aggTower)
 
-gldasET <- ggplot(data=StatsCombined) +
-  # coord_equal() +
-  geom_point(aes(x=ETpred.mean, y=ET.GLDAS, color=biomeCode)) +
-  geom_abline(slope=1, intercept=0) +
-  annotate(geom="text", x=c(0.25, 4.75), y=c(4.5, 0.5), label=c("GLDAS (27 km) higher", "Predicted (1 km) higher"), hjust=c(0, 1)) +
-  scale_color_manual(name="Biome", values=biomeCode.pall.all) +
-  labs(x="modeled ET (mm/day)", y="GLDAS ET (mm/day)") +
-  theme_bw() +
-  theme(legend.position="top")
+
+aggTowerStack <- stack(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")])
+names(aggTowerStack) <- c("RMSE", "dataset")
+aggTowerStack[,c("ISOURBID","biomeName","biomeCode", "IGBP")] <- aggTower[,c("ISOURBID", "biomeName","biomeCode", "IGBP")]
+aggTowerStack$R2 <- stack(aggTower[,c("R2.pixel", "R2.modis", "R2.gldas")])[,"values"]
+aggTowerStack$dataset <- car::recode(aggTowerStack$dataset, "'RMSE.pixel'='Model'; 'RMSE.modis'='MODIS'; 'RMSE.gldas'='GLDAS'")
+aggTowerStack$dataset <- factor(aggTowerStack$dataset, levels=c("Model", "MODIS", "GLDAS"))
+summary(aggTowerStack)
+
+aggTowerStack2 <- stack(aggTowerStack[,c("RMSE", "R2")])
+aggTowerStack2[,c("dataset", "biomeName", "biomeCode", "IGBP", "ISOURBID")] <- aggTowerStack[,c("dataset", "biomeName", "biomeCode", "IGBP", "ISOURBID")]
+summary(aggTowerStack2)
+
+valMeans <- aggregate(values ~ dataset + ind, data=aggTowerStack2, FUN=mean, na.rm=T)
+
+ggplot(data=aggTowerStack2) +
+  facet_grid(dataset~ind, scales="free_x") +
+  geom_histogram(aes(x=values, fill=IGBP)) +
+  geom_vline(data=valMeans, aes(xintercept=values), linetype="dashed", linewidth=1.5) +
+  scale_fill_manual(values=c("WET" = "#6c9fb8", "EBF" = "#1c5f2c", "DBF" = "#68ab5f", "MF" = "#b5c58f", "OSH" = "#ccb879", "GRA" = "#dfdfc2", "CRO" = "#ab6c28", "URB" = "#eb0000"),
+                    labels=c("Wetland", "Forest, Evg. Broad.", "Forest, Dec. Broad", "Forest, Mixed", "Shrubland", "Grassland", "Cropland", "Urban")) +
+  theme_bw()
+
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+
+plot.model <- ggplot(data=aggTower, aes(x=ET.pixel, y=ET)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
+  geom_point(aes(color=biomeCode)) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE
+  ) + # Display equation and R^2
+  annotate(
+    "text",
+    x = min(aggTower$ET.pixel),
+    y = max(aggTower$ET)-0.5,
+    label = paste0("RMSE: ", round(rmse(aggTower$ET, predict(lm(ET ~ ET.pixel, aggTower))), 2)),
+    hjust = 0,
+    color = "black"
+  ) + # Display RMSE
+  labs(
+    x = "Model ET (mm/day)",
+    y = "Tower ET (mm/day)"
+  ) +
+  theme_bw()
+
+plot.modis <- ggplot(data=aggTower, aes(x=ET.modis, y=ET)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
+  geom_point(aes(color=biomeCode)) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE
+  ) + # Display equation and R^2
+  annotate(
+    "text",
+    x = min(aggTower$ET.modis),
+    y = max(aggTower$ET)-0.5,
+    label = paste0("RMSE: ", round(rmse(aggTower$ET, predict(lm(ET ~ ET.modis, aggTower))), 2)),
+    hjust = 0,
+    color = "black"
+  ) + # Display RMSE
+  labs(
+    x = "MODIS ET (mm/day)",
+    y = "Tower ET (mm/day)"
+  ) +
+  theme_bw()
+
+plot.gldas <- ggplot(data=aggTower, aes(x=ET.gldas, y=ET)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
+  geom_point(aes(color=biomeCode)) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE
+  ) + # Display equation and R^2
+  annotate(
+    "text",
+    x = min(aggTower$ET.gldas),
+    y = max(aggTower$ET)-0.5,
+    label = paste0("RMSE: ", round(rmse(aggTower$ET, predict(lm(ET ~ ET.gldas, aggTower))), 2)),
+    hjust = 0,
+    color = "black"
+  ) + # Display RMSE
+  labs(
+    x = "GLDAS ET (mm/day)",
+    y = "Tower ET (mm/day)"
+  ) +
+  theme_bw()
+
+plot.model
+plot.modis
+plot.gldas
 
 png(file.path(path.figsMS, "FigureS4_ETmodel_ValidationSummaries.png"), height=8, width=8, units="in", res=320)
-cowplot::plot_grid(modisET, gldasET, ncol=1, labels=c("A", "B"))
+cowplot::plot_grid(plot.model, plot.modis, plot.gldas, ncol=1, labels=c("A", "B", "C"))
 dev.off()
 
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+ #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
 

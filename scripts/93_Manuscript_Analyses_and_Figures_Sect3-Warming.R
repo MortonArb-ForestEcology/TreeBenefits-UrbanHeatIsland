@@ -62,6 +62,8 @@ cmip6$modET.Precip[cmip6$modET.Precip==Inf] <- NA
 # cmip6$modET.PrecipLog <- log(cmip6$modET.Precip)
 summary(cmip6)
 
+write.csv(cmip6[cmip6$Time==2100,], file.path(path.google, "SupplementalData-3_city_stats_all_CMIP6_ET.csv"), row.names=F)
+
 # Looking at the distribution of cities by model & scenario based on comments from R3
 png(file.path(path.figsExplore, "CMIP6-EnsembleMembers_ET_vs_Precip_Log.png"), height=8, width=10, units="in", res=320)
 ggplot(data=cmip6[cmip6$Time=="2100" & !is.na(cmip6$modET.Precip) , ]) +
