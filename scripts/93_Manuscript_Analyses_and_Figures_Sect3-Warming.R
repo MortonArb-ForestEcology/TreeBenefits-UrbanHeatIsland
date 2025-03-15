@@ -13,6 +13,8 @@ path.figsMS <- file.path(path.google, "figures_manuscript")
 path.figsExplore <- file.path(path.google, "figures_exploratory")
 dir.create(path.figsMS, recursive=T, showWarnings=F)
 
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 4 - Nature Climate Change - Resubmit/")
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # Read in some base datasets etc.
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -62,7 +64,7 @@ cmip6$modET.Precip[cmip6$modET.Precip==Inf] <- NA
 # cmip6$modET.PrecipLog <- log(cmip6$modET.Precip)
 summary(cmip6)
 
-write.csv(cmip6[cmip6$Time==2100,], file.path(path.google, "SupplementalData-3_city_stats_all_CMIP6_ET.csv"), row.names=F)
+write.csv(cmip6[cmip6$Time==2100,], file.path(path.MS, "SupplementalData-3_city_stats_all_CMIP6_ET.csv"), row.names=F)
 
 # Looking at the distribution of cities by model & scenario based on comments from R3
 png(file.path(path.figsExplore, "CMIP6-EnsembleMembers_ET_vs_Precip_Log.png"), height=8, width=10, units="in", res=320)
@@ -247,7 +249,7 @@ png(file.path(path.figsMS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), h
 cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
 
-pdf(file.path(path.figsMS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.pdf"), height=8, width=14)
+pdf(file.path(path.MS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.pdf"), height=8, width=14)
 cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
 
@@ -360,7 +362,7 @@ prFuture
 png(file.path(path.figsMS, "FigureS6_Climate_GLDAS_CMIP6-EnsembleMeans.png"), height=6, width=14, units="in", res=320)
 cowplot::plot_grid(tasGLDAS, prGLDAS, tasFuture, prFuture, ncol=2, rel_heights = c(0.45, 0.65), labels=c("A", "B", "C", "D"))
 dev.off()
-pdf(file.path(path.figsMS, "FigureS6_Climate_GLDAS_CMIP6-EnsembleMeans.pdf"), height=6, width=14)
+pdf(file.path(path.MS, "FigureS6_Climate_GLDAS_CMIP6-EnsembleMeans.pdf"), height=6, width=14)
 cowplot::plot_grid(tasGLDAS, prGLDAS, tasFuture, prFuture, ncol=2, rel_heights = c(0.45, 0.65), labels=c("A", "B", "C", "D"))
 dev.off()
 
@@ -421,7 +423,7 @@ png(file.path(path.figsMS, "FigureS6_ET-ETchange_current-CMIP6.png"), height=6, 
 cowplot::plot_grid(mapETcurrent, mapETfuture, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
-pdf(file.path(path.figsMS, "FigureS6_ET-ETchange_current-CMIP6.pdf"), height=6, width=9)
+pdf(file.path(path.MS, "FigureS6_ET-ETchange_current-CMIP6.pdf"), height=6, width=9)
 cowplot::plot_grid(mapETcurrent, mapETfuture, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
@@ -482,7 +484,7 @@ png(file.path(path.figsMS, "FigureS7_Climate-ET-Change_Biomes.png"), height=8, w
 cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
 dev.off()
 
-pdf(file.path(path.figsMS, "FigureS7_Climate-ET-Change_Biomes.pdf"), height=8, width=8)
+pdf(file.path(path.MS, "FigureS7_Climate-ET-Change_Biomes.pdf"), height=8, width=8)
 cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
 dev.off()
 
@@ -609,7 +611,7 @@ png(file.path(path.figsMS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.png"),
 print(ens245)
 dev.off()
 
-pdf(file.path(path.figsMS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.pdf"), height=8, width=16)
+pdf(file.path(path.MS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.pdf"), height=8, width=16)
 print(ens245)
 dev.off()
 
@@ -632,7 +634,7 @@ png(file.path(path.figsMS, "FigureS9_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.png"),
 print(ens585)
 dev.off()
 
-pdf(file.path(path.figsMS, "FigureS9_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.pdf"), height=8, width=16)
+pdf(file.path(path.MS, "FigureS9_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.pdf"), height=8, width=16)
 print(ens585)
 dev.off()
 #-#-#-#-#-#-#-#-

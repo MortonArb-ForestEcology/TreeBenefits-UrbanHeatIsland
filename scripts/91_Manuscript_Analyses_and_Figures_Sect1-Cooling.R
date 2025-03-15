@@ -21,6 +21,7 @@ path.tower <- file.path(path.google, "../ET Validation")
 path.figsMS <- file.path(path.google, "figures_manuscript")
 path.figsExplore <- file.path(path.google, "figures_exploratory")
 dir.create(path.figsMS, recursive=T, showWarnings=F)
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 4 - Nature Climate Change - Resubmit/")
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # Read in some base datasets etc.
@@ -94,7 +95,7 @@ png(file.path(path.figsMS, "Figure1_CityDistribution_Biomes.png"), height=180, w
 plot_grid(biome.map, biome.hist, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
-pdf(file.path(path.figsMS, "Figure1_CityDistribution_Biomes.pdf"), height=7, width=7)
+pdf(file.path(path.MS, "Figure1_CityDistribution_Biomes.pdf"), height=7, width=7)
 plot_grid(biome.map, biome.hist, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
@@ -152,7 +153,7 @@ png(file.path(path.figsMS, "FigureS1_Map_ModelR2_LST-ET.png"), height=10, width=
 cowplot::plot_grid(mapLSTR2, mapETR2, ncol=1, labels=c("A", "B"))
 dev.off()
 
-pdf(file.path(path.figsMS, "FigureS1_Map_ModelR2_LST-ET.pdf"), height=10, width=8)
+pdf(file.path(path.MS, "FigureS1_Map_ModelR2_LST-ET.pdf"), height=10, width=8)
 cowplot::plot_grid(mapLSTR2, mapETR2, ncol=1, labels=c("A", "B"))
 dev.off()
 
@@ -253,7 +254,7 @@ png(file.path(path.figsMS, "FigureS2_LSTmodel_PartialEffects_CoverTree-CoverVeg.
 coolingBiomeTreeVeg
 dev.off()
 
-pdf(file.path(path.figsMS, "FigureS2_LSTmodel_PartialEffects_CoverTree-CoverVeg.pdf"), height=8, width=10)
+pdf(file.path(path.MS, "FigureS2_LSTmodel_PartialEffects_CoverTree-CoverVeg.pdf"), height=8, width=10)
 coolingBiomeTreeVeg
 dev.off()
 
@@ -302,7 +303,7 @@ png(file.path(path.figsMS, "FigureS3_ETmodel_PartialEffects_CoverTree.png"), hei
 etBiomeTree
 dev.off()
 
-pdf(file.path(path.figsMS, "FigureS3_ETmodel_PartialEffects_CoverTree.pdf"), height=10, width=8)
+pdf(file.path(path.MS, "FigureS3_ETmodel_PartialEffects_CoverTree.pdf"), height=10, width=8)
 etBiomeTree
 dev.off()
 
@@ -326,7 +327,7 @@ png(file.path(path.figsMS, "Figure2_Current_UHI-Tree-Cool-Water.png"), height=8,
 cowplot::plot_grid(plotMaps, plotPartialEffects, nrow=2, rel_heights = c(0.5, 0.5))
 dev.off()
 
-pdf(file.path(path.figsMS, "Figure2_Current_UHI-Tree-Cool-Water.pdf"), height=8, width=11)
+pdf(file.path(path.MS, "Figure2_Current_UHI-Tree-Cool-Water.pdf"), height=8, width=11)
 cowplot::plot_grid(plotMaps, plotPartialEffects, nrow=2, rel_heights = c(0.5, 0.5))
 dev.off()
 
@@ -446,7 +447,7 @@ cowplot::plot_grid(plot.model, plot.modis, plot.gldas, ncol=1, labels=c("A", "B"
 dev.off()
 
 
-pdf(file.path(path.figsMS, "FigureS4_ETmodel_ValidationSummaries.pdf"), height=8, width=8)
+pdf(file.path(path.MS, "FigureS4_ETmodel_ValidationSummaries.pdf"), height=8, width=8)
 cowplot::plot_grid(plot.model, plot.modis, plot.gldas, ncol=1, labels=c("A", "B", "C"))
 dev.off()
 

@@ -13,6 +13,8 @@ path.figsMS <- file.path(path.google, "figures_manuscript")
 path.figsExplore <- file.path(path.google, "figures_exploratory")
 dir.create(path.figsMS, recursive=T, showWarnings=F)
 
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 4 - Nature Climate Change - Resubmit/")
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # Read in some base datasets etc.
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -271,7 +273,7 @@ png(file.path(path.figsMS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.png"), hei
 plotTempEffectsUHIonly
 dev.off()
 
-pdf(file.path(path.figsMS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.pdf"), height=6.5, width=3)
+pdf(file.path(path.MS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.pdf"), height=6.5, width=3)
 plotTempEffectsUHIonly
 dev.off()
 
@@ -335,7 +337,7 @@ png(file.path(path.figsMS, "Figure4_TreeCover_Targets-ET.png"), height=6, width=
 cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
 dev.off()
 
-pdf(file.path(path.figsMS, "Figure4_TreeCover_Targets-ET.pdf"), height=6, width=6)
+pdf(file.path(path.MS, "Figure4_TreeCover_Targets-ET.pdf"), height=6, width=6)
 cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
 dev.off()
 

@@ -8,6 +8,7 @@
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
 path.cities <- file.path(path.google, "data_processed_final")
 path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v4/")
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 4 - Nature Climate Change - Resubmit/")
 
 path.figs <- file.path(path.google, "figures_manuscript")
 dir.create(path.figs, recursive=T, showWarnings=F)
@@ -251,7 +252,7 @@ nrow(StatsCombined)
 
 write.csv(StatsCombined, file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
 
-write.csv(StatsCombined, file.path(path.google, "SupplementalData-1_UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
+write.csv(StatsCombined, file.path(path.MS, "SupplementalData-1_UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-

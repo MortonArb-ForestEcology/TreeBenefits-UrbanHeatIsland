@@ -9,6 +9,8 @@ path.google <- file.path("~/Google Drive/")
 path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
 path.analysis <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 4 - Nature Climate Change - Resubmit/")
+
 
 # path.figsMS <- file.path(path.google, "figures_manuscript")
 
@@ -134,6 +136,7 @@ aggLCTable$R2.gldas <- pasteXSD(x=aggLCmean$R2.gldas, stdDev=aggLCsd$R2.gldas, S
 aggLCTable
 write.csv(aggLCTable, file.path(path.tower, "SupplementalData-2_FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
 
+write.csv(aggLCTable, file.path(path.MS, "SupplementalData-2_FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
 
 aggTowerStack <- stack(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")])
 names(aggTowerStack) <- c("RMSE", "dataset")
