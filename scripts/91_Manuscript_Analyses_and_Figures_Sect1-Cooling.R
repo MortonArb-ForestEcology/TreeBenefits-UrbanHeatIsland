@@ -401,9 +401,9 @@ plot.modis <- ggplot(data=aggTower, aes(x=ET.modis, y=ET)) +
   ) + # Display equation and R^2
   annotate(
     "text",
-    x = min(aggTower$ET.modis),
+    x = min(aggTower$ET.modis, na.rm=T),
     y = max(aggTower$ET)-0.5,
-    label = paste0("RMSE: ", round(rmse(aggTower$ET, predict(lm(ET ~ ET.modis, aggTower))), 2)),
+    label = paste0("RMSE: ", round(rmse(aggTower$ET[!is.na(aggTower$ET.modis)], predict(lm(ET ~ ET.modis, aggTower[!is.na(aggTower$ET.modis),]))), 2)),
     hjust = 0,
     color = "black"
   ) + # Display RMSE

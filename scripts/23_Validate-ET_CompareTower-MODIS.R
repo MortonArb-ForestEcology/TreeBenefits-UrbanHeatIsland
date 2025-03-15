@@ -32,14 +32,34 @@ summary(datTower)
 cities.et <- read.csv(file.path(path.cities, "../UHIs-FinalCityDataForAnalysis.csv"))
 summary(cities.et)
 
+datTower <- merge(datTower, cities.et[,c("ISOURBID", "biomeName", "biomeCode")], all.x=T)
+
 
 # Aggregating to to Tower level to get some summary stats
-aggTower <- aggregate(cbind(ET, TA, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, Error.pixel2, Error.modis2, Error.gldas2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean, na.rm=T)
-aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")] <- sqrt(aggTower[,c("Error.pixel2", "Error.modis2", "Error.gldas2")])
+aggTower <- aggregate(cbind(ET, TA, ET.pixel, Error.pixel, Error.pixel2) ~ ISOURBID + ISO3 + NAME + SITE_ID + biomeCode + biomeName + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean, na.rm=T)
+aggTower[,c("RMSE.pixel")] <- sqrt(aggTower[,c("Error.pixel2")])
 aggTower$YEARS <- NA
 aggTower$n.YRS <- NA
 
-aggTowerSD <- aggregate(cbind(ET, TA, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, Error.pixel2, Error.modis2, Error.gldas2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=sd, na.rm=T)
+aggTowerMODIS <- aggregate(cbind(ET.modis, Error.modis, Error.modis2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean, na.rm=T)
+aggTowerMODIS[,c("RMSE.modis")] <- sqrt(aggTowerMODIS[,c("Error.modis2")])
+
+aggTowerGLDAS <- aggregate(cbind(ET.gldas, Error.gldas, Error.gldas2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean, na.rm=T)
+aggTowerGLDAS[,c("RMSE.gldas")] <- sqrt(aggTowerGLDAS[,c("Error.gldas2")])
+
+aggTower <- merge(aggTower, aggTowerMODIS, all.x=T)
+aggTower <- merge(aggTower, aggTowerGLDAS, all.x=T)
+
+# aggTowerSD <- aggregate(cbind(ET, TA, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, Error.pixel2, Error.modis2, Error.gldas2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=sd, na.rm=T)
+
+aggTowerSD <- aggregate(cbind(ET, TA, ET.pixel, Error.pixel, Error.pixel2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=sd, na.rm=T)
+
+aggTowerSDMODIS <- aggregate(cbind(ET.modis, Error.modis, Error.modis2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=sd, na.rm=T)
+
+aggTowerSDGLDAS <- aggregate(cbind(ET.gldas, Error.gldas, Error.gldas2) ~ ISOURBID + ISO3 + NAME + SITE_ID + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=sd, na.rm=T)
+
+aggTowerSD <- merge(aggTowerSD, aggTowerSDMODIS, all.x=T)
+aggTowerSD <- merge(aggTowerSD, aggTowerSDGLDAS, all.x=T)
 
 
 for(i in 1:nrow(aggTower)){
@@ -59,20 +79,29 @@ for(i in 1:nrow(aggTower)){
   
   if(length(YRS)>2){
     lmSitePix <- lm(ET ~ ET.pixel, data=datSite)
-    lmSiteMod <- lm(ET ~ ET.modis, data=datSite)
     lmSiteGld <- lm(ET ~ ET.gldas, data=datSite)
     summary(lmSitePix)
-    summary(lmSiteMod)
     summary(lmSiteGld)
     
     aggTower[i,"R2.pixel"] <- summary(lmSitePix)$r.squared
-    aggTower[i,"R2.modis"] <- summary(lmSiteMod)$r.squared
+    
+    if(!all(is.na(datSite$ET.modis))){ 
+      lmSiteMod <- lm(ET ~ ET.modis, data=datSite) 
+      summary(lmSiteMod)
+      aggTower[i,"R2.modis"] <- summary(lmSiteMod)$r.squared
+      
+    }
+    
     aggTower[i,"R2.gldas"] <- summary(lmSiteGld)$r.squared
   }
 }
 summary(aggTower)
+length(unique(aggTower$SITE_ID))
+length(unique(aggTower$ISOURBID))
+length(unique(aggTower$biomeName))
+
 mean(aggTower$RMSE.pixel); sd(aggTower$RMSE.pixel)
-mean(aggTower$RMSE.modis); sd(aggTower$RMSE.modis)
+mean(aggTower$RMSE.modis, na.rm=T); sd(aggTower$RMSE.modis, na.rm=T)
 mean(aggTower$RMSE.gldas); sd(aggTower$RMSE.gldas)
 
 mean(aggTower$R2.pixel, na.rm=T); sd(aggTower$R2.pixel, na.rm=T)
@@ -98,10 +127,13 @@ aggTowerTable$Error.modis <- pasteXSD(x=aggTower$Error.modis, stdDev=aggTowerSD$
 aggTowerTable$Error.gldas <- pasteXSD(x=aggTower$Error.gldas, stdDev=aggTowerSD$Error.gldas, SigFig=2)
 aggTowerTable[,c("RMSE.model", "RMSE.modis", "RMSE.gldas", "R2.model", "R2.modis", "R2.gldas")] <- round(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas", "R2.pixel", "R2.modis", "R2.gldas")], 2)
 
+summary(aggTower)
+
 head(aggTowerTable)
 write.csv(aggTowerTable, file.path(path.tower, "SUPPLEMENT_FluxTower_ETcomparison_AllTowers-Aggregated-Clean.csv"), row.names=F)
 
 write.csv(aggTowerTable, file.path(path.analysis, "SUPPLEMENT_FluxTower_ETcomparison_AllTowers-Aggregated-Clean.csv"), row.names=F)
+write.csv(aggTowerTable, file.path(path.MS, "SupplementalData-2_FluxTower_ETcomparison_AllTowers-Aggregated-Clean.csv"), row.names=F)
 
 # Create a supplement-worth table summarizing stats for each LC type ----
 aggLCmean <- aggregate(cbind(n.YRS, ET, TA, ETmodel.R2adj, ETmodel.RMSE, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, RMSE.pixel, RMSE.modis, RMSE.gldas, R2.pixel, R2.modis, R2.gldas) ~ IGBP , data=aggTower, FUN=mean, na.rm=T)
@@ -134,9 +166,9 @@ aggLCTable$R2.gldas <- pasteXSD(x=aggLCmean$R2.gldas, stdDev=aggLCsd$R2.gldas, S
 
 
 aggLCTable
-write.csv(aggLCTable, file.path(path.tower, "SupplementalData-2_FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
+write.csv(aggLCTable, file.path(path.tower, "FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
 
-write.csv(aggLCTable, file.path(path.MS, "SupplementalData-2_FluxTower_Summary_Landcover-Clean.csv"), row.names=F)
+
 
 aggTowerStack <- stack(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")])
 names(aggTowerStack) <- c("RMSE", "dataset")
