@@ -2,10 +2,10 @@
 
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
-rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google, "My Drive")
-GoogleFolderSave <- "UHI_Analysis_Output_Final_v2"
+rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T, project="urbanecodrought")
+path.google <- file.path("~/Google Drive/My Drive")
+GoogleFolderSave <- "UHI_Analysis_Output_Final_v4"
+if(!file.exists(file.path(path.google, GoogleFolderSave))) dir.create(file.path(path.google, GoogleFolderSave), recursive = T)
 
 ##################### 
 # 0. Set up some choices for data quality thresholds
@@ -45,13 +45,20 @@ vizTree <- list(
   max=100.0,
   palette=c('bbe029', '0a9501', '074b03')
 );
-
+# MOD44b_1km_Reproj_Percent_Tree_Cover
 modTree <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover')
 modVeg <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation')
-modBare <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated')
-
 ee_print(modTree)
-# Map$addLayer(modTree$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
+Map$addLayer(modTree$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
+
+# modTreeN <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_NH')
+# modVegN <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_NH')
+# # modBare <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonVegetated')
+# 
+# modTreeS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_Tree_Cover_SH')
+# modVegS <- ee$Image('users/crollinson/MOD44b_1km_Reproj_Percent_NonTree_Vegetation_SH')
+# ee_print(modTreeN)
+# Map$addLayer(modTreeN$select("YR2020"), vizTree, "Tree Cover: 1km, Reproj")
 
 projTree = modTree$projection()
 projCRS = projTree$crs()
@@ -79,7 +86,7 @@ extractVeg <- function(CitySP, CityNames, TREE, VEG, BARE, GoogleFolderSave, ove
     # Start Tree Cover Layer
     treeCity <- TREE$clip(cityNow)
     # ee_print(treeCity)
-    # Map$addLayer(treeCity$select('2020_Percent_Tree_Cover'), vizTree, 'Percent Tree Cover')
+    # Map$addLayer(treeCity$select('YR2020'), vizTree, 'Percent Tree Cover')
     
     exportTree <- ee_image_to_drive(image=treeCity, description=paste0(cityID, "_Vegetation_PercentTree"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentTree"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     exportTree$start()
@@ -90,12 +97,12 @@ extractVeg <- function(CitySP, CityNames, TREE, VEG, BARE, GoogleFolderSave, ove
     exportVeg <- ee_image_to_drive(image=vegCity, description=paste0(cityID, "_Vegetation_PercentOtherVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentOtherVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
     exportVeg$start()
 
-    # Start No Veg Cover layer
-    bareCity <- BARE$clip(cityNow)
-    
-    export.bare <- ee_image_to_drive(image=bareCity, description=paste0(cityID, "_Vegetation_PercentNoVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentNoVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
-    export.bare$start()
-    #-------
+    # # Start No Veg Cover layer
+    # bareCity <- BARE$clip(cityNow)
+    # 
+    # export.bare <- ee_image_to_drive(image=bareCity, description=paste0(cityID, "_Vegetation_PercentNoVeg"), fileNamePrefix=paste0(cityID, "_Vegetation_PercentNoVeg"), folder=GoogleFolderSave, timePrefix=F, region=cityNow$geometry(), maxPixels=5e7, crs=projCRS, crsTransform=projTransform)
+    # export.bare$start()
+    # #-------
     
   }  
 }
@@ -132,21 +139,28 @@ if(!overwrite){
 length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
 
 
+# Running a test case
+# CITY = "SWE3477"
+# extractVeg(CitySP=citiesUse, CityNames = CITY, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# testTree <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_Vegetation_PercentTree.tif")))
+# plot(testTree[[1]])
+
+
 if(length(cityIdS)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdS, TREE=modTree, VEG = modVeg, BARE=modBare, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdS, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 
 if(length(cityIdNW)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNW, TREE=modTree, VEG = modVeg, BARE=modBare, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNW, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE1)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNE1, TREE=modTree, VEG = modVeg, BARE=modBare, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNE1, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE2)>0){
-  extractVeg(CitySP=citiesUse, CityNames = cityIdNE2, TREE=modTree, VEG = modVeg, BARE=modBare, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractVeg(CitySP=citiesUse, CityNames = cityIdNE2, TREE=modTree, VEG = modVeg, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 ##################### 

@@ -2,10 +2,10 @@
 
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
-rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T)
-user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Library/CloudStorage", user.google, "My Drive")
-GoogleFolderSave <- "UHI_Analysis_Output_Final_v2"
+rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T, project="urbanecodrought")
+path.google <- file.path("~/Google Drive/My Drive")
+GoogleFolderSave <- "UHI_Analysis_Output_Final_v4"
+if(!file.exists(file.path(path.google, GoogleFolderSave))) dir.create(file.path(path.google, GoogleFolderSave), recursive = T)
 
 ##################### 
 # 0. Set up some choices for data quality thresholds
@@ -41,6 +41,11 @@ citiesBuff <- citiesUse$map(function(f){f$buffer(10e3)})
 ####################
 vegMask <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask")
 # Map$addLayer(vegMask)
+
+# vegMaskN <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask_NH")
+# vegMaskS <- ee$Image("users/crollinson/MOD44b_1km_Reproj_VegMask_SH")
+# Map$addLayer(vegMaskN)
+# Map$addLayer(vegMaskS)
 
 projMask = vegMask$projection()
 projCRS = projMask$crs()
@@ -90,8 +95,9 @@ extractCityMask <- function(cityBuff, cityRaw, CityNames, BASE, GoogleFolderSave
 # 3 . Start extracting data for each city -- only ones that were done before!
 ##################### 
 
-cityIdAll <-sdei.df$ISOURBID
-length(cityIdAll)
+cityIdS <-sdei.df$ISOURBID[sdei.df$LATITUDE<0]
+cityIdN <-sdei.df$ISOURBID[sdei.df$LATITUDE>=0]
+# length(cityIdS); length(cityIdNW)
 
 # If we're not trying to overwrite our files, remove files that were already done
 cityRemove <- vector()
@@ -102,12 +108,32 @@ if(!overwrite){
   # Check to make sure a city has all three layers; if it doesn't do it again
   cityRemove <- unlist(lapply(strsplit(mask.done, "_"), function(x){x[1]}))
   
-  cityIdAll <- cityIdAll[!cityIdAll %in% cityRemove]
+  cityIdS <- cityIdS[!cityIdS %in% cityRemove]
+  cityIdN <- cityIdN[!cityIdN %in% cityRemove]
+  
 } # End remove cities loop
-length(cityIdAll)
+length(cityIdS); length(cityIdN)
 
-if(length(cityIdAll)>0){
-  extractCityMask(cityBuff=citiesBuff, cityRaw=citiesUse, CityNames=cityIdAll, BASE=vegMask, GoogleFolderSave, overwrite=F)
+
+citiesSouth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
+citiesNorth <- citiesUse$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
+
+buffSouth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdS)))
+buffNorth <- citiesBuff$filter(ee$Filter$inList('ISOURBID', ee$List(cityIdN)))
+
+# TEST CITY
+# CITY = "SWE3477"
+# extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=CITY, BASE=vegMask, GoogleFolderSave, overwrite=T)
+# 
+# testBuff <- raster(file.path(path.google, GoogleFolderSave, paste0(CITY, "_CityMask.tif")))
+# plot(testBuff)
+
+if(length(cityIdS)>0){
+  extractCityMask(cityBuff=buffSouth, cityRaw=citiesSouth, CityNames=cityIdS, BASE=vegMask, GoogleFolderSave, overwrite=T)
+}
+
+if(length(cityIdN)>0){
+  extractCityMask(cityBuff=buffNorth, cityRaw=citiesNorth, CityNames=cityIdN, BASE=vegMask, GoogleFolderSave, overwrite=T)
 }
 
 
