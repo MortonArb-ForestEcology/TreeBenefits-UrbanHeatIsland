@@ -359,10 +359,10 @@ prFuture <- ggplot(data=cmip6AggMean[cmip6AggMean$Time==2100,]) +
 prFuture
 
 
-png(file.path(path.figsMS, "FigureS6_Climate_GLDAS_CMIP6-EnsembleMeans.png"), height=6, width=14, units="in", res=320)
+png(file.path(path.figsMS, "FigureS5_Climate_GLDAS_CMIP6-EnsembleMeans.png"), height=6, width=14, units="in", res=320)
 cowplot::plot_grid(tasGLDAS, prGLDAS, tasFuture, prFuture, ncol=2, rel_heights = c(0.45, 0.65), labels=c("A", "B", "C", "D"))
 dev.off()
-pdf(file.path(path.MS, "FigureS6_Climate_GLDAS_CMIP6-EnsembleMeans.pdf"), height=6, width=14)
+pdf(file.path(path.MS, "FigureS5_Climate_GLDAS_CMIP6-EnsembleMeans.pdf"), height=6, width=14)
 cowplot::plot_grid(tasGLDAS, prGLDAS, tasFuture, prFuture, ncol=2, rel_heights = c(0.45, 0.65), labels=c("A", "B", "C", "D"))
 dev.off()
 
