@@ -340,12 +340,12 @@ summary(aggTower)
 aggTowerStack <- stack(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")])
 names(aggTowerStack) <- c("RMSE", "dataset")
 aggTowerStack[,c("ISOURBID","biomeName","biomeCode", "IGBP")] <- aggTower[,c("ISOURBID", "biomeName","biomeCode", "IGBP")]
-aggTowerStack$R2 <- stack(aggTower[,c("R2.pixel", "R2.modis", "R2.gldas")])[,"values"]
+# aggTowerStack$R2 <- stack(aggTower[,c("R2.pixel", "R2.modis", "R2.gldas")])[,"values"]
 aggTowerStack$dataset <- car::recode(aggTowerStack$dataset, "'RMSE.pixel'='Model'; 'RMSE.modis'='MODIS'; 'RMSE.gldas'='GLDAS'")
 aggTowerStack$dataset <- factor(aggTowerStack$dataset, levels=c("Model", "MODIS", "GLDAS"))
 summary(aggTowerStack)
 
-aggTowerStack2 <- stack(aggTowerStack[,c("RMSE", "R2")])
+# aggTowerStack2 <- stack(aggTowerStack[,c("RMSE", "R2")])
 aggTowerStack2[,c("dataset", "biomeName", "biomeCode", "IGBP", "ISOURBID")] <- aggTowerStack[,c("dataset", "biomeName", "biomeCode", "IGBP", "ISOURBID")]
 summary(aggTowerStack2)
 
@@ -374,6 +374,7 @@ plot.model <- ggplot(data=aggTower, aes(x=ET.pixel, y=ET)) +
     formula = y ~ x,
     parse = TRUE
   ) + # Display equation and R^2
+  guides(color=F) +
   annotate(
     "text",
     x = min(aggTower$ET.pixel),
@@ -394,6 +395,7 @@ plot.modis <- ggplot(data=aggTower, aes(x=ET.modis, y=ET)) +
   geom_point(aes(color=biomeCode)) +
   scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
+  guides(color=F) +
   stat_poly_eq(
     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
     formula = y ~ x,
@@ -419,6 +421,7 @@ plot.gldas <- ggplot(data=aggTower, aes(x=ET.gldas, y=ET)) +
   geom_point(aes(color=biomeCode)) +
   scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
+  guides(color=F) +
   stat_poly_eq(
     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
     formula = y ~ x,
@@ -438,17 +441,71 @@ plot.gldas <- ggplot(data=aggTower, aes(x=ET.gldas, y=ET)) +
   ) +
   theme_bw()
 
+plot.modelVgldas <- ggplot(data=aggTower, aes(x=ET.pixel, y=ET.gldas)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
+  geom_point(aes(color=biomeCode)) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
+  guides(color=F) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE
+  ) + # Display equation and R^2
+  annotate(
+    "text",
+    x = min(aggTower$ET.pixel),
+    y = max(aggTower$ET)-0.5,
+    label = paste0("RMSE: ", round(rmse(aggTower$ET.gldas, predict(lm(ET.gldas ~ ET.pixel, aggTower))), 2)),
+    hjust = 0,
+    color = "black"
+  ) + # Display RMSE
+  labs(
+    x = "Model ET (mm/day)",
+    y = "GLDAS ET (mm/day)"
+  ) +
+  theme_bw()
+
+plot.modelVgldas2 <- ggplot(data=StatsCombined, aes(x=ETpred.mean, y=ET.GLDAS)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  geom_point(aes(color=biomeCode)) +
+  geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_y_continuous(limits=range(StatsCombined$ET.GLDAS)+c(0,1))+
+  guides(color=F) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE
+  ) + # Display equation and R^2
+  annotate(
+    "text",
+    x = min(StatsCombined$ETpred.mean),
+    y = max(StatsCombined$ET.GLDAS)-0.5,
+    label = paste0("RMSE: ", round(rmse(StatsCombined$ET.GLDAS, predict(lm(ET.GLDAS ~ ETpred.mean, StatsCombined))), 2)),
+    hjust = 0,
+    color = "black"
+  ) + # Display RMSE
+  labs(
+    x = "Model ET (mm/day)",
+    y = "GLDAS ET (mm/day)"
+  ) +
+  theme_bw()
+
 plot.model
 plot.modis
 plot.gldas
+plot.modelVgldas
+plot.modelVgldas2
 
 png(file.path(path.figsMS, "FigureS4_ETmodel_ValidationSummaries.png"), height=8, width=8, units="in", res=320)
-cowplot::plot_grid(plot.model, plot.modis, plot.gldas, ncol=1, labels=c("A", "B", "C"))
+cowplot::plot_grid(plot.model, plot.gldas, plot.modis, plot.modelVgldas, plot.modelVgldas2,  ncol=3, labels=c("A", "B", "C", "D",  "E"))
 dev.off()
 
 
 pdf(file.path(path.MS, "FigureS4_ETmodel_ValidationSummaries.pdf"), height=8, width=8)
-cowplot::plot_grid(plot.model, plot.modis, plot.gldas, ncol=1, labels=c("A", "B", "C"))
+cowplot::plot_grid(plot.model, plot.gldas, plot.modis, plot.modelVgldas, plot.modelVgldas2,  ncol=3, labels=c("A", "B", "C", "D",  "E"))
 dev.off()
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
