@@ -3,7 +3,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -80,6 +80,7 @@ if(!file.exists(file.cityStatsRegion) | overwrite){
   cityStatsRegion[,c("LSTmodel.R2adj", "LSTmodel.AIC", "LSTmodel.RMSE")] <- NA
   cityStatsRegion[,c("LSTmodelSCover.R2adj", "LSTmodelSCover.AIC", "LSTmodelSCover.RMSE")] <- NA
   cityStatsRegion[,c("LSTmodelSCoverTree.R2adj", "LSTmodelSCoverTree.AIC", "LSTmodelSCoverTree.RMSE")] <- NA
+  cityStatsRegion[,c("LSTmodelS3D.R2adj", "LSTmodelS3D.AIC", "LSTmodelS3D.RMSE")] <- NA
   cityStatsRegion[,c("LSTmodelLog.R2adj", "LSTmodelLog.AIC", "LSTmodelLog.RMSE")] <- NA
   
 
@@ -558,6 +559,31 @@ for(CITY in citiesAnalyze){
   cityStatsRegion$LSTmodelSCoverTree.RMSE[row.city] <- sqrt(mean(valsCity$LSTgamSCoverTree.resid^2, na.rm=T))
   # --------------
   
+  # --------------
+  # Moving elevation to the smoothing spline as suggested by a reviewer
+  # --------------
+  modLSTCityS3D <- gam(LST_Day ~ cover.tree + s(x,y, elevation) + as.factor(year)-1, data=valsCity)
+  sum.modLSTCityS3D <- summary(modLSTCityS3D)
+  valsCity$LSTgamS3D.pred <- predict(modLSTCityS3D, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
+  valsCity$LSTgamS3D.resid <- valsCity$LST_Day - valsCity$LSTgamS3D.pred # Hand-calculating te residuals... gives the same thing
+  saveRDS(modLSTCityS3D, file=file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-S3D.RDS")))
+  # par(mfrow=c(1,1)); plot(modLSTCity)
+  
+  png(file.path(path.cities, CITY, paste0(CITY, "LST_GAM-S3D_qaqc.png")), height=6, width=6, units="in", res=120)
+  par(mfrow=c(3,2))
+  plot(modLSTCityS3D)
+  hist(valsCity$LSTgamS3D.resid)
+  plot(LSTgamS3D.resid ~ LSTgamS3D.pred, data=valsCity); abline(h=0, col="red")
+  plot(LST_Day ~ LSTgamS3D.pred, data=valsCity); abline(a=0, b=1, col="red")
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  
+  # Save the key stats from the big LST model
+  cityStatsRegion$LSTmodelS3D.R2adj[row.city] <- sum.modLSTCityS3D$r.sq
+  cityStatsRegion$LSTmodelS3D.AIC[row.city] <- AIC(modLSTCityS3D)
+  cityStatsRegion$LSTmodelS3D.RMSE[row.city] <- sqrt(mean(valsCity$LSTgamS3D.resid^2, na.rm=T))
+  # --------------
   
   # --------------
   # Using a log function like we originally explored back in 2019; 

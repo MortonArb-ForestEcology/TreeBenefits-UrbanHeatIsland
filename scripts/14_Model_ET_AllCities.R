@@ -53,6 +53,8 @@ if(!file.exists(file.cityStatsET) | overwrite){
   cityStatsET[,c("n.pixels", "n.pixels.ET", "Temp.ET.mean", "Temp.ET.sd", "Temp.ET.min", "Temp.ET.max", "tree.ET.mean", "tree.ET.sd", "tree.ET.min", "tree.ET.max", "veg.ET.mean", "veg.ET.sd", "veg.ET.min", "veg.ET.max", "ETobs.mean", "ETobs.sd", "ETobs.min", "ETobs.max")] <- NA
   
   # Save the key info from the full model
+  cityStatsET[,c("ETmodelOrig.R2adj", "ETmodelOrig.RMSE")] <- NA
+  cityStatsET[,c("ETpredOrig.mean", "ETpredOrig.sd", "ETpredOrig.min", "ETpredOrig.max")] <- NA
   cityStatsET[,c("ETmodel.R2adj", "ETmodel.RMSE")] <- NA
   cityStatsET[,c("ETpred.mean", "ETpred.sd", "ETpred.min", "ETpred.max")] <- NA
   
@@ -388,9 +390,12 @@ for(CITY in citiesAnalyze){
   # par(mfrow=c(2,2))
   # plot(modETCity0)
   # par(mfrow=c(1,1))
+
+  modETCityOrig <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y) + as.factor(year)-1, data=valsCity)
+  sum.modETCityOrig <- summary(modETCityOrig)
   
   
-  modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y) + as.factor(year)-1, data=valsCity)
+  modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y, elevation) + as.factor(year)-1, data=valsCity)
   sum.modETCity <- summary(modETCity)
   # sum.modETCity
   # par(mfrow=c(2,2))
@@ -399,23 +404,34 @@ for(CITY in citiesAnalyze){
   
   
   # Also testing things on the aggregated values; lets save this just in case
-  aggCity <- aggregate(cbind(ET, cover.tree, cover.veg, Tair_f_inst_mean) ~ x + y, data=valsCity, FUN=mean, na.rm=T)
+  aggCity <- aggregate(cbind(ET, cover.tree, cover.veg, Tair_f_inst_mean, elevation) ~ x + y, data=valsCity, FUN=mean, na.rm=T)
   
   # No variation in tair, so need to remove it from the model
-  modETCityAgg <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg)  + s(x,y), data=aggCity)
-  sum.modETCityAgg <- summary(modETCityAgg)
+  modETCityAggOrig <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg)  + s(x,y), data=aggCity)
+  sum.modETCityAggOrig <- summary(modETCityAggOrig)
   # sum.modETCityAgg
   # par(mfrow=c(2,2))
   # plot(modETCityAgg)
   # par(mfrow=c(1,1))
+
+  modETCityAgg <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg)  + s(x,y, elevation), data=aggCity)
+  sum.modETCityAgg <- summary(modETCityAgg)
   
   
+  valsCity$ET.predOrig <- predict(modETCityOrig, newdata=valsCity)^2 # Shifting to the newdata version to predict for where we have missing data
+  valsCity$ET.residOrig <- valsCity$ET - valsCity$ET.predOrig # Hand-calculating te residuals... gives the same thing, but hopefully a bit faster
   
   valsCity$ET.pred <- predict(modETCity, newdata=valsCity)^2 # Shifting to the newdata version to predict for where we have missing data
   valsCity$ET.resid <- valsCity$ET - valsCity$ET.pred # Hand-calculating te residuals... gives the same thing, but hopefully a bit faster
   
   # Saving predicted ET params values, this shoudl generally be lower than our "observed"
   # cityStatsET[,c("ETpred.mean", "ETpred.sd", "ETpred.min", "ETpred.max")] <- NA
+  cityStatsET$ETpredOrig.mean[row.city] <- mean(valsCity$ET.predOrig, na.rm=T)
+  cityStatsET$ETpredOrig.sd[row.city] <- sd(valsCity$ET.predOrig, na.rm=T)
+  cityStatsET$ETpredOrig.min[row.city] <- min(valsCity$ET.predOrig, na.rm=T)
+  cityStatsET$ETpredOrig.max[row.city] <- max(valsCity$ET.predOrig, na.rm=T)
+  
+
   cityStatsET$ETpred.mean[row.city] <- mean(valsCity$ET.pred, na.rm=T)
   cityStatsET$ETpred.sd[row.city] <- sd(valsCity$ET.pred, na.rm=T)
   cityStatsET$ETpred.min[row.city] <- min(valsCity$ET.pred, na.rm=T)
@@ -423,15 +439,25 @@ for(CITY in citiesAnalyze){
   
   
   # Save the key stats from the big Temp model
+    cityStatsET$ETmodelOrig.R2adj[row.city] <- sum.modETCityOrig$r.sq
+  cityStatsET$ETmodelOrig.RMSE[row.city] <- sqrt(mean(valsCity$ET.residOrig^2, na.rm=T))
+
   cityStatsET$ETmodel.R2adj[row.city] <- sum.modETCity$r.sq
   cityStatsET$ETmodel.RMSE[row.city] <- sqrt(mean(valsCity$ET.resid^2, na.rm=T))
   # cityStatsET[row.city,]
+
+  saveRDS(modETCityOrig, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam-original.rds")))
+  saveRDS(sum.modETCityOrig, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam-summary-original.rds")))
+  
   
   saveRDS(modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))
   saveRDS(sum.modETCity, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam-summary.rds")))
   
   # Save the aggreagte model as well just in case
   write.csv(aggCity, file=file.path(path.cities, CITY, paste0(CITY, "_ET_means.csv")), row.names=F)
+ 
+  saveRDS(modETCityAggOrig, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_means_gam-original.rds")))
+  saveRDS(sum.modETCityAggOrig, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_means_gam-summary-origimal.rds")))
   saveRDS(modETCityAgg, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_means_gam.rds")))
   saveRDS(sum.modETCityAgg, file=file.path(path.cities, CITY, paste0(CITY, "_Model-ET_means_gam-summary.rds")))
   
