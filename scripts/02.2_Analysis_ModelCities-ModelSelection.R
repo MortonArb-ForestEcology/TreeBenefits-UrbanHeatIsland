@@ -66,28 +66,30 @@ cityStatsRegion$dAIC.SCoverTree <-  cityStatsRegion$LSTmodelSCoverTree.AIC - cit
 cityStatsRegion$dAIC.S3D <-  cityStatsRegion$LSTmodelS3D.AIC - cityStatsRegion$LSTmodel.AIC
 
 # Looking at dRMSE as a percent reduction
-cityStatsRegion$dRMSEperc.Log <- cityStatsRegion$dRMSE.Log/cityStatsRegion$LSTmodel.RMSE
+cityStatsRegion$dRMSEper.Log <- cityStatsRegion$dRMSE.Log/cityStatsRegion$LSTmodel.RMSE
 
-cityStatsRegion$dRMSEperc.SCover <- cityStatsRegion$dRMSE.SCover/cityStatsRegion$LSTmodel.RMSE
-cityStatsRegion$dRMSEperc.SCoverTree <- cityStatsRegion$dRMSE.SCoverTree/cityStatsRegion$LSTmodel.RMSE
+cityStatsRegion$dRMSEper.SCover <- cityStatsRegion$dRMSE.SCover/cityStatsRegion$LSTmodel.RMSE
+cityStatsRegion$dRMSEper.SCoverTree <- cityStatsRegion$dRMSE.SCoverTree/cityStatsRegion$LSTmodel.RMSE
 # cityStatsRegion$dRMSEperc.SCoverTree2 <- cityStatsRegion$dRMSE.SCoverTree/cityStatsRegion$LSTmodelSCover.RMSE
-cityStatsRegion$dRMSEperc.S3D <- cityStatsRegion$dRMSE.S3D/cityStatsRegion$LSTmodel.RMSE
+cityStatsRegion$dRMSEper.S3D <- cityStatsRegion$dRMSE.S3D/cityStatsRegion$LSTmodel.RMSE
 
 
 mean(cityStatsRegion$dR2adj.SCover, na.rm=T); sd(cityStatsRegion$dR2adj.SCover, na.rm=T)
 mean(cityStatsRegion$dR2adj.S3D, na.rm=T); sd(cityStatsRegion$dR2adj.S3D, na.rm=T)
 
 mean(cityStatsRegion$dRMSE.SCover, na.rm=T); sd(cityStatsRegion$dRMSE.SCover, na.rm=T)
-mean(cityStatsRegion$dRMSEperc.SCover, na.rm=T); sd(cityStatsRegion$dRMSEperc.SCover, na.rm=T)
+mean(cityStatsRegion$dRMSE.S3D, na.rm=T); sd(cityStatsRegion$dRMSE.S3D, na.rm=T)
 
-mean(cityStatsRegion$dRMSEperc.S3D, na.rm=T); sd(cityStatsRegion$dRMSEperc.S3D, na.rm=T)
+mean(cityStatsRegion$dRMSEper.SCover, na.rm=T); sd(cityStatsRegion$dRMSEper.SCover, na.rm=T)
+
+mean(cityStatsRegion$dRMSEper.S3D, na.rm=T); sd(cityStatsRegion$dRMSEper.S3D, na.rm=T)
 mean(cityStatsRegion$dAIC.S3D, na.rm=T); sd(cityStatsRegion$dAIC.S3D, na.rm=T)
 
 
 summary(cityStatsRegion)
 cityStatsRegion[cityStatsRegion$dRMSE.SCover< -0.5 & !is.na(cityStatsRegion$dR2adj.SCover),]
 
-statsBiome <- aggregate(cbind(LSTmodel.AIC, LSTmodel.R2adj, LSTmodel.RMSE, dAIC.SCover, dR2adj.SCover, dRMSE.SCover, dRMSEper.SCover) ~ biome, data=cityStatsRegion, FUN=mean, na.rm=T)
+statsBiome <- aggregate(cbind(LSTmodel.AIC, LSTmodel.R2adj, LSTmodel.RMSE, dAIC.SCover, dR2adj.SCover, dRMSE.SCover, dRMSEper.SCover, dAIC.S3D, dR2adj.S3D, dRMSE.S3D, dRMSEper.S3D) ~ biome, data=cityStatsRegion, FUN=mean, na.rm=T)
 statsBiome
 
 write.csv(statsBiome, file.path(path.cities, "../Biome_stats_model-selection.csv"), row.names=F)

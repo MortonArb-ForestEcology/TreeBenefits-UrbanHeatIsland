@@ -95,8 +95,18 @@ summary(cityAll.stats)
 # Reading in our ET dataset
 cityAll.ET <-  read.csv(file.path(path.google, "city_stats_all_ET.csv"))
 cityAll.ET$ETmodel.R2adj[cityAll.ET$ETmodel.R2adj<0] <- NA
-cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj) & cityAll.ET$ETobs.max>1,] # get rid of anything we didn't model or that has a very low range of ET
+# cityAll.ET <- cityAll.ET[!is.na(cityAll.ET$ETmodel.R2adj) & cityAll.ET$ETobs.max>1,] # get rid of anything we didn't model or that has a very low range of ET
 summary(cityAll.ET)
+
+# Adding a check on the impact of adding the elevation spline
+cityAll.ET$dR2adj.ETmodel <- cityAll.ET$ETmodel.R2adj - cityAll.ET$ETmodelOrig.R2adj
+cityAll.ET$dRMSE.ETmodel <- cityAll.ET$ETmodel.RMSE - cityAll.ET$ETmodelOrig.RMSE
+cityAll.ET$dRMSEper.ETmodel <- cityAll.ET$dRMSE.ETmodel/cityAll.ET$ETmodelOrig.RMSE
+
+summary(cityAll.ET)
+
+
+
 
 cityAll.stats <- cityAll.stats[cityAll.stats$ISOURBID %in% cityAll.ET$ISOURBID[!is.na(cityAll.ET$ETmodel.R2adj)],]
 summary(cityAll.stats[!is.na(cityAll.stats$LSTmodel.R2adj),9:25])
@@ -104,6 +114,9 @@ summary(cityAll.stats)
 
 cityAll.ET <- merge(cityAll.ET, cityAll.stats[,c("ISOURBID", "biome", "biomeName")], all.x=T, all.y=F)
 summary(cityAll.ET)
+
+checkBiome <- aggregate(cbind(ETmodelOrig.R2adj, ETmodelOrig.RMSE, dR2adj.ETmodel, dRMSE.ETmodel, dRMSEper.ETmodel) ~ biome, data=cityAll.ET, FUN=mean, na.rm=T)
+checkBiome
 
 # Reading in the climate datasets -- GLDAS
 # Units:
