@@ -4,7 +4,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=F
+overwrite=T
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -327,7 +327,7 @@ for(CITY in citiesAnalyze){
   dir.create(file.path(path.cities, CITY), recursive = T, showWarnings = F)
   
   # # Save the full output in case we want to share it for review or other uses
-  # write.csv(valsCity, file.path(path.cities, CITY, paste0(CITY, "_CityData_All.csv")), row.names=F)
+  write.csv(valsCity, file.path(path.cities, CITY, paste0(CITY, "_CityData_All-ET.csv")), row.names=F)
   
   # Saving some summary stats of our inputs -- I know there's a more elegant way to do this, but hey, this works
   # cityStatsET[row.city,]
