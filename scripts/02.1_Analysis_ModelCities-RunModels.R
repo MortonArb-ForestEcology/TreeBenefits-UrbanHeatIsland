@@ -562,7 +562,7 @@ for(CITY in citiesAnalyze){
   # --------------
   # Moving elevation to the smoothing spline as suggested by a reviewer
   # --------------
-  modLSTCityS3D <- gam(LST_Day ~ cover.tree + s(x,y, elevation) + as.factor(year)-1, data=valsCity)
+  modLSTCityS3D <- gam(LST_Day ~ cover.tree + cover.veg + s(x,y, elevation) + as.factor(year)-1, data=valsCity)
   sum.modLSTCityS3D <- summary(modLSTCityS3D)
   valsCity$LSTgamS3D.pred <- predict(modLSTCityS3D, newdata=valsCity) # Shifting to the newdata version to predict for where we have missing data
   valsCity$LSTgamS3D.resid <- valsCity$LST_Day - valsCity$LSTgamS3D.pred # Hand-calculating te residuals... gives the same thing
