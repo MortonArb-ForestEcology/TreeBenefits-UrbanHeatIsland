@@ -9,14 +9,13 @@ library(mgcv)
 library(nlme)
 
 library(rgee); 
-ee_check() # For some reason, it's important to run this before initializing right now
+# ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T, project="urbanecodrought")
 path.google <- "/Volumes/GoogleDrive/My Drive"
 GoogleFolderSave <- "UHI_Analysis_TowerValidation"
 assetHome <- ee_get_assethome()
 
 # Loading data we'll need to do the model ET calculation
-path.EEoutSpat <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
 
 
 ETColors <- c('#ffffff', '#fcd163', '#99b718', '#66a000', '#3e8601', '#207401', '#056201',
@@ -24,15 +23,9 @@ ETColors <- c('#ffffff', '#fcd163', '#99b718', '#66a000', '#3e8601', '#207401', 
 
 # file paths for where to put the processed data
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/ET_models")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
-
-
-files.elev <- dir(path.EEout, "elevation")
-files.temp <- dir(path.EEout, "GLDAS21_annualMeans")
-files.tree <- dir(path.EEout, "PercentTree")
-files.veg <- dir(path.EEout, "PercentOtherVeg")
-files.et <- dir(path.EEout, "ETmean")
+path.EEoutSpat <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
 
 # Getting our SDEI data layer
 sdei.urb <- read_sf("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp")
@@ -112,28 +105,6 @@ for(i in seq_along(fmove)){
 
 # # We need to get the tower coords in MODIS projection, so we need to make it a spatial file
 # # Opening an example raster to pull what we need --> this is urbana-champaign
-testElev <- raster(file.path(path.EEout, "USA31965_elevation.tif"))
-plot(testElev)
-testElev
-elevPTs <- data.frame(elev=getValues(testElev))
-elevPTs[,c("x", "y")] <- coordinates(testElev)
-summary(elevPTs)
- 
-cityOrig <- st_transform(sdei.urb[sdei.urb$ISOURBID=="USA31965",], projection(testElev))
-cityNew <- sdeiMODIS[sdeiMODIS$ISOURBID=="USA31965",]
-testCityOrig <- st_coordinates(cityOrig)
-testCityNew <- st_coordinates(cityNew)
-
-datTower[,c("x","y")] <- st_coordinates(towerMODIS)
-
-# 
-ggplot() +
-  # coord_cartesian(xlim=c(-60,-80), ylim=c(40,60)) +
-  coord_equal() +
-  geom_tile(data=elevPTs, aes(x=x,y=y, fill=elev)) +
-  geom_polygon(data=testCityOrig, aes(x=X, y=Y), fill=NA, color="black") +
-  geom_polygon(data=testCityNew, aes(x=X, y=Y), fill=NA, color="red2") +
-  geom_point(data=datTower[datTower$ISOURBID=="USA31965",], aes(x=x, y=y), color="orange2")
 
 
 for(CITY in unique(datTower$ISOURBID)){
@@ -142,77 +113,29 @@ for(CITY in unique(datTower$ISOURBID)){
   citySP <- sdeiMODIS[sdeiMODIS$ISOURBID==CITY,]
   cityPoly <- st_coordinates(citySP)
   
+  if(!file.exists(file.path(path.cities, CITY, paste0(CITY, "_CityData_All-ET.csv"))) |
+     !file.exists(file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))){
+    print("No ET data; skip")
+    next()
+  } 
   
-  fELEV <- files.elev[grep(CITY, files.elev)]
-  fTemp <- files.temp[grep(CITY, files.temp)]
-  fTREE <- files.tree[grep(CITY, files.tree)]
-  fVEG <- files.veg[grep(CITY, files.veg)]
-  fET <- files.et[grep(CITY, files.et)]
-  
-  TempCity <- read.csv(file.path(path.EEout, fTemp[length(fTemp)]))
-  TempCity$Tair_f_inst_mean <- TempCity$Tair_f_inst_mean-273.15
-  TempCity[,c("Evap_tavg_mean", "Rainf_f_tavg_mean")] <- TempCity[,c("Evap_tavg_mean", "Rainf_f_tavg_mean")]*60*60*24
-  
-  elevCity <- raster(file.path(path.EEout, fELEV[length(fELEV)]))
-  treeCity <- brick(file.path(path.EEout, fTREE[length(fTREE)]))
-  vegCity <- brick(file.path(path.EEout, fVEG[length(fVEG)]))
-  etCity <- brick(file.path(path.EEout, fET[length(fET)]))/8
-  layers.use <- names(treeCity)[names(treeCity) %in% names(etCity)]
-  
-  layersET <- names(etCity)[names(etCity) %in% names(treeCity)]
-  
-  coordsET <- data.frame(coordinates(etCity))
-  coordsET$location <- paste0("x", coordsET$x, "y", coordsET$y)
-  
-  coordsCity <- data.frame(coordinates(elevCity)) 
-  coordsCity$location <- paste0("x", coordsCity$x, "y", coordsCity$y)
-  coordsVeg <- data.frame(coordinates(treeCity))
-  coordsVeg$location <- paste0("x", coordsVeg$x, "y", coordsVeg$y)
-  
-  valsCityVeg <- stack(data.frame(getValues(treeCity[[layers.use]])))
-  names(valsCityVeg) <- c("cover.tree", "year")
-  valsCityVeg$cover.veg <- stack(data.frame(getValues(vegCity[[layers.use]])))[,1]
-  valsCityVeg$x <- coordsVeg$x
-  valsCityVeg$y <- coordsVeg$y
-  valsCityVeg$location <- coordsVeg$location
-  
-  valsCity <- valsCityVeg
-  # summary(valsCity)
-  
-  valsET <- stack(data.frame(getValues(etCity)))
-  names(valsET) <- c("ET", "year")
-  valsET$x <- coordsET$x
-  valsET$y <- coordsET$y
-  valsET$location <- coordsET$location
-  summary(valsET)
-  
-  # nrow(coordsCity); nrow(coordsTemp)
-  if(all(coordsET$location == coordsCity$location)){
-    valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
-    # valsCity <- merge(valsCity, valsTemp, all.x=T, all.y=T)
-  } else if( nrow(coordsET) == nrow (coordsCity)) {  
-    # Checking to make sure the offset is minimal
-    datComb <- data.frame(x1=coordsCity$x, y1=coordsCity$y, x2 = valsET$x, y2 = valsET$y)
-    datComb$x.diff <- datComb$x1 - datComb$x2
-    datComb$y.diff <- datComb$y1 - datComb$y2
-    # summary(datComb) # For this example, it's a stupid tiny offset
-    
-    if(max(abs(datComb$x.diff), abs(datComb$y.diff))<1){
-      # print(warning("Veg and Elev Layer Coords don't match, but right number pixels. Proceeding as if fine"))
-      # cityStatsET$SpatialMistmatch[row.city] <- T # Something's off, but hopefully okay
-      valsCity$ET[valsCity$year %in% layersET] <- valsET$ET
-      
-    }  else {
-      stop("Something's really off")
-    }
-  }
-  
-  # Re-labeling the year column to make life easier
-  valsCity <- valsCity[!is.na(valsCity$cover.tree),] # need to actually NOT delete the NAs!
-  valsCity$year <- as.numeric(substr(valsCity$year,3,6))
-  valsCity <- merge(valsCity, TempCity, all.x=T)
+  valsCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_CityData_All-ET.csv")))
   summary(valsCity)
   
+  # ggplot() +
+  #   ggtitle(paste0(CITY)) +
+  #   coord_equal() +
+  #   geom_tile(data=valsCity[valsCity$year==min(valsCity$year),], aes(x=x, y=y, fill=ET)) +
+  #   scale_fill_stepsn(name="ET modis", colors=ETColors, n.breaks=13) 
+  # 
+  # ggplot() +
+  #   ggtitle(paste0(CITY)) +
+  #   coord_equal() +
+  #   geom_tile(data=valsCity[valsCity$year==min(valsCity$year),], aes(x=x, y=y, fill=cover.tree)) +
+  #   scale_fill_stepsn(name="Tree Cover", colors=ETColors, n.breaks=13) 
+  
+  
+  # Loading the ET model
   modCity <- readRDS(file.path(path.cities, "../ET_models", CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))
   # cityDF <- modCity$model
   # summary(modCity)
@@ -245,7 +168,7 @@ for(CITY in unique(datTower$ISOURBID)){
       ggplot() +
         ggtitle(paste0(CITY, " (", datNow$NAME[1], ")", " - ", TOWER)) +
         coord_equal() +
-        geom_raster(data=valsCity[valsCity$year==min(valsCity$year),], aes(x=x, y=y, fill=ET)) +
+        geom_tile(data=valsCity[valsCity$year==min(valsCity$year),], aes(x=x, y=y, fill=ET)) +
         # geom_polygon(data=cityPoly, aes(x=X, y=Y), fill=NA, color="blue4", linewidth=1) +
         geom_point(data=datNow[1,], aes(x=x, y=y), size=5, color="blue") +
         scale_fill_stepsn(name="ET modis", colors=ETColors, n.breaks=13) 

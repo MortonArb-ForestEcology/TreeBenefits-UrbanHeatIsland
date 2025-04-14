@@ -33,7 +33,7 @@ cities.et <- read.csv(file.path(path.cities, "../UHIs-FinalCityDataForAnalysis.c
 summary(cities.et)
 
 datTower <- merge(datTower, cities.et[,c("ISOURBID", "biomeName", "biomeCode")], all.x=T)
-
+summary(datTower)
 
 # Aggregating to to Tower level to get some summary stats
 aggTower <- aggregate(cbind(ET, TA, ET.pixel, Error.pixel, Error.pixel2) ~ ISOURBID + ISO3 + NAME + SITE_ID + biomeCode + biomeName + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean, na.rm=T)
@@ -100,9 +100,28 @@ length(unique(aggTower$SITE_ID))
 length(unique(aggTower$ISOURBID))
 length(unique(aggTower$biomeName))
 
+# Looking at RMSE as a percent of the mean
+aggTower$RMSEper.pixel <- aggTower$RMSE.pixel/aggTower$ET
+aggTower$RMSEper.modis <- aggTower$RMSE.modis/aggTower$ET
+aggTower$RMSEper.gldas <- aggTower$RMSE.gldas/aggTower$ET
+summary(aggTower)
+
+# Looking at tower error and RMSE compared to that for the whole city
+aggTower$dRMSE <- aggTower$RMSE.pixel - aggTower$ETmodel.RMSE 
+aggTower$dRMSE.rat <- aggTower$RMSE.pixel/aggTower$ETmodel.RMSE 
+aggTower$error.rat <- aggTower$Error.pixel/aggTower$ET
+
+# aggTower$dRMSE <- aggTower$RMSE.pixel - aggTower$ETmodel.RMSE
+summary(aggTower)
+
+
 mean(aggTower$RMSE.pixel); sd(aggTower$RMSE.pixel)
 mean(aggTower$RMSE.modis, na.rm=T); sd(aggTower$RMSE.modis, na.rm=T)
 mean(aggTower$RMSE.gldas); sd(aggTower$RMSE.gldas)
+
+mean(aggTower$RMSEper.pixel); sd(aggTower$RMSEper.pixel)
+mean(aggTower$RMSEper.modis, na.rm=T); sd(aggTower$RMSEper.modis, na.rm=T)
+mean(aggTower$RMSEper.gldas); sd(aggTower$RMSEper.gldas)
 
 mean(aggTower$R2.pixel, na.rm=T); sd(aggTower$R2.pixel, na.rm=T)
 mean(aggTower$R2.modis, na.rm=T); sd(aggTower$R2.modis, na.rm=T)
@@ -136,8 +155,8 @@ write.csv(aggTowerTable, file.path(path.analysis, "SUPPLEMENT_FluxTower_ETcompar
 write.csv(aggTowerTable, file.path(path.MS, "SupplementalData-2_FluxTower_ETcomparison_AllTowers-Aggregated-Clean.csv"), row.names=F)
 
 # Create a supplement-worth table summarizing stats for each LC type ----
-aggLCmean <- aggregate(cbind(n.YRS, ET, TA, ETmodel.R2adj, ETmodel.RMSE, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, RMSE.pixel, RMSE.modis, RMSE.gldas, R2.pixel, R2.modis, R2.gldas) ~ IGBP , data=aggTower, FUN=mean, na.rm=T)
-aggLCsd <- aggregate(cbind(n.YRS, ET, TA, ETmodel.R2adj, ETmodel.RMSE, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, RMSE.pixel, RMSE.modis, RMSE.gldas, R2.pixel, R2.modis, R2.gldas) ~ IGBP , data=aggTower, FUN=sd, na.rm=T)
+aggLCmean <- aggregate(cbind(n.YRS, ET, TA, ETmodel.R2adj, ETmodel.RMSE, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, RMSE.pixel, RMSE.modis, RMSE.gldas, RMSEper.pixel, RMSEper.modis, RMSEper.gldas, R2.pixel, R2.modis, R2.gldas, error.rat, dRMSE.rat) ~ IGBP , data=aggTower, FUN=mean, na.rm=T)
+aggLCsd <- aggregate(cbind(n.YRS, ET, TA, ETmodel.R2adj, ETmodel.RMSE, ET.pixel, ET.modis, ET.gldas, Error.pixel, Error.modis, Error.gldas, RMSE.pixel, RMSE.modis, RMSE.gldas, RMSEper.pixel, RMSEper.modis, RMSEper.gldas, R2.pixel, R2.modis, R2.gldas, error.rat, dRMSE.rat) ~ IGBP , data=aggTower, FUN=sd, na.rm=T)
 
 for(i in 1:nrow(aggLCmean)){
   IGBP <- aggLCmean$IGBP[i]
