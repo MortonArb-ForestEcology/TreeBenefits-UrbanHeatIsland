@@ -118,6 +118,8 @@ summary(cityAll.ET)
 checkBiome <- aggregate(cbind(ETmodelOrig.R2adj, ETmodelOrig.RMSE, dR2adj.ETmodel, dRMSE.ETmodel, dRMSEper.ETmodel) ~ biome, data=cityAll.ET, FUN=mean, na.rm=T)
 checkBiome
 
+mean(cityAll.ET$dRMSEper.ETmodel, na.rm=T); sd(cityAll.ET$dRMSEper.ETmodel, na.rm=T)
+
 # Reading in the climate datasets -- GLDAS
 # Units:
 #  - temperature (Tair_f_inst_mean) - K  --> save as C to jive with MODIS data; note: is mean daily air temp; not day surface temp
@@ -187,7 +189,7 @@ grad.modfit <- c("#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497
 
 etR2.map <- ggplot(data=cityAll.ET[,]) +
   geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
-  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", size=0.1) +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", linewidth=0.1) +
   coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=ETmodel.R2adj), size=0.1, alpha=0.8) +
@@ -210,6 +212,33 @@ png(file.path(path.figs, "ModelFitET_R2adj_Map.png"), height=6, width=12, units=
 etR2.map
 dev.off() 
 
+
+etRMSEper.map <- ggplot(data=cityAll.ET[!is.na(cityAll.ET$ETmodel.RMSE),]) +
+  geom_rect(xmin=min(world$long), xmax=max(world$long), ymin=min(world$lat), ymax=max(world$lat), fill="gray80") +
+  geom_map(map=world, data=world, aes( map_id = region), fill="gray30", linewidth=0.1) +
+  coord_map("moll") +
+  expand_limits(x = world$long, y = world$lat) +
+  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=ETmodel.RMSE/ETpred.mean*100), size=0.1, alpha=0.8) +
+  scale_color_stepsn(name="ET model\n% RMSE", colors=grad.modfit, limits=c(0,100), n.breaks=13, oob=squish) +
+  theme(legend.position="top",
+        legend.title=element_text(color="black", face="bold"),
+        legend.text=element_text(color="black"),
+        legend.background=element_blank(),
+        legend.key.width = unit(4, "lines"),
+        # legend.key.height = unit(1.5, "lines"),
+        axis.ticks=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.background = element_rect(fill="NA"),
+        panel.grid = element_blank(), 
+        plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
+etRMSEper.map
+
+png(file.path(path.figs, "ModelFitET_perRMSE_Map.png"), height=6, width=12, units="in", res=220)
+etRMSEper.map
+dev.off() 
+
+
 etR2 <- ggplot(data=cityAll.ET[,]) +
   geom_histogram(aes(x=ETmodel.R2adj, fill=biomeName)) +
   scale_fill_manual(values=biome.pall.all) +
@@ -224,6 +253,13 @@ etRMSE <- ggplot(data=cityAll.ET[,]) +
   theme_bw() 
 etRMSE
 
+etRMSEper <- ggplot(data=cityAll.ET[,]) +
+  geom_histogram(aes(x=ETmodel.RMSE/ETpred.mean, fill=biomeName)) +
+  scale_fill_manual(values=biome.pall.all) +
+  guides(fill="none") +
+  theme_bw() 
+etRMSEper
+
 # ############## 
 # Trying to better contextualize our RMSE 
 # https://www.marinedatascience.co/blog/2019/01/07/normalizing-the-rmse/
@@ -237,7 +273,7 @@ etRMSEmean <- ggplot(data=cityAll.ET[,]) +
   theme_bw() 
 etRMSEmean
 
-# If the NRMSE is further categorized into let’s say low, medium or high performance, using the standard deviation to normalize could be a good option for the following reason: The sd-based NRMSE represent the ratio between the variation not explained by the regression vs the overall variation in Y. If the regression explains all of the variation in Y, nothing gets unexplained and the RMSE, and consequently NRMSE is zero. **If the regression explains some part and leaves some other unexplained, which is at a similar scale than the overall variation, the ratio will be around 1.** Anything beyond will indicate a much greater variation or noise than in the variable itself and consequently a low predictability.
+# If the NRMSE is further categorized into let’s say low, medium or high performance, using the standard deviation to normalize could be a good option for the following reason: The sd-based NRMSE represents the ratio between the variation not explained by the regression vs the overall variation in Y. If the regression explains all of the variation in Y, nothing gets unexplained and the RMSE, and consequently NRMSE is zero. **If the regression explains some part and leaves some other unexplained, which is at a similar scale than the overall variation, the ratio will be around 1.** Anything beyond will indicate a much greater variation or noise than in the variable itself and consequently a low predictability.
 etRMSEsd <- ggplot(data=cityAll.ET[,]) +
   geom_histogram(aes(x=ETmodel.RMSE/ETobs.sd, fill=biomeName)) +
   scale_fill_manual(values=biome.pall.all) +
@@ -316,7 +352,7 @@ png(file.path(path.figs, "ETmodel_ET_vs_Precip_Current.png"), height=8, width=10
 cowplot::plot_grid(plotInputs, plotRatio, ncol=2, rel_widths=c(0.25, 0.75))
 dev.off()
 
-png(file.path(path.figs, "ETmodel_ET_vs_Precip_Current_Log.png"), height=8, width=10, units="in", res=320)
+png(file.path(path.figs, "ETmodel_ET_vs_Precip_Current_Log.png"), height=8, width=10, units="in", res=320) 
 cowplot::plot_grid(plotInputs, plotRatioLog, ncol=2, rel_widths=c(0.25, 0.75))
 dev.off()
 

@@ -10,7 +10,7 @@
   path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
   fsave <- file.path(path.cities, "../CrossValidation-LST.csv")
   
-  overwrite=T # whether to overwrite our file or not
+  overwrite=F # whether to overwrite our file or not
   niter=50 # Number of iterations for our bootstrap
   pDat = 0.2 # Proportion of data to withhold fo crossvalidation
   
@@ -22,11 +22,14 @@
     cityStatsBase <- read.csv(file.path(path.cities, "../city_stats_model-selection.csv"))
     
     xValidResults <- data.frame(ISOURBID=unique(cityStatsBase$ISOURBID), spatError.mean = NA, spatError.sd = NA, spatRMSE.mean = NA, spatRMSE.sd = NA, timeError=NA, timeRMSE=NA)
+    xValidResults <- xValidResults[order(xValidResults$ISOURBID),]
     
     write.csv(xValidResults, fsave, row.names=F)
   } 
   
   xValidResults <- read.csv(fsave)
+  xValidResults <- xValidResults[order(xValidResults$ISOURBID),]
+  
   summary(xValidResults)
   
   citiesAnalyze <- xValidResults$ISOURBID[is.na(xValidResults$spatError.mean)]

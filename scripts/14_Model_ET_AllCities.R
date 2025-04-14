@@ -4,7 +4,7 @@ library(raster); library(sp); library(terra); library(sf)
 library(ggplot2)
 library(mgcv)
 
-overwrite=T
+overwrite=F
 
 # file paths for where to put the processed data
 # path.cities <- "../data_processed/data_cities_all"
@@ -401,7 +401,7 @@ for(CITY in citiesAnalyze){
   # length(which(!is.na(valsCity$ET)))
   # length(unique(valsCity$elevation))
   # Lets say you need to have at least 10% of the variance captured
-  if(length(unique(valsCity$elevation[!is.na(valsCity$ET)]))<length(unique(valsCity$elevation))*0.1) next
+  if(length(unique(valsCity$elevation[!is.na(valsCity$ET)]))<length(unique(valsCity$elevation))*0.1 | length(unique(valsCity$elevation[!is.na(valsCity$ET)]))<100 ) next
 
   modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y, elevation) + as.factor(year)-1, data=valsCity)
   sum.modETCity <- summary(modETCity)

@@ -7,7 +7,7 @@
 library(mgcv)
 
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/ET_models")
 fsave <- file.path(path.cities, "../CrossValidation-ET.csv")
 
 overwrite=T # whether to overwrite our file or not
@@ -22,6 +22,8 @@ if(!file.exists(fsave) | overwrite){
   cityStatsBase <- read.csv(file.path(path.cities, "../city_stats_model-selection.csv"))
   
   xValidResults <- data.frame(ISOURBID=unique(cityStatsBase$ISOURBID), spatError.mean = NA, spatError.sd = NA, spatRMSE.mean = NA, spatRMSE.sd = NA, timeError=NA, timeRMSE=NA)
+  xValidResults <- xValidResults[order(xValidResults$ISOURBID),]
+  # head(xValidResults)
   
   write.csv(xValidResults, fsave, row.names=F)
 } 
@@ -41,7 +43,13 @@ for(CITY in citiesAnalyze){
   xValidSpat <- data.frame(error=rep(NA, niter), RMSE=rep(NA, niter))
   
   # 1.1 Load in data -- 
-  valsCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_values-All-ET.csv")))
+  if(!file.exists(file.path(path.cities, CITY, paste0(CITY, "_CityData_All-ET.csv"))) |
+     !file.exists(file.path(path.cities, CITY, paste0(CITY, "_Model-ET_annual_gam.rds")))){
+    print("No ET data; skip")
+    next()
+  } 
+  
+  valsCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_CityData_All-ET.csv")))
   summary(valsCity)
   
   # - create an x/y coordinate column to make subsetting easy
@@ -88,10 +96,10 @@ for(CITY in citiesAnalyze){
   sum.modETCity <- summary(modETCity)
   
   # Because we can't use year to fit into the future, we need to do what we'd done for our climate change scenarios, which is using the mean intercept
-  intYear <- which(grepl("year", names(modSum$p.coeff)))
-  cityIntercept <- mean(modSum$p.coeff[intYear]) # Taking the mean year intercept
+  intYear <- which(grepl("year", names(sum.modETCity$p.coeff)))
+  cityIntercept <- mean(sum.modETCity$p.coeff[intYear]) # Taking the mean year intercept
   # yrstr <- paste(names(modETCitySum$p.coeff)[1])
-  yrUse <- as.numeric(stringr::str_sub(names(modSum$p.coeff)[intYear[1]], start=-4)) # Using a dummy year just to get the model to run
+  yrUse <- as.numeric(stringr::str_sub(names(sum.modETCity$p.coeff)[intYear[1]], start=-4)) # Using a dummy year just to get the model to run
   
   datValid$Intercept <- cityIntercept
   datValid$yearReal <- datValid$year
@@ -99,7 +107,7 @@ for(CITY in citiesAnalyze){
   datValid$year <- yrUse
   
   # sum.modLSTCityS3D <- summary(modLSTCityS3D
-  datValid$ETpred <- (predict(modLSTCityS3D, type="link", exclude="as.factor(year)", newdata=datValid) + datValid$Intercept)^2
+  datValid$ETpred <- (predict(modETCity, type="link", exclude="as.factor(year)", newdata=datValid) + datValid$Intercept)^2
   datValid$ETresid <- datValid$ET - datValid$ETpred 
   
   xValidResults$timeError[rowCity] <- mean(datValid$ETresid, na.rm=T)
