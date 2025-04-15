@@ -70,7 +70,7 @@ cityStatsRegion$dRMSEper.Log <- cityStatsRegion$dRMSE.Log/cityStatsRegion$LSTmod
 
 cityStatsRegion$dRMSEper.SCover <- cityStatsRegion$dRMSE.SCover/cityStatsRegion$LSTmodel.RMSE
 cityStatsRegion$dRMSEper.SCoverTree <- cityStatsRegion$dRMSE.SCoverTree/cityStatsRegion$LSTmodel.RMSE
-# cityStatsRegion$dRMSEperc.SCoverTree2 <- cityStatsRegion$dRMSE.SCoverTree/cityStatsRegion$LSTmodelSCover.RMSE
+# cityStatsRegion$dRMSEper.SCoverTree2 <- cityStatsRegion$dRMSE.SCoverTree/cityStatsRegion$LSTmodelSCover.RMSE
 cityStatsRegion$dRMSEper.S3D <- cityStatsRegion$dRMSE.S3D/cityStatsRegion$LSTmodel.RMSE
 
 
@@ -97,7 +97,7 @@ write.csv(statsBiome, file.path(path.cities, "../Biome_stats_model-selection.csv
 
 
 drmse.histo.biome <- ggplot(data=cityStatsRegion[!is.na(cityStatsRegion$biome),])+
-  geom_histogram(aes(x=dRMSEperc.SCover, fill=biomeName)) +
+  geom_histogram(aes(x=dRMSEper.S3D, fill=biomeName)) +
   scale_fill_manual(name="biome", values=biome.pall.all) +
   theme_bw() +
   theme(legend.position="right",
@@ -109,7 +109,7 @@ drmse.histo.biome <- ggplot(data=cityStatsRegion[!is.na(cityStatsRegion$biome),]
 drmse.histo.biome
 
 dr2.histo.biome <- ggplot(data=cityStatsRegion[!is.na(cityStatsRegion$biome),])+
-  geom_histogram(aes(x=dR2adj.SCover, fill=biomeName)) +
+  geom_histogram(aes(x=dR2adj.S3D, fill=biomeName)) +
   scale_fill_manual(name="biome", values=biome.pall.all) +
   theme_bw() +
   theme(legend.position="right",
@@ -119,3 +119,4 @@ dr2.histo.biome <- ggplot(data=cityStatsRegion[!is.na(cityStatsRegion$biome),])+
         panel.background = element_rect(fill="NA"),
         panel.grid = element_blank())
 dr2.histo.biome
+

@@ -13,7 +13,7 @@ if(!dir.exists(path.cities)) dir.create(path.cities, recursive=T, showWarnings =
 file.cityStatsRegion <- file.path(path.cities, "../city_stats_model.csv")
 
 # Which model to use based off of script 2
-modelUse <- ""
+modelUse <- "S3D"
 nInterval = 50 # Number of divisions for plotting partial effects
 
 # Path to where Earth Engine is saving the spatial extractions
@@ -80,8 +80,9 @@ for(i in seq_along(rowsAnalyze)){
   # modNow
   # modfName <- grep(modelNa)
   # modNow <- readRDS(file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam", modelUse, ".RDS")))
-  load(file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam", modelUse, ".RData")))
-  modNow <- modLSTCity
+  modName <- dir(file.path(path.cities, CITY), paste0(modelUse, ".RDS"))
+  modNow <- readRDS(file.path(path.cities, CITY, modName))
+  # modNow <- modLSTCity
   summary(modNow)
   
   saveRDS(modNow, file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-Final.RDS")))
@@ -116,8 +117,9 @@ for(i in seq_along(rowsAnalyze)){
     cityStatsRegion[rowCity, c("LSTmodelFinal.veg.p")] <- modSum$s.table[c("s(cover.veg)"), "p-value"]
   }
   
-  cityStatsRegion$LSTmodelFinal.elev.p[rowCity] <- modSum$p.table["elevation", "Pr(>|t|)"]
-  
+  if(!modelUse=="S3D"){
+    cityStatsRegion$LSTmodelFinal.elev.p[rowCity] <- modSum$p.table["elevation", "Pr(>|t|)"]
+  }
 
   # Pulling out some intercept info to help with modeling
   intYear <- grepl("year", names(modSum$p.coeff))
@@ -156,7 +158,11 @@ for(i in seq_along(rowsAnalyze)){
   varTree2 <- ifelse("s.cover.tree." %in% names(effCity), "s(cover.tree)", "cover.tree")
   varVeg2 <- ifelse("s.cover.veg." %in% names(effCity), "s(cover.veg)", "cover.veg")
   
-  summaryCity[,c("LSTEffect.elevation", "LSTEffect.tree", "LSTEffect.veg", "LSTeffect.xy")] <- effCity[,c("elevation", varTree, varVeg, "s.x.y.")]
+  if(modelUse=="S3D"){
+    summaryCity[,c("LSTEffect.tree", "LSTEffect.veg", "LSTeffect.xy")] <- effCity[,c(varTree, varVeg, "s.x.y.elevation.")]
+  } else {
+    summaryCity[,c("LSTEffect.elevation", "LSTEffect.tree", "LSTEffect.veg", "LSTeffect.xy")] <- effCity[,c("elevation", varTree, varVeg, "s.x.y.")]
+  }
   summary(summaryCity)
   
   # plot(LST_Day ~ LST.predict, data=summaryCity); abline(a=0, b=1, col="red2")
@@ -173,8 +179,13 @@ for(i in seq_along(rowsAnalyze)){
                       x=mean(modNow$model$x),
                       y=mean(modNow$model$y),
                       year=yearMean)
-  splineTree[[CITY]] <- data.frame(ISOURBID=CITY, cover.tree=dfTree$cover.tree, LST.pred=predict(modNow, newdata=dfTree),
-                                   effect.tree = as.vector(predict(modNow, newdata=dfTree, type="terms", exclude=c(varVeg2, "s(x,y)", "elevation", "as.factor(year)"))))
+  splineTree[[CITY]] <- data.frame(ISOURBID=CITY, cover.tree=dfTree$cover.tree, LST.pred=predict(modNow, newdata=dfTree))
+  if(modelUse=="S3D"){
+    splineTree[[CITY]]$effect.tree <- as.vector(predict(modNow, newdata=dfTree, type="terms", exclude=c(varVeg2, "s(x,y,elevation)", "as.factor(year)")))
+    
+  } else {
+    splineTree[[CITY]]$effect.tree <- as.vector(predict(modNow, newdata=dfTree, type="terms", exclude=c(varVeg2, "s(x,y)", "elevation", "as.factor(year)")))
+  }
   summary(splineTree[[CITY]])
 
   dfVeg <- data.frame(cover.veg=seq(min(modNow$model$cover.veg), max(modNow$model$cover.veg), length.out=nInterval),
@@ -183,8 +194,14 @@ for(i in seq_along(rowsAnalyze)){
                        x=mean(modNow$model$x),
                        y=mean(modNow$model$y),
                        year=yearMean)
-  splineVeg[[CITY]] <- data.frame(ISOURBID=CITY, cover.veg=dfVeg$cover.veg, LST.pred=predict(modNow, newdata=dfVeg),
-                                   effect.veg = as.vector(predict(modNow, newdata=dfVeg, type="terms", exclude=c(varTree2, "s(x,y)", "elevation", "as.factor(year)"))))
+  splineVeg[[CITY]] <- data.frame(ISOURBID=CITY, cover.veg=dfVeg$cover.veg, LST.pred=predict(modNow, newdata=dfVeg))
+  if(modelUse=="S3D"){
+    splineVeg[[CITY]]$effect.veg <- as.vector(predict(modNow, newdata=dfVeg, type="terms", exclude=c(varVeg2, "s(x,y,elevation)", "as.factor(year)")))
+    
+  } else {
+    splineVeg[[CITY]]$effect.veg <- as.vector(predict(modNow, newdata=dfVeg, type="terms", exclude=c(varTree2, "s(x,y)", "elevation", "as.factor(year)")))
+  }
+  
   summary(splineVeg[[CITY]])
   
       
