@@ -15,7 +15,7 @@ niter=50 # Number of iterations for our bootstrap
 pDat = 0.2 # Proportion of data to withhold fo crossvalidation
 
 # Setting up the cluster to parallelize comptuation
-n_cores <- detectCores()-4 # leave a couple cores free for other processes
+n_cores <- (detectCores()-4)/2 # leave a couple cores free for other processes; divide by 2 so I can run LST xvalidation too
 cl <- makeCluster(n_cores)
 registerDoParallel(cl)
 
