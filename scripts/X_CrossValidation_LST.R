@@ -4,7 +4,7 @@
   # 2. Temporal CV: use the first 16 years to predict the last 4 (20% of time; with future prediction emphasis); this will only happen once
   # Note: Will have separate scripts for LST & ET to make them easier to run simultaneously (although someone more motivated than me could set this up to be parallelized and run much faster)
   
-  library(mgcv)
+  library(mgcv); library(doParallel); library(foreach)
   
   path.google <- file.path("~/Google Drive/")
   path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
@@ -13,6 +13,11 @@
   overwrite=F # whether to overwrite our file or not
   niter=50 # Number of iterations for our bootstrap
   pDat = 0.2 # Proportion of data to withhold fo crossvalidation
+  
+  # Setting up the cluster to parallelize comptuation
+  n_cores <- detectCores()-4 # leave a couple cores free for other processes
+  cl <- makeCluster(n_cores)
+  registerDoParallel(cl)
   
   # 0. read in datasets
   
@@ -54,7 +59,7 @@
     
     # 2 - Spatial xValidation ----
     set.seed(1221) # Just going ahead and using the same seed for all cities
-    for(i in 1:niter){
+    xValidSpat <- foreach(iter=1:niter, .combine="rbind", .packages="mgcv") %dopar% {
       # 2.1. Select random pixels
       coordLO <- sample(cityCoord, pDat*ncoord, replace=F)
       
@@ -67,15 +72,17 @@
       datValid$LSTgamS3D.pred <- predict(modLSTCityS3D, newdata=datValid) #
       datValid$LSTgamS3D.resid <- datValid$LST_Day - datValid$LSTgamS3D.pred 
       
-      xValidSpat$error[i] <- mean(datValid$LSTgamS3D.resid, na.rm=T)
-      xValidSpat$RMSE[i] <- sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T))
+      # xValidSpat$error[i] <- mean(datValid$LSTgamS3D.resid, na.rm=T)
+      # xValidSpat$RMSE[i] <- sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T))
+      c("error"=mean(datValid$LSTgamS3D.resid, na.rm=T), "RMSE"=sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T)))
+      
   
     } # End spatial iteration loop
     
-    xValidResults$spatError.mean[rowCity] <- mean(xValidSpat$error)
-    xValidResults$spatError.sd[rowCity] <- sd(xValidSpat$error)
-    xValidResults$spatRMSE.mean[rowCity] <- mean(xValidSpat$RMSE)
-    xValidResults$spatRMSE.sd[rowCity] <- sd(xValidSpat$RMSE)
+    xValidResults$spatError.mean[rowCity] <- mean(xValidSpat[,"error"])
+    xValidResults$spatError.sd[rowCity] <- sd(xValidSpat[,"error"])
+    xValidResults$spatRMSE.mean[rowCity] <- mean(xValidSpat[,"RMSE"])
+    xValidResults$spatRMSE.sd[rowCity] <- sd(xValidSpat[,"RMSE"])
     
     # 3. Temporal validation ----
     yrsNow <- unique(valsCity$year)[order(unique(valsCity$year))]
@@ -109,3 +116,4 @@
     write.csv(xValidResults, fsave, row.names=F)
   
   }
+  stopCluster(cl)
