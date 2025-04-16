@@ -58,6 +58,8 @@ for(CITY in citiesAnalyze){
   valsCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_CityData_All-ET.csv")))
   summary(valsCity)
   
+  if(length(unique(valsCity$elevation[!is.na(valsCity$ET)]))<length(unique(valsCity$elevation))*0.1 | length(unique(valsCity$elevation[!is.na(valsCity$ET)]))<100 ) next
+  
   # - create an x/y coordinate column to make subsetting easy
   # - create a vector of just the coordinates
   cityCoord <- unique(valsCity$location)
@@ -89,6 +91,7 @@ for(CITY in citiesAnalyze){
     # xValidSpat$RMSE[i] <- sqrt(mean(datValid$ETresid^2, na.rm=T))
     c("error"=mean(datValid$ETresid, na.rm=T), "RMSE"=sqrt(mean(datValid$ETresid^2, na.rm=T)))
     
+    rm(datValid, datTrain)
   }
   # tictoc::toc()
   
@@ -132,5 +135,6 @@ for(CITY in citiesAnalyze){
   # Save our cross-validation results
   write.csv(xValidResults, fsave, row.names=F)
   
+  rm(valsCity, modETcity, xValidSpat) # clear out some memory
 }
 stopCluster(cl)

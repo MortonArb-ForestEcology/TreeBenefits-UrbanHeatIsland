@@ -76,6 +76,7 @@ for(CITY in citiesAnalyze){
     # xValidSpat$RMSE[i] <- sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T))
     c("error"=mean(datValid$LSTgamS3D.resid, na.rm=T), "RMSE"=sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T)))
     
+    rm(datValid, datTrain)
 
   } # End spatial iteration loop
   
@@ -114,6 +115,8 @@ for(CITY in citiesAnalyze){
   
   # Save our cross-validation results
   write.csv(xValidResults, fsave, row.names=F)
+  
+  rm(valsCity, modLSTCity3D, xValidSpat, datTrain, datValid) # Clear out some memory
 
 }
 stopCluster(cl)
