@@ -447,7 +447,7 @@ for(CITY in citiesAnalyze){
   
   
   # Save the key stats from the big Temp model
-    cityStatsET$ETmodelOrig.R2adj[row.city] <- sum.modETCityOrig$r.sq
+  cityStatsET$ETmodelOrig.R2adj[row.city] <- sum.modETCityOrig$r.sq
   cityStatsET$ETmodelOrig.RMSE[row.city] <- sqrt(mean(valsCity$ET.residOrig^2, na.rm=T))
 
   cityStatsET$ETmodel.R2adj[row.city] <- sum.modETCity$r.sq

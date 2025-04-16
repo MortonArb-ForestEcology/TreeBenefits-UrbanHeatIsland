@@ -186,9 +186,10 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   tempMean <- mean(modETCity$model$Tair_f_inst_mean)
   xMean <- mean(modETCity$model$x)
   yMean <- mean(modETCity$model$y)
+  elevMean <- mean(modETCity$model$elevation)
   
   # Tree Effect!
-  dfTree <- data.frame(cover.tree = seq(min(modETCity$model$cover.tree), max(modETCity$model$cover.tree), length.out=nInterval), cover.veg=vegMean, Tair_f_inst_mean=tempMean, x=xMean, y=yMean, year=yearMean)
+  dfTree <- data.frame(cover.tree = seq(min(modETCity$model$cover.tree), max(modETCity$model$cover.tree), length.out=nInterval), cover.veg=vegMean, Tair_f_inst_mean=tempMean, x=xMean, y=yMean, elevation=elevMean, year=yearMean)
   splineTree[[CITY]] <- data.frame(ISOURBID = CITY, ET=as.numeric(predict(modETCity, newdata=dfTree))^2, cover.tree=dfTree$cover.tree)
   # testTerms <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="terms", terms="s(cover.tree)", newdata=dfTree)), cover.tree=dfTree$cover.tree)
   # testResp <- data.frame(ISOURBID = CITY, Effect=as.numeric(predict(modETCity, type="response", terms="s(cover.tree)", newdata=dfTree)), cover.tree=dfTree$cover.tree)
@@ -203,11 +204,11 @@ for(rowCity in 1:nrow(cityAnalyStats)){
   # plot(Effect^2 ~ cover.tree, data=testEffect)
   
   # Non-Tree vegetation
-  dfVeg <- data.frame(cover.veg = seq(min(modETCity$model$cover.veg), max(modETCity$model$cover.veg), length.out=nInterval), cover.tree=treeMean, Tair_f_inst_mean=tempMean, x=xMean, y=yMean, year=yearMean)
+  dfVeg <- data.frame(cover.veg = seq(min(modETCity$model$cover.veg), max(modETCity$model$cover.veg), length.out=nInterval), cover.tree=treeMean, Tair_f_inst_mean=tempMean, x=xMean, y=yMean, elevation=elevMean, year=yearMean)
   splineVeg[[CITY]] <- data.frame(ISOURBID = CITY, ET=as.numeric(predict(modETCity, newdata=dfVeg))^2, cover.veg=dfVeg$cover.veg)
   
   # Temperature
-  dfTemp <- data.frame(cover.tree = treeMean, cover.veg=vegMean, Tair_f_inst_mean=seq(min(modETCity$model$Tair_f_inst_mean), max(modETCity$model$Tair_f_inst_mean), length.out=nInterval), x=xMean, y=yMean, year=yearMean)
+  dfTemp <- data.frame(cover.tree = treeMean, cover.veg=vegMean, Tair_f_inst_mean=seq(min(modETCity$model$Tair_f_inst_mean), max(modETCity$model$Tair_f_inst_mean), length.out=nInterval), x=xMean, y=yMean, elevation=elevMean, year=yearMean)
   splineTemp[[CITY]] <- data.frame(ISOURBID = CITY, ET=as.numeric(predict(modETCity, newdata=dfTemp))^2, Tair_f_inst_mean=dfTemp$Tair_f_inst_mean)
   
   

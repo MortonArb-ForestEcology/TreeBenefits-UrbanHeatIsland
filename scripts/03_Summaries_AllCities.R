@@ -590,7 +590,7 @@ ggplot(data=dfSplineTree, aes(x=cover.tree, y=effect.tree)) +
 # 
 # cityAll.stats[cityAll.stats$LSTmodelFinal.tree.slope< -2.5 & !is.na(cityAll.stats$LSTmodelFinal.tree.slope),]
 # 
-summary(cityAll.stats$LSTmodelFinal.tree.slope/cityAll.stats$LSTmodelFinal.veg.slope)
+summary(cityAll.stats$LSTslope.tree/cityAll.stats$LSTslope.veg)
 
 
 # ##########################
@@ -657,7 +657,7 @@ summary(cityAll.stats)
 
 # Comparing temperature effects attributed to different veg covers
 TreeEffectTempBiomeHisto <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  geom_histogram(aes(x=effect.tree.degC, fill=biomeName), breaks=seq(-10, 10, by=2)) +
+  geom_histogram(aes(x=effect.tree.degC, fill=biomeName), breaks=seq(-7, 5, by=1)) +
   # geom_vline(xintercept=0,linetype="dashed") +
   # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
   geom_vline(xintercept=0, linetype="dashed") +
@@ -674,7 +674,7 @@ TreeEffectTempBiomeHisto <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome
         axis.title=element_text(color="black", face="bold"))
 
 VegEffectTempBiomeHisto <- ggplot(data=cityAll.stats[!is.na(cityAll.stats$biome),]) +
-  geom_histogram(aes(x=effect.veg.degC, fill=biomeName), breaks=seq(-10, 10, by=2)) +
+  geom_histogram(aes(x=effect.veg.degC, fill=biomeName), breaks=seq(-7, 5, by=1)) +
   # geom_vline(xintercept=0,linetype="dashed") +
   # geom_bar(aes(x=tree.slope.cut, fill=biomeName), stat="count") +
   geom_vline(xintercept=0, linetype="dashed") +
