@@ -77,7 +77,7 @@ projMask = vegMask$projection()
 projCRS = projMask$crs()
 projTransform <- unlist(projMask$getInfo()$transform)
 
-# Transform the tower poitns
+# Transform the tower points
 ee_towerTrans <- ee_tower$map(function(x){ 
   x$transform(projMask)
   })
