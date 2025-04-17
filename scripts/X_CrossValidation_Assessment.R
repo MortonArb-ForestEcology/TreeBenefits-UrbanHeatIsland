@@ -22,6 +22,7 @@ summary(xValidET)
 nLSTnew <- nrow(xValidLST[!is.na(xValidLST$spatError.mean),])
 nETnew <- nrow(xValidET[!is.na(xValidET$spatError.mean),])
 
+
 SysStart - SysLast
 as.numeric(SysStart - SysLast)/(nLSTnew - nLSTold)*60 # time per file
-as.numeric(SysStart - SysLast) /(nETnew - nETold )*60
+as.numeric(SysStart - SysLast) /(nETnew - nETold )*60 # time per file

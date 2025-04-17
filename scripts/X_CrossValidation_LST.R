@@ -15,7 +15,8 @@ niter=50 # Number of iterations for our bootstrap
 pDat = 0.2 # Proportion of data to withhold fo crossvalidation
 
 # Setting up the cluster to parallelize comptuation
-n_cores <- (detectCores()-4)/2 # leave a couple cores free for other processes; divide by 2 so I can run ET xvalidation too
+# n_cores <- (detectCores()-4)/2 # leave a couple cores free for other processes; divide by 2 so I can run ET xvalidation too
+n_cores=8
 cl <- makeCluster(n_cores)
 registerDoParallel(cl)
 
@@ -48,6 +49,12 @@ for(CITY in citiesAnalyze){
   # set up a dataframe
   xValidSpat <- data.frame(error=rep(NA, niter), RMSE=rep(NA, niter))
   
+  if(!file.exists(file.path(path.cities, CITY, paste0(CITY, "_values-All.csv"))) |
+     !file.exists(file.path(path.cities, CITY, paste0(CITY, "_Model-LST_gam-S3D.rds")))){
+    print("No LST model; skip")
+    next()
+  } 
+  
   # 1.1 Load in data -- 
   valsCity <- read.csv(file.path(path.cities, CITY, paste0(CITY, "_values-All.csv")))
   summary(valsCity)
@@ -67,16 +74,28 @@ for(CITY in citiesAnalyze){
     datTrain <- valsCity[!valsCity$location %in% coordLO,]
     datValid <- valsCity[valsCity$location %in% coordLO,]
 
-    modLSTCityS3D <- gam(LST_Day ~ cover.tree + s(x,y, elevation) + as.factor(year)-1, data=datTrain)
-    # sum.modLSTCityS3D <- summary(modLSTCityS3D
-    datValid$LSTgamS3D.pred <- predict(modLSTCityS3D, newdata=datValid) #
-    datValid$LSTgamS3D.resid <- datValid$LST_Day - datValid$LSTgamS3D.pred 
+    attempt = 1
+    while((length(unique(datTrain$elevation))<length(unique(valsCity$elevation))*0.50 | length(unique(datTrain$elevation))<100) & attempt < 30) {
+      coordLO <- sample(cityCoord, pDat*ncoord, replace=F)
+      
+      datTrain <- valsCity[!valsCity$location %in% coordLO,]
+      datValid <- valsCity[valsCity$location %in% coordLO,]
+      
+      attempt=attempt+1
+    }
     
-    # xValidSpat$error[i] <- mean(datValid$LSTgamS3D.resid, na.rm=T)
-    # xValidSpat$RMSE[i] <- sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T))
-    c("error"=mean(datValid$LSTgamS3D.resid, na.rm=T), "RMSE"=sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T)))
-    
-    rm(datValid, datTrain)
+    if(attempt==30){
+      c("error"=NA, "RMSE"=NA)
+    } else {
+      modLSTCityS3D <- gam(LST_Day ~ cover.tree + s(x,y, elevation) + as.factor(year)-1, data=datTrain)
+      # sum.modLSTCityS3D <- summary(modLSTCityS3D
+      datValid$LSTgamS3D.pred <- predict(modLSTCityS3D, newdata=datValid) #
+      datValid$LSTgamS3D.resid <- datValid$LST_Day - datValid$LSTgamS3D.pred 
+      
+      # xValidSpat$error[i] <- mean(datValid$LSTgamS3D.resid, na.rm=T)
+      # xValidSpat$RMSE[i] <- sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T))
+      c("error"=mean(datValid$LSTgamS3D.resid, na.rm=T), "RMSE"=sqrt(mean(datValid$LSTgamS3D.resid^2, na.rm=T)))
+    }
 
   } # End spatial iteration loop
   
@@ -92,8 +111,10 @@ for(CITY in citiesAnalyze){
   datTrain <- valsCity[valsCity$year %in% yrsTrain,]
   datValid <- valsCity[!valsCity$year %in% yrsTrain,]
   
+  # tictoc::tic()
   modLSTCityS3D <- gam(LST_Day ~ cover.tree + s(x,y, elevation) + as.factor(year)-1, data=datTrain)
   modSum <- summary(modLSTCityS3D)
+  # tictoc::toc()
   
   # Because we can't use year to fit into the future, we need to do what we'd done for our climate change scenarios, which is using the mean intercept
   intYear <- which(grepl("year", names(modSum$p.coeff)))
@@ -116,7 +137,7 @@ for(CITY in citiesAnalyze){
   # Save our cross-validation results
   write.csv(xValidResults, fsave, row.names=F)
   
-  rm(valsCity, modLSTCity3D, xValidSpat, datTrain, datValid) # Clear out some memory
+  rm(valsCity, modLSTCityS3D, xValidSpat, datTrain, datValid) # Clear out some memory
 
 }
 stopCluster(cl)

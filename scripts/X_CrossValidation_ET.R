@@ -67,8 +67,7 @@ for(CITY in citiesAnalyze){
   
   # 2 - Spatial xValidation ----
   set.seed(1221) # Just going ahead and using the same seed for all cities
-  cityList <- list()
-
+  
   # for(i in 1:niter){
   # tictoc::tic()
   xValidSpat <- foreach(iter=1:niter, .combine="rbind", .packages="mgcv") %dopar% {
@@ -79,19 +78,34 @@ for(CITY in citiesAnalyze){
     datTrain <- valsCity[!valsCity$location %in% coordLO,]
     datValid <- valsCity[valsCity$location %in% coordLO,]
     
+    attempt = 1
+    while((length(unique(datTrain$elevation[!is.na(datTrain$ET)]))<length(unique(valsCity$elevation))*0.1 | length(unique(datTrain$elevation[!is.na(datTrain$ET)]))<100) & attempt < 30) {
+      coordLO <- sample(cityCoord, pDat*ncoord, replace=F)
+      
+      datTrain <- valsCity[!valsCity$location %in% coordLO,]
+      datValid <- valsCity[valsCity$location %in% coordLO,]
+      
+      attempt=attempt+1
+    }
     
-    modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y, elevation) + as.factor(year)-1, data=datTrain)
-    # sum.modETCity <- summary(modETCity)
-    # sum.modLSTCityS3D <- summary(modLSTCityS3D
-  
-    datValid$ETpred <- predict(modETCity, newdata=datValid)^2 #
-    datValid$ETresid <- datValid$ET - datValid$ETpred 
+    if(attempt==30){
+      c("error"=NA, "RMSE"=NA)
+    } else {
+      modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y, elevation) + as.factor(year)-1, data=datTrain)
+      # sum.modETCity <- summary(modETCity)
+      # sum.modLSTCityS3D <- summary(modLSTCityS3D
+      
+      datValid$ETpred <- predict(modETCity, newdata=datValid)^2 #
+      datValid$ETresid <- datValid$ET - datValid$ETpred 
+      
+      # xValidSpat$error[i] <- mean(datValid$ETresid, na.rm=T)
+      # xValidSpat$RMSE[i] <- sqrt(mean(datValid$ETresid^2, na.rm=T))
+      c("error"=mean(datValid$ETresid, na.rm=T), "RMSE"=sqrt(mean(datValid$ETresid^2, na.rm=T)))
+      
+    }
     
-    # xValidSpat$error[i] <- mean(datValid$ETresid, na.rm=T)
-    # xValidSpat$RMSE[i] <- sqrt(mean(datValid$ETresid^2, na.rm=T))
-    c("error"=mean(datValid$ETresid, na.rm=T), "RMSE"=sqrt(mean(datValid$ETresid^2, na.rm=T)))
     
-    rm(datValid, datTrain)
+
   }
   # tictoc::toc()
   
@@ -99,10 +113,10 @@ for(CITY in citiesAnalyze){
   # names(xValidSpat) <- c("error", "RMSES")
   # rm(tmpOut)
   
-  xValidResults$spatError.mean[rowCity] <- mean(xValidSpat[,"error"])
-  xValidResults$spatError.sd[rowCity] <- sd(xValidSpat[,"error"])
-  xValidResults$spatRMSE.mean[rowCity] <- mean(xValidSpat[,"RMSE"])
-  xValidResults$spatRMSE.sd[rowCity] <- sd(xValidSpat[,"RMSE"])
+  xValidResults$spatError.mean[rowCity] <- mean(xValidSpat[,"error"], na.rm=T)
+  xValidResults$spatError.sd[rowCity] <- sd(xValidSpat[,"error"], na.rm=T)
+  xValidResults$spatRMSE.mean[rowCity] <- mean(xValidSpat[,"RMSE"], na.rm=T)
+  xValidResults$spatRMSE.sd[rowCity] <- sd(xValidSpat[,"RMSE"], na.rm=T)
   
   # 3. Temporal validation ----
   yrsNow <- unique(valsCity$year)[order(unique(valsCity$year))]
