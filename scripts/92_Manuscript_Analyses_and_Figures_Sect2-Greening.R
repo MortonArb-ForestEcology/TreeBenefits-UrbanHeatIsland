@@ -139,6 +139,7 @@ summary(coverLong)
 
 colorsScenario <- c("Current"="#005a32", "Biome UHI"="gray70", "Biome-25"="#b2df8a", "City-25"="#a6cee3", "City-50"="#1f78b4")
 
+
 TreeCoverTarget <- ggplot(data=StatsCombined[,], aes(x=biomeCode, y=TreeCoverTargetUHI, fill="Biome UHI", color="Biome UHI")) +  
   geom_bar(stat="summary", fun="median") +
   geom_violin(data=coverLong[coverLong$Scenario!="City-50",], aes(x=biomeCode, y=values, fill=Scenario, color=Scenario), scale="width", alpha=0.9) +
@@ -172,7 +173,7 @@ summary(StatsCombined[,c("EffectLST.tree", "value.LST.diff", "greening.coolingTo
 effectsUHI <- stack(StatsCombined[,c("EffectLST.tree", "value.LST.diff")])
 names(effectsUHI) <- c("Current", "effect")
 effectsUHI$GreeningBiomeTarget <- stack(StatsCombined[,c("greening.coolingTotalBiomeTarget", "greening.remainUHIBiomeTarget")])[,1]
-effectsUHI$GreeningCity25 <- stack(StatsCombined[,c("greening.coolingTotalCity25", "greening.remainUHICity25")])[,1]
+# effectsUHI$GreeningCity25 <- stack(StatsCombined[,c("greening.coolingTotalCity25", "greening.remainUHICity25")])[,1]
 # effectsUHI$GreeningCity50 <- stack(StatsCombined[,c("greening.coolingTotalCity50", "greening.remainUHICity50")])[,1]
 effectsUHI$effect <- as.character(effectsUHI$effect)
 effectsUHI$effect[grep("tree", effectsUHI$effect)] <- "Tree"
@@ -184,12 +185,12 @@ summary(effectsUHI)
 effectsUHI[,c("ISOURBID", "biomeName", "biomeCode", "biomeCodeRev")] <- StatsCombined[,c("ISOURBID", "biomeName", "biomeCode", "biomeCodeRev")]
 summary(effectsUHI)
 
-effectsUHI2 <- stack(effectsUHI[,c("Current", "GreeningBiomeTarget", "GreeningCity25")])
+effectsUHI2 <- stack(effectsUHI[,c("Current", "GreeningBiomeTarget")])
 # names(effectsUHI2)[2] <- c("Scenario")
 effectsUHI2$Scenario[grep("Current", effectsUHI2$ind)] <- "Current"
-effectsUHI2$Scenario[grep("Target", effectsUHI2$ind)] <- "Biome-25"
-effectsUHI2$Scenario[grep("City25", effectsUHI2$ind)] <- "City-25"
-effectsUHI2$Scenario <- factor(effectsUHI2$Scenario, levels=c("Current", "Biome-25", "City-25"))
+effectsUHI2$Scenario[grep("Target", effectsUHI2$ind)] <- "Greening"
+# effectsUHI2$Scenario[grep("City25", effectsUHI2$ind)] <- "City-25"
+effectsUHI2$Scenario <- factor(effectsUHI2$Scenario, levels=c("Current", "Greening"))
 
 effectsUHI2[,c("effect", "ISOURBID", "biomeName", "biomeCode", "biomeCodeRev")] <- effectsUHI[,c("effect", "ISOURBID", "biomeName", "biomeCode", "biomeCodeRev")]
 summary(effectsUHI2)
@@ -237,7 +238,7 @@ dev.off()
 
 
 # Making a poster-ready figure where we're only looking at cities with UHI & showign teh Greening City 25 scenario
-cityUHI <- StatsCombined$ISOURBID[StatsCombined$value.LST.diff>0 & StatsCombined$value.LST.diff.sig]
+cityUHI <- StatsCombined$ISOURBID[StatsCombined$value.LST.diff>0 & StatsCombined$value.LST.diff.sig & StatsCombined$LSTslope.tree<0 & StatsCombined$LSTmodelFinal.tree.p<0.05]
 length(cityUHI)
 
 
@@ -271,11 +272,11 @@ plotTempEffectsUHIonly <- ggplot(data=effectsUHI2[effectsUHI2$ISOURBID %in% city
 
 
 
-png(file.path(path.figsMS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.png"), height=6.5, width=3, units="in", res=320)
+png(file.path(path.figsMS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.png"), height=5.5, width=3, units="in", res=320)
 plotTempEffectsUHIonly
 dev.off()
 
-pdf(file.path(path.MS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.pdf"), height=6.5, width=3)
+pdf(file.path(path.MS, "Figure3_TreeCover_Targets-Cooling_UHIOnly.pdf"), height=5.5, width=3)
 plotTempEffectsUHIonly
 dev.off()
 
@@ -295,26 +296,26 @@ plotPrecip <- ggplot(data=StatsCombined[,]) +
   theme_bw() + theme(plot.margin = unit(c(0.5,0.5,0.5,0.75), "lines")) 
 plotPrecip
 
-effectsET <- stack(StatsCombined[,c("modET.Base", "modET.TreeTargetBottom25", "modET.TreeCityBottom25")])
+effectsET <- stack(StatsCombined[,c("modET.Base", "modET.TreeTargetBottom25")])
 names(effectsET) <- c("ET", "Scenario")
-effectsET$ETratio <- stack(StatsCombined[,c("ETcurrent.Precip", "ETgreenBiomeTarget.Precip", "ETgreenCity25.Precip")])[,1]
+effectsET$ETratio <- stack(StatsCombined[,c("ETcurrent.Precip", "ETgreenBiomeTarget.Precip")])[,1]
 effectsET$Scenario <- as.character(effectsET$Scenario)
 effectsET$Scenario[grep("Base", effectsET$Scenario)] <- "Current"
-effectsET$Scenario[grep("Target", effectsET$Scenario)] <- "Biome-25"
-effectsET$Scenario[grep("CityBottom25", effectsET$Scenario)] <- "City-25"
-effectsET$Scenario <- factor(effectsET$Scenario, levels=c("Current", "Biome-25", "City-25"))
+effectsET$Scenario[grep("Target", effectsET$Scenario)] <- "Greening"
+effectsET$Scenario <- factor(effectsET$Scenario, levels=c("Current", "Greening"))
 
 effectsET[,c("ISOURBID", "biomeName", "biomeCode", "biomeCodeRev", "Precip.GLDAS")] <- StatsCombined[,c("ISOURBID", "biomeName", "biomeCode", "biomeCodeRev", "Precip.GLDAS")]
 summary(effectsET)
 
 # "Current"="#005a32", "Biome Target"=grad.tree[4], "50% Greening"=grad.tree[6])
+colorsScenario2 <- c("Current"="#005a32", "Greening"="#b2df8a")
 
 
 plotET <- ggplot(data=effectsET[,]) +
   geom_violin(aes(x=biomeCode, y=ET, fill=Scenario), scale="width") +
   geom_errorbar(data=precip.means, aes(x=biomeCode, ymin=Precip.GLDAS, ymax=Precip.GLDAS), color="black", linewidth=1, width=1) +
   # geom_errorbar(stat="summary", fun="mean", data=StatsCombined, aes(x=biomeCode, y=Precip.GLDAS)) +
-  scale_fill_manual(values=colorsScenario) +
+  scale_fill_manual(values=colorsScenario2) +
   # scale_color_manual(values=biomeCode.pall.all) +
   labs(y="ET (kg/m2/day)", x="Biome") +
   scale_y_continuous(limits=c(0, max(precip.means$Precip.GLDAS, na.rm=T)+0.5), expand=c(0,0)) +
@@ -324,7 +325,7 @@ plotET
 
 plotETratio <- ggplot(data=effectsET[,]) +
   geom_violin(aes(x=biomeCode, y=log(ETratio), fill=Scenario), scale="width") +
-  scale_fill_manual(values=colorsScenario) +
+  scale_fill_manual(values=colorsScenario2) +
   geom_hline(yintercept=log(1), linetype="dashed") +
   # annotate(geom="text", x=1, y=c(-2.5, 3), label=c("Precip Surplus", "Precip Deficit"), hjust=0) +
   labs(y="Precip. Deficit", x="Biome") +
@@ -383,14 +384,14 @@ names(greenStatsBiomeUHI)[3] <- "N.Cities.UHI"
 sum(greenStatsBiomeUHI$N.Cities.UHI)
 
 # Add the ratio here!
-greenStatsBiomeUHIMeans <- aggregate(cbind(TreeCoverTargetUHI, TreeTarget.CurrentRatio, greening.treeAddBiomeTarget, greening.coolingAddBiomeTarget, greening.coolPerAddBiomeTarget, greening.treeAddCity25, greening.coolingAddCity25, greening.coolPerAddCity25) ~ biomeName + biomeCode, data=StatsUHI, FUN=mean)
+greenStatsBiomeUHIMeans <- aggregate(cbind(TreeCoverTargetUHI, TreeTarget.CurrentRatio, greening.treeAddBiomeTarget, greening.coolingAddBiomeTarget, greening.coolPerAddBiomeTarget) ~ biomeName + biomeCode, data=StatsUHI, FUN=mean)
 greenStatsBiomeUHIMeans$TreeTarget.CurrentRatio <- round(greenStatsBiomeUHIMeans$TreeTarget.CurrentRatio, 1)
 greenStatsBiomeUHIMeans[,grep("treeAdd", names(greenStatsBiomeUHIMeans))] <- round(greenStatsBiomeUHIMeans[,grep("treeAdd", names(greenStatsBiomeUHIMeans))], 1)
 greenStatsBiomeUHIMeans[,grep("coolingAdd", names(greenStatsBiomeUHIMeans))] <- round(greenStatsBiomeUHIMeans[,grep("coolingAdd", names(greenStatsBiomeUHIMeans))], 2)
 greenStatsBiomeUHIMeans[,grep("coolPerAdd", names(greenStatsBiomeUHIMeans))] <- round(greenStatsBiomeUHIMeans[,grep("coolPerAdd", names(greenStatsBiomeUHIMeans))], 2)*100
 
 
-greenStatsBiomeUHISDs <- aggregate(cbind(TreeCoverTargetUHI, TreeTarget.CurrentRatio, greening.treeAddBiomeTarget, greening.coolingAddBiomeTarget, greening.coolPerAddBiomeTarget, greening.treeAddCity25, greening.coolingAddCity25, greening.coolPerAddCity25) ~ biomeName + biomeCode, data=StatsUHI, FUN=sd)
+greenStatsBiomeUHISDs <- aggregate(cbind(TreeCoverTargetUHI, TreeTarget.CurrentRatio, greening.treeAddBiomeTarget, greening.coolingAddBiomeTarget, greening.coolPerAddBiomeTarget) ~ biomeName + biomeCode, data=StatsUHI, FUN=sd)
 greenStatsBiomeUHISDs$TreeTarget.CurrentRatio <- round(greenStatsBiomeUHISDs$TreeTarget.CurrentRatio, 1)
 
 greenStatsBiomeUHISDs[,grep("treeAdd", names(greenStatsBiomeUHISDs))] <- round(greenStatsBiomeUHISDs[,grep("treeAdd", names(greenStatsBiomeUHISDs))], 1)
@@ -407,7 +408,7 @@ greenStatsBiomeUHI
 write.csv(greenStatsBiomeUHI, file.path(path.figsMS, "tableS5_Biome_GreenLST_UHIonly.csv"), row.names=F)
 
 
-summary(StatsCombined[,c("value.tree.core", "TreeCoverUHINeed", "greening.treeAddBiomeTarget", "greening.treeAddCity25")]) 
+summary(StatsCombined[,c("value.tree.core", "TreeCoverUHINeed", "greening.treeAddBiomeTarget")]) 
 
 indUHI <- which(StatsCombined$value.LST.diff>0 & StatsCombined$value.LST.diff.sig  & StatsCombined$LSTslope.tree<0 & StatsCombined$LSTmodelFinal.tree.p<0.05)
 length(indUHI)
@@ -440,20 +441,6 @@ round(quantile(bootBiomeCool, c(0.5, 0.025, 0.975)), 2) # Cooling form the added
 round(quantile(bootBiomeCoolProp*100, c(0.5, 0.025, 0.975)), 0) # Proportion of UHI offset
 
 
-bootCityGreen <- vector(length=1000)
-bootCityCool <- vector(length=1000)
-bootCityCoolProp <- vector(length=1000)
-set.seed(1643)
-for(i in 1:length(bootCityGreen)){
-  samp <- sample(indUHI, length(indUHI)/3*2)
-  bootCityGreen[i] <- median(StatsCombined$greening.treeAddCity25[samp])
-  bootCityCool[i] <- median(StatsCombined$greening.coolingAddCity25[samp])
-  bootCityCoolProp[i] <- median(StatsCombined$greening.coolingAddCity25[samp]/StatsCombined$value.LST.diff[samp])
-}
-round(quantile(bootCityGreen, c(0.5, 0.025, 0.975)), 1) # Trees added in the city-25 scenario
-round(quantile(bootCityCool, c(0.5, 0.025, 0.975)), 2) # Cooling for added trees
-round(quantile(bootCityCoolProp*100, c(0.5, 0.025, 0.975)), 1) # proportion UHI offset by added trees
-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
@@ -462,19 +449,17 @@ round(quantile(bootCityCoolProp*100, c(0.5, 0.025, 0.975)), 1) # proportion UHI 
 # Effects of Greening on ET (All Cities) ----
 # NOTE NOTE: Add the magnitude of deficit where present
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-StatsCombined[,c("ET.PerInc.BiomeTarget", "ET.PerInc.City25", "ET.PerInc.City50")] <- (StatsCombined[,c("modET.TreeTargetBottom25", "modET.TreeCityBottom25", "modET.TreeCityBottom50")]/StatsCombined$modET.Base-1)*100
+StatsCombined$ET.PerInc.BiomeTarget <- (StatsCombined$modET.TreeTargetBottom25/StatsCombined$modET.Base-1)*100
 
 # Calculating the Precip deficit in mm/day
 # StatsCombined$modET.Base/StatsCombined$Precip.GLDAS
 StatsCombined$ET.Precip.diff <- StatsCombined$Precip.GLDAS - StatsCombined$modET.Base
 StatsCombined$ET.Precip.diff.Biome25 <- StatsCombined$Precip.GLDAS - (StatsCombined$modET.Base*(1+StatsCombined$ET.PerInc.BiomeTarget*0.01))
-StatsCombined$ET.Precip.diff.City25 <- StatsCombined$Precip.GLDAS - (StatsCombined$modET.Base*(1+StatsCombined$ET.PerInc.City25*0.01))
 summary(StatsCombined)
 
 # Looking at the precip deficit as a percentage of precip
 StatsCombined$ET.Precip.diffper <- StatsCombined$ET.Precip.diff/StatsCombined$Precip.GLDAS
 StatsCombined$ET.Precip.diffper.Biome25 <- StatsCombined$ET.Precip.diff.Biome25/StatsCombined$Precip.GLDAS
-StatsCombined$ET.Precip.diffper.City25 <- StatsCombined$ET.Precip.diff.City25/StatsCombined$Precip.GLDAS
 summary(StatsCombined)
 summary(StatsCombined$ET.Precip.diffper[StatsCombined$ET.Precip.diffper<0])
 # hist(StatsCombined$ET.Precip.diffper[StatsCombined$ET.Precip.diffper<0])
@@ -487,12 +472,98 @@ summary(StatsCombined)
 StatsCombined$DeficitError.Biome25.RMSEall <- ifelse(abs(StatsCombined$ET.Precip.diff.Biome25)<StatsCombined$ETmodel.RMSE, T, F) # Using the RMSE from my model fitting everying
 StatsCombined$DeficitError.Biome25.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff.Biome25)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from my model fitting everying
 
-StatsCombined$DeficitError.City25.RMSEall <- ifelse(abs(StatsCombined$ET.Precip.diff.City25)<StatsCombined$ETmodel.RMSE, T, F) # Using the RMSE from my model fitting everying
-StatsCombined$DeficitError.City25.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff.City25)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from my model fitting everying
+
+#
+
+# StatsCombined[StatsCombined$ETcurrent.Precip>1 & StatsCombined$ET.Precip.diff>0,]
 
 
-# Looking at ratios with current ET ----
-length(which(StatsCombined$ETcurrent.Precip>1)) # Number with on average precip deficit
+greenStatsBiomeMeans <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget) ~ biomeName + biomeCode, data=StatsCombined, FUN=mean)
+greenStatsBiomeMeans[,names(greenStatsBiomeMeans)[!names(greenStatsBiomeMeans) %in% c("biomeName", "biomeCode")]] <- round(greenStatsBiomeMeans[,names(greenStatsBiomeMeans)[!names(greenStatsBiomeMeans) %in% c("biomeName", "biomeCode")]], 1)
+greenStatsBiomeMeans
+
+greenStatsBiomeSDs <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget) ~ biomeName + biomeCode, data=StatsCombined, FUN=sd)
+greenStatsBiomeSDs[,names(greenStatsBiomeSDs)[!names(greenStatsBiomeSDs) %in% c("biomeName", "biomeCode")]] <- round(greenStatsBiomeSDs[,names(greenStatsBiomeSDs)[!names(greenStatsBiomeSDs) %in% c("biomeName", "biomeCode")]], 1)
+greenStatsBiomeSDs
+
+greenStatsBiomeN <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined, FUN=length)
+names(greenStatsBiomeN)[names(greenStatsBiomeN)=="Precip.GLDAS"] <- "N.Total"
+
+
+summary(StatsCombined[StatsCombined$ETcurrent.Precip>1,])
+# StatsCombined[StatsCombined$ETcurrent.Precip>1 & StatsCombined$ET.Precip.diff>0,]
+
+WaterRisk.Current <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid),], FUN=length)
+names(WaterRisk.Current)[names(WaterRisk.Current)=="Precip.GLDAS"] <- "N.Deficit.current"
+
+WaterUncertain.Current <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[(StatsCombined$DeficitError.RMSExValid),], FUN=length)
+names(WaterUncertain.Current)[names(WaterUncertain.Current)=="Precip.GLDAS"] <- "N.Uncertain.current"
+
+Deficit.Current <- aggregate(cbind(ETxValid.spatRMSE.mean, ET.Precip.diff) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid),], FUN=mean)
+names(Deficit.Current)[names(Deficit.Current) %in% c("ETxValid.spatRMSE.mean", "ET.Precip.diff")] <- c("RMSE.mmDay", "PrecipDeficit.mmDay")
+Deficit.Current[,c("RMSE.mmDay", "PrecipDeficit.mmDay")] <- round(Deficit.Current[,c("RMSE.mmDay", "PrecipDeficit.mmDay")], 2)
+# names(WaterRisk.Current)[names(WaterRisk.Current)=="Precip.GLDAS"] <- "N.Risk.current"
+Deficit.Current <- merge(greenStatsBiomeN,Deficit.Current, all=T)
+# Deficit.Current <- Deficit.Current[]
+Deficit.Current
+
+
+Deficit.CurrentSD <- aggregate(cbind(ETxValid.spatRMSE.mean, ET.Precip.diff) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid),], FUN=sd)
+names(Deficit.CurrentSD)[names(Deficit.CurrentSD) %in% c("ETxValid.spatRMSE.mean", "ET.Precip.diff")] <- c("RMSE.mmDay", "PrecipDeficit.mmDay")
+Deficit.CurrentSD[,c("RMSE.mmDay", "PrecipDeficit.mmDay")] <- round(Deficit.CurrentSD[,c("RMSE.mmDay", "PrecipDeficit.mmDay")], 2)
+Deficit.CurrentSD <- merge(greenStatsBiomeN, Deficit.CurrentSD, all=T)
+Deficit.CurrentSD
+
+# WaterStats.Current <- merge(WaterStats.Current, greenStatsBiomeN)
+
+WaterRisk.Biome25 <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETgreenBiomeTarget.Precip>1 & !(StatsCombined$DeficitError.Biome25.RMSExValid),], FUN=length)
+names(WaterRisk.Biome25)[names(WaterRisk.Biome25)=="Precip.GLDAS"] <- "N.Deficit.Greening"
+
+WaterUncertain.Biome25 <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[(StatsCombined$DeficitError.Biome25.RMSExValid),], FUN=length)
+names(WaterUncertain.Biome25)[names(WaterUncertain.Biome25)=="Precip.GLDAS"] <- "N.Uncertain.Greening"
+
+Deficit.Greening <- aggregate(cbind(ET.Precip.diff.Biome25) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETgreenBiomeTarget.Precip>1 & !(StatsCombined$DeficitError.Biome25.RMSExValid),], FUN=mean)
+names(Deficit.Greening)[names(Deficit.Greening) == "ET.Precip.diff.Biome25"] <- c("PrecipDeficit.mmDay")
+Deficit.Greening[,c("PrecipDeficit.mmDay")] <- round(Deficit.Greening[,c("PrecipDeficit.mmDay")], 2)
+Deficit.Greening <- merge(greenStatsBiomeN, Deficit.Greening, all=T)
+Deficit.Greening
+
+Deficit.GreeningSD <- aggregate(cbind(ET.Precip.diff.Biome25) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETgreenBiomeTarget.Precip>1 & !(StatsCombined$DeficitError.Biome25.RMSExValid),], FUN=sd)
+names(Deficit.GreeningSD)[names(Deficit.GreeningSD) == "ET.Precip.diff.Biome25"] <- c("PrecipDeficit.mmDay")
+Deficit.GreeningSD[,c("PrecipDeficit.mmDay")] <- round(Deficit.GreeningSD[,c("PrecipDeficit.mmDay")], 2)
+Deficit.GreeningSD <- merge(greenStatsBiomeN, Deficit.GreeningSD, all=T)
+Deficit.GreeningSD
+
+
+WaterStats.Current <- merge(WaterRisk.Current, WaterUncertain.Current, all=T)
+WaterStats.Greening <- merge(WaterRisk.Biome25, WaterUncertain.Biome25, all=T)
+
+greenStatsBiomeN <- merge(greenStatsBiomeN, WaterStats.Current, all.x=T)
+greenStatsBiomeN <- merge(greenStatsBiomeN, WaterStats.Greening, all.x=T)
+greenStatsBiomeN[is.na(greenStatsBiomeN)] <- 0
+
+TableS6 <- data.frame(Biome=pasteMeanSD(greenStatsBiomeN$biomeName, greenStatsBiomeN$biomeCode),
+                      N.Cities = greenStatsBiomeN$N.Total,
+                      Precip = pasteMeanSD(greenStatsBiomeMeans$Precip.GLDAS, greenStatsBiomeSDs$Precip.GLDAS),
+                      current.WaterRisk = paste0(greenStatsBiomeN$N.Deficit.current, " (", round(greenStatsBiomeN$N.Deficit.current/greenStatsBiomeN$N.Total*100,0),"%)"),
+                      current.Deficit = pasteMeanSD(Deficit.Current$PrecipDeficit.mmDay, Deficit.CurrentSD$PrecipDeficit.mmDay),
+                      current.Uncertain = paste0(greenStatsBiomeN$N.Uncertain.current, " (", round(greenStatsBiomeN$N.Uncertain.current/greenStatsBiomeN$N.Total*100,0),"%)"),
+                      # Now doing the greening scenario stuff
+                      biomeTarget.TreeAdd = pasteMeanSD(greenStatsBiomeMeans$greening.treeAddBiomeTarget, greenStatsBiomeSDs$greening.treeAddBiomeTarget), 
+                      biomeTarget.ETperInc=pasteMeanSD(greenStatsBiomeMeans$ET.PerInc.BiomeTarget, greenStatsBiomeSDs$ET.PerInc.BiomeTarget),
+                      greening.WaterRisk = paste0(greenStatsBiomeN$N.Deficit.Greening, " (", round(greenStatsBiomeN$N.Deficit.Greening/greenStatsBiomeN$N.Total*100, 0),"%)"),
+                      greening.Deficit = pasteMeanSD(Deficit.Greening$PrecipDeficit.mmDay, Deficit.GreeningSD$PrecipDeficit.mmDay),
+                      greening.Uncertain = paste0(greenStatsBiomeN$N.Uncertain.Greening, " (", round(greenStatsBiomeN$N.Uncertain.Greening/greenStatsBiomeN$N.Total*100,0),"%)")
+                      
+                      )
+TableS6
+
+write.csv(TableS6, file.path(path.figsMS, "TableS6_Biome_GreenET.csv"), row.names=F)
+
+
+# Number of total current cities at water risk
+Looking at ratios with current ET ----
+  length(which(StatsCombined$ETcurrent.Precip>1)) # Number with on average precip deficit
 length(which(StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid))) # Number of cities outside the margin of error
 length(which(StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid)))/(nrow(StatsCombined)) # Precentage
 
@@ -500,22 +571,6 @@ length(which(StatsCombined$DeficitError.RMSExValid)) # Cities within the margin 
 length(which(StatsCombined$DeficitError.RMSExValid))/nrow(StatsCombined) # Cities within the margin of error
 
 length(which(StatsCombined$ETcurrent.Precip<=1 & !(StatsCombined$DeficitError.RMSExValid))) # Number of cities outside the margin of error
-
-
-# Looking at ratios with Biome-25 greening ----
-length(which(StatsCombined$ETgreenCity25.Precip>1)) # Number with on average precip deficit
-
-length(which(StatsCombined$ETgreenCity25.Precip>1 & !(StatsCombined$DeficitError.City25.RMSExValid))) # Number of cities outside the margin of error
-length(which(StatsCombined$ETgreenBiomeTarget.Precip>1 & !(StatsCombined$DeficitError.City25.RMSExValid)))/(nrow(StatsCombined)) # Precentage
-
-# Change in deficit
-length(which(StatsCombined$ETgreenCity25.Precip>1 & !(StatsCombined$DeficitError.City25.RMSExValid))) - length(which(StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid)))
-
-length(which(StatsCombined$DeficitError.City25.RMSExValid)) # Cities within the margin of error
-length(which(StatsCombined$DeficitError.City25.RMSExValid))/nrow(StatsCombined) # Cities within the margin of error
-length(which(StatsCombined$DeficitError.City25.RMSExValid)) - length(which(StatsCombined$DeficitError.RMSExValid))
-
-length(which(StatsCombined$ETgreenCity25.Precip<=1 & !(StatsCombined$DeficitError.City25.RMSExValid))) # Number of cities outside the margin of error
 
 
 # Looking at ratios with Biome-25 greening ----
@@ -533,77 +588,9 @@ length(which(StatsCombined$DeficitError.Biome25.RMSExValid)) - length(which(Stat
 length(which(StatsCombined$ETgreenBiomeTarget.Precip<=1 & !(StatsCombined$DeficitError.Biome25.RMSExValid))) # Number of cities outside the margin of error
 
 
-# StatsCombined[StatsCombined$ETcurrent.Precip>1 & StatsCombined$ET.Precip.diff>0,]
-
-
-greenStatsBiomeMeans <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget, greening.treeAddCity25, ET.PerInc.City25, greening.treeAddCity50, ET.PerInc.City50) ~ biomeName + biomeCode, data=StatsCombined, FUN=mean)
-greenStatsBiomeMeans[,names(greenStatsBiomeMeans)[!names(greenStatsBiomeMeans) %in% c("biomeName", "biomeCode")]] <- round(greenStatsBiomeMeans[,names(greenStatsBiomeMeans)[!names(greenStatsBiomeMeans) %in% c("biomeName", "biomeCode")]], 1)
-greenStatsBiomeMeans
-
-greenStatsBiomeSDs <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget, greening.treeAddCity25, ET.PerInc.City25, greening.treeAddCity50, ET.PerInc.City50) ~ biomeName + biomeCode, data=StatsCombined, FUN=sd)
-greenStatsBiomeSDs[,names(greenStatsBiomeSDs)[!names(greenStatsBiomeSDs) %in% c("biomeName", "biomeCode")]] <- round(greenStatsBiomeSDs[,names(greenStatsBiomeSDs)[!names(greenStatsBiomeSDs) %in% c("biomeName", "biomeCode")]], 1)
-greenStatsBiomeSDs
-
-greenStatsBiomeN <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined, FUN=length)
-names(greenStatsBiomeN)[names(greenStatsBiomeN)=="Precip.GLDAS"] <- "N.Total"
-
-
-summary(StatsCombined[StatsCombined$ETcurrent.Precip>1,])
-# StatsCombined[StatsCombined$ETcurrent.Precip>1 & StatsCombined$ET.Precip.diff>0,]
-
-WaterRisk.Current <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETcurrent.Precip>1,], FUN=length)
-names(WaterRisk.Current)[names(WaterRisk.Current)=="Precip.GLDAS"] <- "N.Risk.current"
-
-WaterDeficits <- aggregate(cbind(ETxValid.spatError.mean, ETxValid.spatRMSE.mean, ET.Precip.diff, ET.Precip.diff.Biome25, ET.Precip.diff.City25) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETcurrent.Precip>1,], FUN=mean)
-# names(WaterRisk.Current)[names(WaterRisk.Current)=="Precip.GLDAS"] <- "N.Risk.current"
-WaterDeficits
-
-WaterDeficitsSDs <- aggregate(cbind(ET.Precip.diff, ET.Precip.diff.Biome25, ET.Precip.diff.City25) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETcurrent.Precip>1,], FUN=sd)
-# names(WaterRisk.Current)[names(WaterRisk.Current)=="Precip.GLDAS"] <- "N.Risk.current"
-WaterDeficitsSDs
-
-WaterRisk.BiomeTarget <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETgreenBiomeTarget.Precip>1,], FUN=length)
-names(WaterRisk.BiomeTarget)[names(WaterRisk.BiomeTarget)=="Precip.GLDAS"] <- "N.Risk.biomeTarget"
-
-
-WaterRisk.City25 <- aggregate(cbind(Precip.GLDAS) ~ biomeName + biomeCode, data=StatsCombined[StatsCombined$ETgreenCity25.Precip>1,], FUN=length)
-names(WaterRisk.City25)[names(WaterRisk.City25)=="Precip.GLDAS"] <- "N.Risk.City25"
-
-greenStatsBiomeN <- merge(greenStatsBiomeN, WaterRisk.Current, all.x=T)
-greenStatsBiomeN <- merge(greenStatsBiomeN, WaterRisk.BiomeTarget, all.x=T)
-greenStatsBiomeN <- merge(greenStatsBiomeN, WaterRisk.City25, all.x=T)
-greenStatsBiomeN[is.na(greenStatsBiomeN)] <- 0
-
-TableS6 <- data.frame(Biome=pasteMeanSD(greenStatsBiomeN$biomeName, greenStatsBiomeN$biomeCode),
-                      N.Cities = greenStatsBiomeN$N.Total,
-                      Precip = pasteMeanSD(greenStatsBiomeMeans$Precip.GLDAS, greenStatsBiomeSDs$Precip.GLDAS),
-                      current.WaterRisk = paste0(round(greenStatsBiomeN$N.Risk.current/greenStatsBiomeN$N.Total*100,0),"%"),
-                      biomeTarget.TreeAdd = pasteMeanSD(greenStatsBiomeMeans$greening.treeAddBiomeTarget, greenStatsBiomeSDs$greening.treeAddBiomeTarget), 
-                      biomeTarget.ETperInc=pasteMeanSD(greenStatsBiomeMeans$ET.PerInc.BiomeTarget, greenStatsBiomeSDs$ET.PerInc.BiomeTarget),
-                      biomeTarget.WaterRisk = paste0(round(greenStatsBiomeN$N.Risk.biomeTarget/greenStatsBiomeN$N.Total*100, 0),"%"),
-                      city25.TreeAdd = pasteMeanSD(greenStatsBiomeMeans$greening.treeAddCity25, greenStatsBiomeSDs$greening.treeAddCity25), 
-                      city25.ETperInc=pasteMeanSD(greenStatsBiomeMeans$ET.PerInc.City25, greenStatsBiomeSDs$ET.PerInc.City25),
-                      city25.WaterRisk = paste0(round(greenStatsBiomeN$N.Risk.City25/greenStatsBiomeN$N.Total*100, 0),"%"))
-TableS6
-
-write.csv(TableS6, file.path(path.figsMS, "TableS6_Biome_GreenET.csv"), row.names=F)
-
-
-# Number of total current cities at water risk
-length(which(StatsCombined$ETcurrent.Precip>1))
-length(which(StatsCombined$ETcurrent.Precip>1))/nrow(StatsCombined)
-
-length(which(StatsCombined$ETgreenBiomeTarget.Precip>1))
-length(which(StatsCombined$ETgreenBiomeTarget.Precip>1))/nrow(StatsCombined)
-
-length(which(StatsCombined$ETgreenCity25.Precip>1))
-length(which(StatsCombined$ETgreenCity25.Precip>1))/nrow(StatsCombined)
-length(which(StatsCombined$ETgreenCity25.Precip>1)) - length(which(StatsCombined$ETcurrent.Precip>1))
 
 median(StatsCombined$ET.PerInc.BiomeTarget); median(StatsCombined$modET.TreeTargetBottom25 - StatsCombined$modET.Base)
 
-median(StatsCombined$ET.PerInc.City25); median(StatsCombined$modET.TreeCityBottom25 - StatsCombined$modET.Base)
-median(StatsCombined$ET.PerInc.City50); median(StatsCombined$modET.TreeCityBottom50 - StatsCombined$modET.Base)
 
 length(which(StatsCombined$ETgreenBiomeTarget.Precip>1)) - length(which(StatsCombined$ETcurrent.Precip>1))
 length(which(StatsCombined$ETgreenBiomeTarget.Precip>1))/nrow(StatsCombined)
