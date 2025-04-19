@@ -17,8 +17,8 @@ pDat = 0.2 # Proportion of data to withhold fo crossvalidation
 # Setting up the cluster to parallelize comptuation
 # n_cores <- (detectCores()-4)/2 # leave a couple cores free for other processes; divide by 2 so I can run ET xvalidation too
 n_cores=8
-cl <- makeCluster(n_cores)
-registerDoParallel(cl)
+clLST <- makeCluster(n_cores)
+registerDoParallel(clLST)
 
 # 0. read in datasets
 
@@ -140,4 +140,4 @@ for(CITY in citiesAnalyze){
   rm(valsCity, modLSTCityS3D, xValidSpat, datTrain, datValid) # Clear out some memory
 
 }
-stopCluster(cl)
+stopCluster(clLST)

@@ -21,7 +21,8 @@ path.tower <- file.path(path.google, "../ET Validation")
 path.figsMS <- file.path(path.google, "figures_manuscript")
 path.figsExplore <- file.path(path.google, "figures_exploratory")
 dir.create(path.figsMS, recursive=T, showWarnings=F)
-path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 4 - Nature Climate Change - Resubmit/")
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 5 - Nature Climate Change")
+
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # Read in some base datasets etc.
@@ -259,7 +260,7 @@ coolingBiomeTreeVeg
 dev.off()
 
 coolingTreeSummary <- ggplot(data=dfEffectLST, aes()) +
-  coord_cartesian(ylim=c(-10,1)) +
+  # coord_cartesian(ylim=c(-10,1)) +
   geom_smooth(method="lm", aes(x=cover.tree, y=effectLST.tree, color=biomeCode, fill=biomeCode)) +
   labs(x="Tree Cover (%)", y="Effect on LST (deg. C)") +
   scale_color_manual(name="Biome", values=biomeCode.pall.all) + 
@@ -346,15 +347,15 @@ aggTowerStack$dataset <- factor(aggTowerStack$dataset, levels=c("Model", "MODIS"
 summary(aggTowerStack)
 
 # aggTowerStack2 <- stack(aggTowerStack[,c("RMSE", "R2")])
-aggTowerStack2[,c("dataset", "biomeName", "biomeCode", "IGBP", "ISOURBID")] <- aggTowerStack[,c("dataset", "biomeName", "biomeCode", "IGBP", "ISOURBID")]
-summary(aggTowerStack2)
+# aggTowerStack2[,c("dataset", "biomeName", "biomeCode", "IGBP", "ISOURBID")] <- aggTowerStack[,c("dataset", "biomeName", "biomeCode", "IGBP", "ISOURBID")]
+# summary(aggTowerStack2)
 
-valMeans <- aggregate(values ~ dataset + ind, data=aggTowerStack2, FUN=mean, na.rm=T)
+# valMeans <- aggregate(values ~ dataset + ind, data=aggTowerStack2, FUN=mean, na.rm=T)
 
-ggplot(data=aggTowerStack2) +
-  facet_grid(dataset~ind, scales="free_x") +
-  geom_histogram(aes(x=values, fill=IGBP)) +
-  geom_vline(data=valMeans, aes(xintercept=values), linetype="dashed", linewidth=1.5) +
+ggplot(data=aggTowerStack) +
+  facet_wrap(~dataset) +
+  geom_histogram(aes(x=RMSE, fill=IGBP)) +
+  # geom_vline(data=valMeans, aes(xintercept=values), linetype="dashed", linewidth=1.5) +
   scale_fill_manual(values=c("WET" = "#6c9fb8", "EBF" = "#1c5f2c", "DBF" = "#68ab5f", "MF" = "#b5c58f", "OSH" = "#ccb879", "GRA" = "#dfdfc2", "CRO" = "#ab6c28", "URB" = "#eb0000"),
                     labels=c("Wetland", "Forest, Evg. Broad.", "Forest, Dec. Broad", "Forest, Mixed", "Shrubland", "Grassland", "Cropland", "Urban")) +
   theme_bw()
@@ -374,7 +375,7 @@ plot.model <- ggplot(data=aggTower, aes(x=ET.pixel, y=ET)) +
     formula = y ~ x,
     parse = TRUE
   ) + # Display equation and R^2
-  guides(color=F) +
+  guides(color="none") +
   annotate(
     "text",
     x = min(aggTower$ET.pixel),
@@ -395,7 +396,7 @@ plot.modis <- ggplot(data=aggTower, aes(x=ET.modis, y=ET)) +
   geom_point(aes(color=biomeCode)) +
   scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
-  guides(color=F) +
+  guides(color="none") +
   stat_poly_eq(
     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
     formula = y ~ x,
@@ -421,7 +422,7 @@ plot.gldas <- ggplot(data=aggTower, aes(x=ET.gldas, y=ET)) +
   geom_point(aes(color=biomeCode)) +
   scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
-  guides(color=F) +
+  guides(color="none") +
   stat_poly_eq(
     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
     formula = y ~ x,
@@ -447,7 +448,7 @@ plot.modelVgldas <- ggplot(data=aggTower, aes(x=ET.pixel, y=ET.gldas)) +
   geom_point(aes(color=biomeCode)) +
   scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
-  guides(color=F) +
+  guides(color="none") +
   stat_poly_eq(
     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
     formula = y ~ x,
@@ -473,7 +474,7 @@ plot.modelVgldas2 <- ggplot(data=StatsCombined, aes(x=ETpred.mean, y=ET.GLDAS)) 
   geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
   scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
   scale_y_continuous(limits=range(StatsCombined$ET.GLDAS)+c(0,1))+
-  guides(color=F) +
+  guides(color="none") +
   stat_poly_eq(
     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
     formula = y ~ x,

@@ -15,9 +15,9 @@ niter=50 # Number of iterations for our bootstrap
 pDat = 0.2 # Proportion of data to withhold fo crossvalidation
 
 # Setting up the cluster to parallelize comptuation
-n_cores <- (detectCores()-4)/2 # leave a couple cores free for other processes; divide by 2 so I can run LST xvalidation too
-cl <- makeCluster(n_cores)
-registerDoParallel(cl)
+n_cores <- (detectCores()-4) # leave a couple cores free for other processes; divide by 2 so I can run LST xvalidation too
+clET <- makeCluster(n_cores)
+registerDoParallel(clET)
 
 # 0. read in datasets
 
@@ -79,7 +79,7 @@ for(CITY in citiesAnalyze){
     datValid <- valsCity[valsCity$location %in% coordLO,]
     
     attempt = 1
-    while((length(unique(datTrain$elevation[!is.na(datTrain$ET)]))<length(unique(valsCity$elevation))*0.1 | length(unique(datTrain$elevation[!is.na(datTrain$ET)]))<100) & attempt < 30) {
+    while((length(unique(datTrain$elevation[!is.na(datTrain$ET)]))<length(unique(valsCity$elevation))*0.1 | length(unique(datTrain$elevation[!is.na(datTrain$ET)]))<120) & attempt < 30) {
       coordLO <- sample(cityCoord, pDat*ncoord, replace=F)
       
       datTrain <- valsCity[!valsCity$location %in% coordLO,]
@@ -125,7 +125,9 @@ for(CITY in citiesAnalyze){
   datTrain <- valsCity[valsCity$year %in% yrsTrain,]
   datValid <- valsCity[!valsCity$year %in% yrsTrain,]
   
+  # tictoc::tic() 
   modETCity <- gam(sqrt(ET) ~ s(cover.tree) + s(cover.veg) + Tair_f_inst_mean + s(x,y, elevation) + as.factor(year)-1, data=datTrain)
+  # tictoc::toc()
   sum.modETCity <- summary(modETCity)
   
   # Because we can't use year to fit into the future, we need to do what we'd done for our climate change scenarios, which is using the mean intercept
@@ -149,6 +151,6 @@ for(CITY in citiesAnalyze){
   # Save our cross-validation results
   write.csv(xValidResults, fsave, row.names=F)
   
-  rm(valsCity, modETcity, xValidSpat) # clear out some memory
+  rm(valsCity, modETCity, xValidSpat) # clear out some memory
 }
-stopCluster(cl)
+stopCluster(clET)

@@ -8,7 +8,7 @@
 path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
 path.cities <- file.path(path.google, "data_processed_final")
 path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v4/")
-path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 4 - Nature Climate Change - Resubmit/")
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 5 - Nature Climate Change/")
 
 path.figs <- file.path(path.google, "figures_manuscript")
 dir.create(path.figs, recursive=T, showWarnings=F)
@@ -86,6 +86,20 @@ for(i in 1:nrow(cityAll.gldas)){
 
 summary(cityAll.gldas)
 
+# 1.5. Read in cross-validation stats
+xValidLST <- read.csv(file.path(path.google, "CrossValidation-LST.csv"))
+xValidET <- read.csv(file.path(path.google, "CrossValidation-ET.csv"))
+names(xValidLST)[2:ncol(xValidLST)] <- paste0("LSTxValid.", names(xValidLST)[2:ncol(xValidLST)])
+names(xValidET)[2:ncol(xValidET)] <- paste0("ETxValid.", names(xValidET)[2:ncol(xValidET)])
+summary(xValidLST)
+summary(xValidET)
+
+xValidStats <- merge(xValidLST, xValidET, all=T)
+summary(xValidStats)
+
+# Checking howmuch larger the time RMSE is than spatial; in both cases, about 1.6x
+summary(xValidStats$LSTxValid.timeRMSE/xValidStats$LSTxValid.spatRMSE.mean)
+summary(xValidStats$ETxValid.timeRMSE/xValidStats$ETxValid.spatRMSE.mean)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
@@ -224,6 +238,7 @@ StatsCombined <- merge(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE",
 StatsCombined <- merge(StatsCombined, cityVeg, all=T)
 StatsCombined <- merge(StatsCombined, cityLST, all=T)
 StatsCombined <- merge(StatsCombined, cityStatsET[,c("ISOURBID", "ETobs.mean", "ETobs.sd", "ETobs.min", "ETobs.max", "ETmodel.R2adj", "ETmodel.RMSE", "ETpred.mean", "ETpred.sd", "ETpred.min", "ETpred.max")], all=T)
+StatsCombined <- merge(StatsCombined, xValidStats, all.x=T)
 summary(StatsCombined)
 
 # Quick aggregation of cities by GLDAS Mean Summer Temp and Mean Summer Precip to have a consistent order to our cities
@@ -237,7 +252,7 @@ sum(biomeAll$n.cities[biome.order$n.cities<20])
 
 sum(biomeAll$n.cities)
 
-# Wokring only with cities where there are >20 cities in the biome
+# Working only with cities where there are >20 cities in the biome
 biome.order <- biome.order[biome.order$n.cities>=20,]
 biome.order
 sum(biome.order$n.cities)
@@ -249,6 +264,7 @@ write.csv(biome.order, file.path(path.google, "UHIs-FinalCityDataForAnalysis_Bio
 length(which(!StatsCombined$biomeName %in% biome.order$biomeName))
 StatsCombined <- StatsCombined[StatsCombined$biomeName %in% biome.order$biomeName,]
 nrow(StatsCombined)
+summary(StatsCombined)
 
 write.csv(StatsCombined, file.path(path.google, "UHIs-FinalCityDataForAnalysis.csv"), row.names=F)
 
