@@ -665,6 +665,7 @@ riskAgg <- riskAgg[order(riskAgg$biomeName),]
 TableS8 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean$biomeCode),
                       N.Cities = etBiomeAggMean$N.Cities,
                       ET.current = pasteMeanSD(etBiomeAggMean$modET, etBiomeAggMean$ET.sd),
+                      ET.RMSEtime = pasteMeanSD(etBiomeAggMean$timeRMSE, etBiomeAggMean$timeRMSE.sd),
                       current.HighRisk = paste0(riskAgg$Per.HighRisk[riskAgg$Scenario=="Present"],"%"),
                       current.RiskDeficit = pasteMeanSD(riskAgg$deficit.mmDay[riskAgg$Scenario=="Present"],
                                                         riskAgg$deficitSD.mmDay[riskAgg$Scenario=="Present"]),
@@ -692,18 +693,39 @@ changeBiomeAggMedian
 bootET245 <- vector(length=1000)
 bootET585 <- vector(length=1000)
 bootETDiff <- vector(length=1000)
+bootRisk245 <- vector(length=1000)
+bootRisk585 <- vector(length=1000)
+bootUncert245 <- vector(length=1000)
+bootUncert585 <- vector(length=1000)
+
 set.seed(1108)
+ind245 <- which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5")
+ind585 <- which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5")
 for(i in 1:length(bootET245)){
-  samp245 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5"))/3*2)
-  samp585 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5"))/3*2)
+  samp245 <- sample(ind245, length(ind245)/3*2)
+  samp585 <- sample(ind585, length(ind585)/3*2)
   
-  bootET245[i] <- median(samp245)
-  bootET585[i] <- median(samp585)
-  bootETDiff[i] <- median(samp585) - median(samp245)
+  bootET245[i] <- median(cmip6AggMean$modET.perChange[samp245])
+  bootET585[i] <- median(cmip6AggMean$modET.perChange[samp585])
+  bootETDiff[i] <- median(cmip6AggMean$modET.perChange[samp585]) - median(cmip6AggMean$modET.perChange[samp245])
+  
+  bootRisk245[i] <- length(which(cmip6AggMean$Risk.Level[samp245]=="High"))/length(samp245)
+  bootRisk585[i] <- length(which(cmip6AggMean$Risk.Level[samp585]=="High"))/length(samp585)
+  bootUncert245[i] <- length(which(cmip6AggMean$Uncert.Level[samp245]=="High"))/length(samp245)
+  bootUncert585[i] <- length(which(cmip6AggMean$Uncert.Level[samp585]=="High"))/length(samp585)
 }
 round(quantile(bootET245-1, c(0.5, 0.025, 0.975))*100, 0)
 round(quantile(bootET585-1, c(0.5, 0.025, 0.975))*100, 0)
 round(quantile(bootETDiff, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootRisk245, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootRisk585, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootUncert245, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootUncert585, c(0.5, 0.025, 0.975))*100, 0)
+
+# Number of high-risk cities
+length(which(etSummary$Scenario=="SSP2-4.5" & etSummary$Risk.Level=="High"))/length(which(etSummary$Scenario=="SSP2-4.5"))
+length(which(etSummary$Scenario=="SSP5-8.5" & etSummary$Risk.Level=="High"))/length(which(etSummary$Scenario=="SSP5-8.5"))
+
 
 
 bootDes245 <- vector(length=1000)
