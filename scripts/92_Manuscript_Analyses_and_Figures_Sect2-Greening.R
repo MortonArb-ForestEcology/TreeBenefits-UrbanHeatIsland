@@ -466,7 +466,7 @@ summary(StatsCombined$ET.Precip.diffper[StatsCombined$ET.Precip.diffper<0])
 
 # Checking for whether the deficit is within our margin of error based on the RMSE from the cross-validation
 StatsCombined$DeficitError.RMSEall <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETmodel.RMSE, T, F) # Using the RMSE from my model fitting everying
-StatsCombined$DeficitError.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from my model fitting everying
+StatsCombined$DeficitError.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from the spatial cross-validation since we're not transferring time
 summary(StatsCombined)
 
 StatsCombined$DeficitError.Biome25.RMSEall <- ifelse(abs(StatsCombined$ET.Precip.diff.Biome25)<StatsCombined$ETmodel.RMSE, T, F) # Using the RMSE from my model fitting everying
@@ -562,7 +562,7 @@ write.csv(TableS6, file.path(path.figsMS, "TableS6_Biome_GreenET.csv"), row.name
 
 
 # Number of total current cities at water risk
-Looking at ratios with current ET ----
+# Looking at ratios with current ET ----
   length(which(StatsCombined$ETcurrent.Precip>1)) # Number with on average precip deficit
 length(which(StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid))) # Number of cities outside the margin of error
 length(which(StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid)))/(nrow(StatsCombined)) # Precentage
