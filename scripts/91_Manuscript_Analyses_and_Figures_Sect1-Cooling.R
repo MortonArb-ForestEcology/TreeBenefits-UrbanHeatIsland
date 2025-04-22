@@ -55,7 +55,7 @@ summary(aggTower)
 
 biome.hist <- ggplot(data=StatsCombined) +
   geom_bar(aes(x=biomeName, fill=biomeName)) +
-  scale_fill_manual(values=biome.pall.all[]) +
+  scale_fill_manual(values=biome.pall.ShortCB[]) +
   scale_y_continuous(expand=c(0,0), limits=c(0, max(biome.order$n.cities)*1.05)) +
   scale_x_discrete(name="Biome", labels=paste0(biome.order$biomeName, " (", biome.order$biomeCode, ")")) +
   guides(fill="none") +
@@ -74,8 +74,8 @@ biome.map <- ggplot(data=StatsCombined[,]) +
   coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=biomeName), size=0.5) +
-  scale_color_manual(name="biome", values=biome.pall.all) +
-  # scale_shape_manual(name="biome", values=1:length(biome.pall.all)) +
+  scale_color_manual(name="biome", values=biome.pall.ShortCB) +
+  # scale_shape_manual(name="biome", values=1:length(biome.pall.ShortCB)) +
   guides(color="none") +
   # theme_bw() +
   theme(legend.position="top",
@@ -263,8 +263,8 @@ coolingTreeSummary <- ggplot(data=dfEffectLST, aes()) +
   # coord_cartesian(ylim=c(-10,1)) +
   geom_smooth(method="lm", aes(x=cover.tree, y=effectLST.tree, color=biomeCode, fill=biomeCode)) +
   labs(x="Tree Cover (%)", y="Effect on LST (deg. C)") +
-  scale_color_manual(name="Biome", values=biomeCode.pall.all) + 
-  scale_fill_manual(name="Biome", values=biomeCode.pall.all) + 
+  scale_color_manual(name="Biome", values=biomeCode.pall.ShortCB) + 
+  scale_fill_manual(name="Biome", values=biomeCode.pall.ShortCB) + 
   theme_bw() 
 
 png(file.path(path.figsExplore, "LSTmodel_PartialEffects_CoverTree_Summary.png"), height=8, width=10, units="in", res=320)
@@ -275,8 +275,8 @@ coolingVegSummary <- ggplot(data=dfEffectLST, aes()) +
   coord_cartesian(ylim=c(-3,1)) +
   geom_smooth(method="lm", aes(x=cover.veg, y=effectLST.veg, color=biomeCode, fill=biomeCode)) +
   labs(x="Other Vegetation Cover (%)", y="Effect on LST (deg. C)") +
-  scale_color_manual(name="Biome", values=biomeCode.pall.all) + 
-  scale_fill_manual(name="Biome", values=biomeCode.pall.all) + 
+  scale_color_manual(name="Biome", values=biomeCode.pall.ShortCB) + 
+  scale_fill_manual(name="Biome", values=biomeCode.pall.ShortCB) + 
   theme_bw() 
 
 png(file.path(path.figsExplore, "LSTmodel_PartialEffects_CoverVeg_Summary.png"), height=8, width=10, units="in", res=320)
@@ -295,7 +295,7 @@ etBiomeTree <- ggplot(data=dfSplineTree, aes()) +
   geom_line(aes(x=cover.tree, y=ET, group=ISOURBID), alpha=0.2, linewidth=0.1)  +
   geom_smooth(method="gam", aes(x=cover.tree, y=ET, color=biomeCode)) +
   labs(x="Cover (%)", y="ET (mm/day)") +
-  scale_color_manual(values=biomeCode.pall.all) + 
+  scale_color_manual(values=biomeCode.pall.ShortCB) + 
   guides(color="none") +
   theme_bw() +
   theme(legend.position="top")
@@ -313,8 +313,8 @@ etTreeSummary <- ggplot(data=dfSplineTree, aes()) +
   coord_cartesian(ylim=c(0,5)) +
   geom_smooth(method="gam", aes(x=cover.tree, y=ET, color=biomeCode, fill=biomeCode)) +
   labs(x="Tree Cover (%)", y="ET (mm/day)") +
-  scale_color_manual(name="Biome", values=biomeCode.pall.all) + 
-  scale_fill_manual(name="Biome", values=biomeCode.pall.all) + 
+  scale_color_manual(name="Biome", values=biomeCode.pall.ShortCB) + 
+  scale_fill_manual(name="Biome", values=biomeCode.pall.ShortCB) + 
   theme_bw() 
 
 png(file.path(path.figsExplore, "ETmodel_PartialEffects_CoverTree_Summary.png"), height=8, width=10, units="in", res=320)
@@ -368,7 +368,7 @@ plot.model <- ggplot(data=aggTower, aes(x=ET.pixel, y=ET)) +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
   geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
   geom_point(aes(color=biomeCode)) +
-  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.ShortCB) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
   stat_poly_eq(
     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
@@ -394,7 +394,7 @@ plot.modis <- ggplot(data=aggTower, aes(x=ET.modis, y=ET)) +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
   geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
   geom_point(aes(color=biomeCode)) +
-  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.ShortCB) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
   guides(color="none") +
   stat_poly_eq(
@@ -420,7 +420,7 @@ plot.gldas <- ggplot(data=aggTower, aes(x=ET.gldas, y=ET)) +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
   geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
   geom_point(aes(color=biomeCode)) +
-  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.ShortCB) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
   guides(color="none") +
   stat_poly_eq(
@@ -446,7 +446,7 @@ plot.modelVgldas <- ggplot(data=aggTower, aes(x=ET.pixel, y=ET.gldas)) +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
   geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
   geom_point(aes(color=biomeCode)) +
-  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.ShortCB) +
   scale_y_continuous(limits=range(aggTower$ET)+c(0,1))+
   guides(color="none") +
   stat_poly_eq(
@@ -472,7 +472,7 @@ plot.modelVgldas2 <- ggplot(data=StatsCombined, aes(x=ETpred.mean, y=ET.GLDAS)) 
   geom_abline(slope=1, intercept=0, linetype="dashed") +
   geom_point(aes(color=biomeCode)) +
   geom_smooth(method = "lm", formula = y ~ x, color = "blue", se = T) + # Line of best fit
-  scale_color_manual(name="Biome Code", values=biomeCode.pall.all) +
+  scale_color_manual(name="Biome Code", values=biomeCode.pall.ShortCB) +
   scale_y_continuous(limits=range(StatsCombined$ET.GLDAS)+c(0,1))+
   guides(color="none") +
   stat_poly_eq(

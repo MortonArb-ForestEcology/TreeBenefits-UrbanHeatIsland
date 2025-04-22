@@ -84,8 +84,8 @@ ggplot(data=cmip6[cmip6$Time=="2100" & !is.na(cmip6$modET.Precip) , ]) +
   facet_wrap(~GCM) +
   geom_violin(aes(x=Scenario, y=log(modET.Precip), fill=biomeCode), scale="width", linewidth=0.1) +
   geom_hline(yintercept=0, linewidth=0.2, linetype="dashed") +
-  scale_fill_manual(values=biomeCode.pall.all) +
-  # scale_color_manual(values=biomeCode.pall.all) +
+  scale_fill_manual(values=biomeCode.pall.ShortCB) +
+  # scale_color_manual(values=biomeCode.pall.ShortCB) +
   theme_bw()
 dev.off()
 
@@ -96,9 +96,9 @@ ggplot(data=cmip6[cmip6$Time=="2100"  , ]) +
   facet_wrap(~GCM) +
   geom_violin(aes(x=Scenario, y=tas.diff, fill=biomeCode), scale="width", linewidth=0.1) +
   geom_hline(yintercept=0, linewidth=0.2, linetype="dashed") +
-  scale_fill_manual(values=biomeCode.pall.all) +
+  scale_fill_manual(values=biomeCode.pall.ShortCB) +
   scale_y_continuous(name="Temp change (˚C)") +
-  # scale_color_manual(values=biomeCode.pall.all) +
+  # scale_color_manual(values=biomeCode.pall.ShortCB) +
   theme_bw()
 dev.off()
 
@@ -111,9 +111,9 @@ ggplot(data=cmip6[cmip6$Time=="2100"  , ]) +
   # geom_violin(aes(x=Scenario, y=log(pr.per), fill=biomeCode), scale="width", linewidth=0.1) +
   geom_violin(aes(x=Scenario, y=pr.per, fill=biomeCode), scale="width", linewidth=0.1) +
   geom_hline(yintercept=1, linewidth=0.2, linetype="dashed") +
-  scale_fill_manual(values=biomeCode.pall.all) +
+  scale_fill_manual(values=biomeCode.pall.ShortCB) +
   scale_y_continuous(name="Precip. change (%)") +
-  # scale_color_manual(values=biomeCode.pall.all) +
+  # scale_color_manual(values=biomeCode.pall.ShortCB) +
   theme_bw()
 dev.off()
 
@@ -122,8 +122,8 @@ ggplot(data=cmip6[cmip6$Time=="2100" & !is.na(cmip6$modET.Precip) , ]) +
   # facet_grid(Scenario~.) +
   facet_wrap(~GCM) +
   geom_violin(aes(x=Scenario, y=log(modET.Precip), fill=biomeCode), scale="width", linewidth=0.1) +
-  scale_fill_manual(values=biomeCode.pall.all) +
-  # scale_color_manual(values=biomeCode.pall.all) +
+  scale_fill_manual(values=biomeCode.pall.ShortCB) +
+  # scale_color_manual(values=biomeCode.pall.ShortCB) +
   theme_bw()
 
 # geom_violin(aes(x=biomeCode, y=log(modET.Precip), fill=biomeCode, color=biomeCode), binaxis="y", stackdir="center", alpha=0.5, dotsize=0.2)
@@ -249,7 +249,7 @@ summary(etSummary)
 ggplot(data=etSummary) +
   facet_grid(Scenario~.) +
   geom_histogram(aes(x=Risk.per, fill=biomeCode)) +
-  scale_fill_manual(values=biomeCode.pall.all)
+  scale_fill_manual(values=biomeCode.pall.ShortCB)
 
 
 
@@ -296,7 +296,7 @@ plotRatioLog <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
   annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
   annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
-  scale_fill_manual(values=biome.pall.all) +
+  scale_fill_manual(values=biome.pall.ShortCB) +
   labs(x="Precipitation Deficit", y="Biome") +
   guides(fill="none") +
   theme_bw()
@@ -309,6 +309,8 @@ dev.off()
 pdf(file.path(path.MS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.pdf"), height=8, width=14)
 cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
+
+
 
 
 
@@ -370,6 +372,28 @@ pdf(file.path(path.MS, "ExtDat_FigureX_RiskUncertainty_Map.pdf"), height=8, widt
 cowplot::plot_grid(map.Risk, map.Uncert, ncol=2, labels=c("A", "B"))
 dev.off()
 
+plotDeficit <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
+  facet_grid(Scenario~.) +
+  # coord_flip() +
+  # coord_cartesian(ylim=c(0,2.5), expand=0) +
+  geom_violin(aes(y=biomeCode, x=ET.Precip.diff, fill=biomeName), scale="width") +
+  geom_vline(xintercept=0, linetype="dashed") +
+  annotate(geom="text", y=10, x=-18, label=c("Precip Deficit"), hjust=0, size=3) +
+  annotate(geom="text", y=10, x=15, label=c("Precip Surplus"), hjust=1, size=3) +
+  # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
+  scale_fill_manual(values=biome.pall.ShortCB) +
+  labs(x="Precipitation Deficit (mm/Day)", y="Biome") +
+  guides(fill="none") +
+  theme_bw()
+plotDeficit
+
+png(file.path(path.figsMS, "Figure5-Alt_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
+cowplot::plot_grid(map.Risk, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
+dev.off()
+
+pdf(file.path(path.MS, "Figure5-Alt_ET_vs_Precip_Now-CMIP6_Log_Combined.pdf"), height=8, width=14)
+cowplot::plot_grid(map.Risk, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
+dev.off()
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -552,8 +576,8 @@ violinTas <- ggplot(data=cmip6AggMean) +
   facet_grid(.~Scenario) +
   geom_violin(aes(x=biomeCode, y=tas.diff, fill=biomeName), scale="width") +
   geom_hline(yintercept=0) +
-  scale_color_manual(name="Biome", values=biome.pall.all) + 
-  scale_fill_manual(name="Biome", values=biome.pall.all) + 
+  scale_color_manual(name="Biome", values=biome.pall.ShortCB) + 
+  scale_fill_manual(name="Biome", values=biome.pall.ShortCB) + 
   coord_cartesian(ylim=c(0, max(cmip6AggMean$tas.diff))) +
   guides(color="none", fill="none") +
   labs(x="Biome", y="Temperature Change (deg. C)") +
@@ -564,8 +588,8 @@ violinPr <- ggplot(data=cmip6AggMean) +
   facet_grid(.~Scenario) +
   geom_violin(aes(x=biomeCode, y=(pr.per-1)*100, fill=biomeName), scale="width") +
   geom_hline(yintercept=0) +
-  scale_color_manual(name="Biome", values=biome.pall.all) + 
-  scale_fill_manual(name="Biome", values=biome.pall.all) + 
+  scale_color_manual(name="Biome", values=biome.pall.ShortCB) + 
+  scale_fill_manual(name="Biome", values=biome.pall.ShortCB) + 
   coord_cartesian(ylim=c(-1, 1.25)*100) +
   guides(color="none", fill="none") +
   labs(x="Biome", y="Precip Change (%)") +
@@ -576,8 +600,8 @@ violinET <- ggplot(data=cmip6AggMean) +
   facet_grid(.~Scenario) +
   geom_violin(aes(x=biomeCode, y=modET, fill=biomeName), scale="width") +
   geom_hline(yintercept=0) +
-  scale_color_manual(name="Biome", values=biome.pall.all) + 
-  scale_fill_manual(name="Biome", values=biome.pall.all) + 
+  scale_color_manual(name="Biome", values=biome.pall.ShortCB) + 
+  scale_fill_manual(name="Biome", values=biome.pall.ShortCB) + 
   # coord_cartesian(ylim=c(-1, 1.25)*100) +
   guides(color="none", fill="none") +
   labs(x="Biome", y="ET (mm/day)") +
@@ -588,8 +612,8 @@ violinETper <- ggplot(data=cmip6AggMean) +
   facet_grid(.~Scenario) +
   geom_violin(aes(x=biomeCode, y=(modET.perChange-1)*100, fill=biomeName), scale="width") +
   geom_hline(yintercept=0) +
-  scale_color_manual(name="Biome", values=biome.pall.all) + 
-  scale_fill_manual(name="Biome", values=biome.pall.all) + 
+  scale_color_manual(name="Biome", values=biome.pall.ShortCB) + 
+  scale_fill_manual(name="Biome", values=biome.pall.ShortCB) + 
   # coord_cartesian(ylim=c(-1, 1.25)*100) +
   guides(color="none", fill="none") +
   labs(x="Biome", y="ET Change (%)") +
@@ -726,6 +750,8 @@ round(quantile(bootUncert585, c(0.5, 0.025, 0.975))*100, 0)
 length(which(etSummary$Scenario=="SSP2-4.5" & etSummary$Risk.Level=="High"))/length(which(etSummary$Scenario=="SSP2-4.5"))
 length(which(etSummary$Scenario=="SSP5-8.5" & etSummary$Risk.Level=="High"))/length(which(etSummary$Scenario=="SSP5-8.5"))
 
+length(which(etSummary$Scenario=="Present" & etSummary$Risk.Level=="High" & etSummary$biomeCode %in% c("TeBF", "TeCF", "TeGS")))/length(which(etSummary$Scenario=="Present" & etSummary$biomeCode %in% c("TeBF", "TeCF", "TeGS")))
+length(which(etSummary$Scenario=="SSP5-8.5" & etSummary$Risk.Level=="High" & etSummary$biomeCode %in% c("TeBF", "TeCF", "TeGS")))/length(which(etSummary$Scenario=="SSP5-8.5" & etSummary$biomeCode %in% c("TeBF", "TeCF", "TeGS")))
 
 
 bootDes245 <- vector(length=1000)
@@ -750,6 +776,9 @@ round(quantile(bootDes585-1, c(0.5, 0.025, 0.975))*100, 0)
 
 round(quantile(bootTai245-1, c(0.5, 0.025, 0.975))*100, 0)
 round(quantile(bootTai585-1, c(0.5, 0.025, 0.975))*100, 0)
+
+summary(etSummary[etSummary$modET.Precip<1 & etSummary$Scenario=="SSP5-8.5",])
+summary(etSummary[etSummary$modET.Precip>1 & etSummary$Scenario=="SSP5-8.5",])
 
 
 # Getting Stats on number of cities drying
@@ -780,7 +809,7 @@ ens245 <- ggplot(data=cmip6[!is.na(cmip6$biomeName) & cmip6$Time=="2100" & cmip6
   # annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
   # annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
-  scale_fill_manual(values=biome.pall.all) +
+  scale_fill_manual(values=biome.pall.ShortCB) +
   labs(y="Precipitation Deficit", x="Ensemble Member") +
   guides(fill="none") +
   theme_bw() +
@@ -803,7 +832,7 @@ ens585 <- ggplot(data=cmip6[!is.na(cmip6$biomeName) & cmip6$Time=="2100" & cmip6
   # annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
   # annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
-  scale_fill_manual(values=biome.pall.all) +
+  scale_fill_manual(values=biome.pall.ShortCB) +
   labs(y="Precipitation Deficit", x="Ensemble Member") +
   guides(fill="none") +
   theme_bw() +

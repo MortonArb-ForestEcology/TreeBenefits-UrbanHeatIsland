@@ -63,8 +63,8 @@ biomeCode.pall.all = c("Tai"= "#2c5c74",
 
 # Color-blind friendly versions
 library(RColorBrewer)
-library(RColorBrewer)
 
+display.brewer.all(colorblindFriendly = T)
 # brewer.pal(10, "Paired")
 # [1] "#A6CEE3" "#1F78B4" "#B2DF8A" "#33A02C" "#FB9A99" "#E31A1C" "#FDBF6F"
 # [8] "#FF7F00" "#CAB2D6" "#6A3D9A"
@@ -82,12 +82,12 @@ biome.pall.ShortCB = c("Taiga"= "#1F78B4",
 biomeCode.pall.ShortCB = c("Tai"= "#1F78B4", 
                            "MGS" = "#A6CEE3",
                            "TeCF" = "#6A3D9A",
-                           "TeBS" = "#CAB2D6",
+                           "TeBF" = "#CAB2D6",
                            "TeGS" = "#FF7F00",
                            "TrGS" = "#FDBF6F",
                            "Med" = "#FB9A99",
                            "TrMBF"= "#33A02C",
-                           "TrDBF" = "#B2DF8A"
+                           "TrDBF" = "#B2DF8A",
                            "Des" = "#E31A1C"
                            )
 

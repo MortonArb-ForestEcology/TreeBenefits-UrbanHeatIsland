@@ -18,6 +18,12 @@ dir.create(path.figs, recursive=T, showWarnings=F)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 # 1. Read in base datasets -----
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+# Grab the sdei data so we can get the area
+library(terra); library(sf)
+sdei.urb <- read_sf("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp")
+sdei.urb <- data.frame(sdei.urb[sdei.urb$ES00POP>100e3 & sdei.urb$SQKM_FINAL>100,])
+head(sdei.urb)
+
 # 1.1 the baseline data with the LST model
 cityAll.stats <- read.csv(file.path(path.google, "city_stats_model.csv"))
 cityAll.stats <- cityAll.stats[,!grepl("ET", names(cityAll.stats))] # Get rid of anythign ET from this dataframe
@@ -53,6 +59,7 @@ cityAll.stats$biomeCode <- car::recode(cityAll.stats$biome,
                                        'tropical coniferous forest'='TrCF';
                                        'tropical moist broadleaf forest'='TrMBF';
                                        'mangroves'='Man'")
+cityAll.stats <- merge(cityAll.stats, sdei.urb[,c("ISOURBID", "SQKM_FINAL")], all.x=T, all.y=F)
 summary(cityAll.stats)
 
 
@@ -230,7 +237,7 @@ names(cityLST) <- gsub("mean", "LST", names(cityLST))
 
 summary(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "LSTslope.tree", "LSTmodelFinal.tree.p", "LSTslope.veg", "LSTmodelFinal.veg.p")])
 
-StatsCombined <- merge(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "LSTslope.tree", "LSTmodelFinal.tree.p", "LSTslope.veg", "LSTmodelFinal.veg.p",
+StatsCombined <- merge(cityStatsAnaly[,c("ISOURBID", "ISO3", "NAME", "LATITUDE", "LONGITUDE", "SQKM_FINAL", "biomeName", "biomeCode", "LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "LSTslope.tree", "LSTmodelFinal.tree.p", "LSTslope.veg", "LSTmodelFinal.veg.p",
                                          "LST.mean", "LST.sd", "LST.min", "LST.max",
                                          "tree.mean", "tree.sd", "tree.min", "tree.max",
                                          "veg.mean", "veg.sd", "veg.min", "veg.max")],

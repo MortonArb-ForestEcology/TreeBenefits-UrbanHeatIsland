@@ -289,7 +289,7 @@ precip.means <- aggregate(Precip.GLDAS ~ biomeCode, data=StatsCombined, FUN=mean
 plotPrecip <- ggplot(data=StatsCombined[,]) +
   geom_violin(aes(x=biomeCode, y=Precip.GLDAS, fill=biomeName), scale="width") +
   geom_errorbar(data=precip.means, aes(x=biomeCode, ymin=Precip.GLDAS, ymax=Precip.GLDAS), color="black", linewidth=1, width=1) +
-  scale_fill_manual(values=biome.pall.all) +
+  scale_fill_manual(values=biome.pall.ShortCB) +
   scale_y_continuous(limits=c(0, max(StatsCombined$Precip.GLDAS, na.rm=T)+1), expand=c(0,0)) +
   labs(y="GLDAS Precip\n(kg/m2/day)", x="Biome") +
   guides(fill="none") +
@@ -316,7 +316,7 @@ plotET <- ggplot(data=effectsET[,]) +
   geom_errorbar(data=precip.means, aes(x=biomeCode, ymin=Precip.GLDAS, ymax=Precip.GLDAS), color="black", linewidth=1, width=1) +
   # geom_errorbar(stat="summary", fun="mean", data=StatsCombined, aes(x=biomeCode, y=Precip.GLDAS)) +
   scale_fill_manual(values=colorsScenario2) +
-  # scale_color_manual(values=biomeCode.pall.all) +
+  # scale_color_manual(values=biomeCode.pall.ShortCB) +
   labs(y="ET (kg/m2/day)", x="Biome") +
   scale_y_continuous(limits=c(0, max(precip.means$Precip.GLDAS, na.rm=T)+0.5), expand=c(0,0)) +
   guides(color="none") +
