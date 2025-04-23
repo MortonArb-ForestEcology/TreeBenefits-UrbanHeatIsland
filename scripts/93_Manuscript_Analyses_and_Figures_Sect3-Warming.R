@@ -45,6 +45,8 @@ summary(StatsCombined)
 StatsCombined$ET.Precip.diff <- StatsCombined$Precip.GLDAS - StatsCombined$modET.Base
 StatsCombined$ET.Precip.diff.per <- StatsCombined$ET.Precip.diff/StatsCombined$Precip.GLDAS
 StatsCombined$DeficitError.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from the spatial cross-validation since
+# kg/m2 = ?kg/km2; 1km2 = 10^3*10^3 = 10^6; 1^6 = mega
+StatsCombined$PrecipDiff.MegaLiters <- StatsCombined$ET.Precip.diff*StatsCombined$SQKM_FINAL
 StatsCombined$Risk.per <- ifelse(StatsCombined$modET.Precip>1 & !StatsCombined$DeficitError.RMSExValid, 100, 0)
 StatsCombined$Uncert.per <- ifelse(StatsCombined$DeficitError.RMSExValid, 100, 0)
 
@@ -55,7 +57,7 @@ cmip6 <- cmip6[cmip6$ISOURBID %in% StatsCombined$ISOURBID,]
 cmip6$Scenario <- car::recode(cmip6$Scenario, "'ssp245'='SSP2-4.5'; 'ssp585'='SSP5-8.5'")
 cmip6$Scenario <- as.factor(cmip6$Scenario)
 cmip6$Time <- as.factor(cmip6$Time)
-cmip6 <- merge(cmip6, StatsCombined[,c("ISOURBID", "biomeName", "biomeCode", "Tmean.GLDAS", "Precip.GLDAS", "ET.GLDAS", "modET.Base", "ETxValid.timeError", "ETxValid.timeRMSE")], all.x=T, all.y=F)
+cmip6 <- merge(cmip6, StatsCombined[,c("ISOURBID", "SQKM_FINAL", "biomeName", "biomeCode", "Tmean.GLDAS", "Precip.GLDAS", "ET.GLDAS", "modET.Base", "ETxValid.timeError", "ETxValid.timeRMSE")], all.x=T, all.y=F)
 cmip6$modET.diff <- cmip6$modET - cmip6$modET.Base
 cmip6$modET.perChange <- cmip6$modET/cmip6$modET.Base
 summary(cmip6)
@@ -67,11 +69,14 @@ summary(cmip6)
 cmip6$pr.adj <- cmip6$Precip.GLDAS*cmip6$pr.per # Creating an adjusted daily precip by looking at the % change in pr for each run
 cmip6$modET.Precip <- cmip6$modET/cmip6$pr.adj
 cmip6$modET.Precip[cmip6$modET.Precip==Inf] <- NA
-cmip6$ET.Precip.diff <- cmip6$modET - cmip6$pr.adj
+cmip6$ET.Precip.diff <- cmip6$pr.adj - cmip6$modET
 cmip6$ET.Precip.diff.per <- cmip6$ET.Precip.diff/cmip6$pr.adj
 cmip6$ET.Precip.diff.per[cmip6$ET.Precip.diff.per==Inf] <- NA
+cmip6$PrecipDiff.MegaLiters <- cmip6$ET.Precip.diff*cmip6$SQKM_FINAL
 cmip6$DeficitError.RMSExValid <- ifelse(abs(cmip6$ET.Precip.diff)<cmip6$ETxValid.timeRMSE, T, F) # Using the RMSE from from the *temporal* cross-validation
 
+summary(cmip6[cmip6$modET.Precip<1,])
+summary(cmip6[cmip6$modET.Precip>1,])
 # cmip6$modET.PrecipLog <- log(cmip6$modET.Precip)
 summary(cmip6)
 
@@ -89,6 +94,16 @@ ggplot(data=cmip6[cmip6$Time=="2100" & !is.na(cmip6$modET.Precip) , ]) +
   theme_bw()
 dev.off()
 
+png(file.path(path.figsExplore, "CMIP6-EnsembleMembers_PrecipDeficit_mmDay.png"), height=8, width=10, units="in", res=320)
+ggplot(data=cmip6[cmip6$Time=="2100" & !is.na(cmip6$modET.Precip) , ]) +
+  # facet_grid(Scenario~.) +
+  facet_wrap(~GCM) +
+  geom_violin(aes(x=Scenario, y=ET.Precip.diff, fill=biomeCode), scale="width", linewidth=0.1) +
+  geom_hline(yintercept=0, linewidth=0.2, linetype="dashed") +
+  scale_fill_manual(values=biomeCode.pall.ShortCB) +
+  # scale_color_manual(values=biomeCode.pall.ShortCB) +
+  theme_bw()
+dev.off()
 
 png(file.path(path.figsExplore, "CMIP6-EnsembleMembers_TempChange.png"), height=8, width=10, units="in", res=320)
 ggplot(data=cmip6[cmip6$Time=="2100"  , ]) +
@@ -134,11 +149,11 @@ ggplot(data=cmip6) +
   facet_grid(Scenario~.) +
   geom_histogram(aes(x=log(modET.Precip)))
 
-cmip6AggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.perChange, modET.Precip, ET.Precip.diff, ET.Precip.diff.per)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=mean, na.rm=T)
+cmip6AggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.perChange, modET.Precip, ET.Precip.diff, ET.Precip.diff.per, PrecipDiff.MegaLiters)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=mean, na.rm=T)
 cmip6AggMean$biomeName <- factor(cmip6AggMean$biomeName, levels=biome.order$biomeName)
 summary(cmip6AggMean)
 
-cmip6AggSD <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.perChange, modET.Precip, ET.Precip.diff, ET.Precip.diff.per)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=sd, na.rm=T)
+cmip6AggSD <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.perChange, modET.Precip, ET.Precip.diff, ET.Precip.diff.per, PrecipDiff.MegaLiters)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=sd, na.rm=T)
 cmip6AggSD$biomeName <- factor(cmip6AggSD$biomeName, levels=biome.order$biomeName)
 summary(cmip6AggSD)
 
@@ -235,8 +250,8 @@ StatsCombined$modET <- StatsCombined$modET.Base
 # cmip6AggMean$modET <- cmip6AggMean$modET
 
 # Need to add the percentage of scenarios with Risk or uncertain
-etSummary <- rbind(StatsCombined[,c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.Precip", "ET.Precip.diff", "ET.Precip.diff.per", "Risk.per", "Uncert.per")],
-                   cmip6AggMean[cmip6AggMean$Time=="2100",c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.Precip", "ET.Precip.diff", "ET.Precip.diff.per", "Risk.per", "Uncert.per")])
+etSummary <- rbind(StatsCombined[,c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.Precip", "ET.Precip.diff", "ET.Precip.diff.per" , "PrecipDiff.MegaLiters", "Risk.per", "Uncert.per")],
+                   cmip6AggMean[cmip6AggMean$Time=="2100",c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.Precip", "ET.Precip.diff", "ET.Precip.diff.per" , "PrecipDiff.MegaLiters", "Risk.per", "Uncert.per")])
 etSummary$biomeName <- factor(etSummary$biomeName, levels=biome.order$biomeName)
 etSummary$biomeCode <- factor(etSummary$biomeCode, levels=rev(biome.order$biomeCode))
 etSummary$Scenario <- as.factor(etSummary$Scenario)
@@ -378,8 +393,8 @@ plotDeficit <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
   # coord_cartesian(ylim=c(0,2.5), expand=0) +
   geom_violin(aes(y=biomeCode, x=ET.Precip.diff, fill=biomeName), scale="width") +
   geom_vline(xintercept=0, linetype="dashed") +
-  annotate(geom="text", y=10, x=-18, label=c("Precip Deficit"), hjust=0, size=3) +
-  annotate(geom="text", y=10, x=15, label=c("Precip Surplus"), hjust=1, size=3) +
+  annotate(geom="text", y=10, x=-8, label=c("Precip Deficit"), hjust=0, size=3) +
+  annotate(geom="text", y=10, x=18, label=c("Precip Surplus"), hjust=1, size=3) +
   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
   scale_fill_manual(values=biome.pall.ShortCB) +
   labs(x="Precipitation Deficit (mm/Day)", y="Biome") +
@@ -387,13 +402,28 @@ plotDeficit <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
   theme_bw()
 plotDeficit
 
-png(file.path(path.figsMS, "Figure5-Alt_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
-cowplot::plot_grid(map.Risk, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
+png(file.path(path.figsMS, "Figure5-Alt_Risk-Deficit_Combined.png"), height=8, width=14, units="in", res=320)
+cowplot::plot_grid(map.Risk, plotDeficit, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
 
-pdf(file.path(path.MS, "Figure5-Alt_ET_vs_Precip_Now-CMIP6_Log_Combined.pdf"), height=8, width=14)
-cowplot::plot_grid(map.Risk, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
+pdf(file.path(path.MS, "Figure5-Alt_Risk-Deficit_Combined.pdf"), height=8, width=14)
+cowplot::plot_grid(map.Risk, plotDeficit, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
+
+# plotDeficitMegaL <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
+#   facet_grid(Scenario~.) +
+#   # coord_flip() +
+#   # coord_cartesian(ylim=c(0,2.5), expand=0) +
+#   geom_violin(aes(y=biomeCode, x=PrecipDiff.MegaLiters, fill=biomeName), scale="width") +
+#   geom_vline(xintercept=0, linetype="dashed") +
+#   # annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
+#   # annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
+#   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
+#   scale_fill_manual(values=biome.pall.ShortCB) +
+#   labs(x="Precipitation Deficit", y="Biome") +
+#   guides(fill="none") +
+#   theme_bw()
+# plotDeficitMegaL
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -655,6 +685,10 @@ riskHigh$deficit.mmDay <- aggregate(ET.Precip.diff  ~ biomeName + biomeCode + Sc
 riskHigh$deficitSD.mmDay <- aggregate(ET.Precip.diff  ~ biomeName + biomeCode + Scenario, data=etSummary[etSummary$Risk.Level=="High",], FUN=sd)$ET.Precip.diff
 riskHigh[,c("deficit.mmDay", "deficitSD.mmDay")] <- round(riskHigh[,c("deficit.mmDay", "deficitSD.mmDay")], 2)
 
+riskHigh$deficit.ML <- aggregate(PrecipDiff.MegaLiters  ~ biomeName + biomeCode + Scenario, data=etSummary[etSummary$Risk.Level=="High",], FUN=mean)$PrecipDiff.MegaLiters
+riskHigh$deficitSD.ML <- aggregate(PrecipDiff.MegaLiters  ~ biomeName + biomeCode + Scenario, data=etSummary[etSummary$Risk.Level=="High",], FUN=sd)$PrecipDiff.MegaLiters
+riskHigh[,c("deficit.ML", "deficitSD.ML")] <- round(riskHigh[,c("deficit.ML", "deficitSD.ML")], 0)
+
 
 uncertHigh <- aggregate(Uncert.Level  ~ biomeName + biomeCode + Scenario, data=etSummary[etSummary$Uncert.Level=="High" & !is.na(etSummary$Uncert.Level),], FUN=length)
 names(uncertHigh)[names(uncertHigh)=="Uncert.Level"] <- "N.HighUncert"
@@ -693,18 +727,24 @@ TableS8 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean
                       current.HighRisk = paste0(riskAgg$Per.HighRisk[riskAgg$Scenario=="Present"],"%"),
                       current.RiskDeficit = pasteMeanSD(riskAgg$deficit.mmDay[riskAgg$Scenario=="Present"],
                                                         riskAgg$deficitSD.mmDay[riskAgg$Scenario=="Present"]),
+                      current.RiskDeficit.ML = pasteMeanSD(riskAgg$deficit.ML[riskAgg$Scenario=="Present"],
+                                                        riskAgg$deficitSD.ML[riskAgg$Scenario=="Present"]),
                       current.HighUncert = paste0(riskAgg$Per.HighUncert[riskAgg$Scenario=="Present"],"%"),
                       SSP245.ETchange.per = pasteMeanSD(changeBiomeAggMean$modET.perChange[changeBiomeAggMean$Scenario=="SSP2-4.5"],
                                                         changeBiomeAggSD$modET.perChange[changeBiomeAggMean$Scenario=="SSP2-4.5"]),
                       SSP245.HighRisk = paste0(riskAgg$Per.HighRisk[riskAgg$Scenario=="SSP2-4.5"],"%"),
                       SSP245.RiskDeficit = pasteMeanSD(riskAgg$deficit.mmDay[riskAgg$Scenario=="SSP2-4.5"],
                                                         riskAgg$deficitSD.mmDay[riskAgg$Scenario=="SSP2-4.5"]),
+                      SSP245.RiskDeficit.ML = pasteMeanSD(riskAgg$deficit.ML[riskAgg$Scenario=="SSP2-4.5"],
+                                                       riskAgg$deficitSD.ML[riskAgg$Scenario=="SSP2-4.5"]),
                       SSP245.HighUncert = paste0(riskAgg$Per.HighUncert[riskAgg$Scenario=="SSP2-4.5"],"%"),
                       SSP585.ETchange.per = pasteMeanSD(changeBiomeAggMean$modET.perChange[changeBiomeAggMean$Scenario=="SSP5-8.5"],
                                                         changeBiomeAggSD$modET.perChange[changeBiomeAggMean$Scenario=="SSP5-8.5"]),
                       SSP585.HighRisk = paste0(riskAgg$Per.HighRisk[riskAgg$Scenario=="SSP5-8.5"],"%"),
                       SSP585.RiskDeficit = pasteMeanSD(riskAgg$deficit.mmDay[riskAgg$Scenario=="SSP5-8.5"],
                                                        riskAgg$deficitSD.mmDay[riskAgg$Scenario=="SSP5-8.5"]),
+                      SSP585.RiskDeficit.ML = pasteMeanSD(riskAgg$deficit.ML[riskAgg$Scenario=="SSP5-8.5"],
+                                                       riskAgg$deficitSD.ML[riskAgg$Scenario=="SSP5-8.5"]),
                       SSP585.HighUncert = paste0(riskAgg$Per.HighUncert[riskAgg$Scenario=="SSP5-8.5"],"%")
                       )
 TableS8

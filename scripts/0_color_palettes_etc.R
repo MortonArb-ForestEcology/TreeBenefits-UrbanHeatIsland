@@ -64,7 +64,7 @@ biomeCode.pall.all = c("Tai"= "#2c5c74",
 # Color-blind friendly versions
 library(RColorBrewer)
 
-display.brewer.all(colorblindFriendly = T)
+# display.brewer.all(colorblindFriendly = T)
 # brewer.pal(10, "Paired")
 # [1] "#A6CEE3" "#1F78B4" "#B2DF8A" "#33A02C" "#FB9A99" "#E31A1C" "#FDBF6F"
 # [8] "#FF7F00" "#CAB2D6" "#6A3D9A"
