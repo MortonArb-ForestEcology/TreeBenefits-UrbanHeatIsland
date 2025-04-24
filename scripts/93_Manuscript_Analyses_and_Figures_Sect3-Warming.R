@@ -42,6 +42,7 @@ StatsCombined$Time <- c("2020")
 summary(StatsCombined)
 
 # Doing the new precip deficit stats
+StatsCombined$modET.MegaLiters <- StatsCombined$modET.Base*StatsCombined$SQKM_FINAL
 StatsCombined$ET.Precip.diff <- StatsCombined$Precip.GLDAS - StatsCombined$modET.Base
 StatsCombined$ET.Precip.diff.per <- StatsCombined$ET.Precip.diff/StatsCombined$Precip.GLDAS
 StatsCombined$DeficitError.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from the spatial cross-validation since
@@ -60,6 +61,7 @@ cmip6$Time <- as.factor(cmip6$Time)
 cmip6 <- merge(cmip6, StatsCombined[,c("ISOURBID", "SQKM_FINAL", "biomeName", "biomeCode", "Tmean.GLDAS", "Precip.GLDAS", "ET.GLDAS", "modET.Base", "ETxValid.timeError", "ETxValid.timeRMSE")], all.x=T, all.y=F)
 cmip6$modET.diff <- cmip6$modET - cmip6$modET.Base
 cmip6$modET.perChange <- cmip6$modET/cmip6$modET.Base
+cmip6$modET.MegaLiters <- cmip6$modET * cmip6$SQKM_FINAL
 summary(cmip6)
 
 # summary(cmip6)
@@ -149,7 +151,7 @@ ggplot(data=cmip6) +
   facet_grid(Scenario~.) +
   geom_histogram(aes(x=log(modET.Precip)))
 
-cmip6AggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.diff, modET.perChange, modET.Precip, ET.Precip.diff, ET.Precip.diff.per, PrecipDiff.MegaLiters)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=mean, na.rm=T)
+cmip6AggMean <- aggregate(cbind(tas.diff, pr.diff, pr.per, modET, modET.Base, modET.MegaLiters, modET.diff, modET.perChange, modET.Precip, ET.Precip.diff, ET.Precip.diff.per, PrecipDiff.MegaLiters)~ISOURBID + LATITUDE + LONGITUDE + biomeName + biomeCode + Scenario + Time, data=cmip6, FUN=mean, na.rm=T)
 cmip6AggMean$biomeName <- factor(cmip6AggMean$biomeName, levels=biome.order$biomeName)
 summary(cmip6AggMean)
 
@@ -250,8 +252,8 @@ StatsCombined$modET <- StatsCombined$modET.Base
 # cmip6AggMean$modET <- cmip6AggMean$modET
 
 # Need to add the percentage of scenarios with Risk or uncertain
-etSummary <- rbind(StatsCombined[,c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.Precip", "ET.Precip.diff", "ET.Precip.diff.per" , "PrecipDiff.MegaLiters", "Risk.per", "Uncert.per")],
-                   cmip6AggMean[cmip6AggMean$Time=="2100",c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.Precip", "ET.Precip.diff", "ET.Precip.diff.per" , "PrecipDiff.MegaLiters", "Risk.per", "Uncert.per")])
+etSummary <- rbind(StatsCombined[,c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.MegaLiters", "modET.Precip", "ET.Precip.diff", "ET.Precip.diff.per" , "PrecipDiff.MegaLiters", "Risk.per", "Uncert.per")],
+                   cmip6AggMean[cmip6AggMean$Time=="2100",c("ISOURBID", "LATITUDE", "LONGITUDE", "biomeName", "biomeCode", "Scenario", "modET", "modET.MegaLiters", "modET.Precip", "ET.Precip.diff", "ET.Precip.diff.per" , "PrecipDiff.MegaLiters", "Risk.per", "Uncert.per")])
 etSummary$biomeName <- factor(etSummary$biomeName, levels=biome.order$biomeName)
 etSummary$biomeCode <- factor(etSummary$biomeCode, levels=rev(biome.order$biomeCode))
 etSummary$Scenario <- as.factor(etSummary$Scenario)
@@ -835,25 +837,47 @@ cbind(TableS8$Biome, as.numeric(gsub("%", "", TableS8$SSP585.CitiesRisk.per)) - 
 
 
 # Quanitfying the deficits
-bootDefAll <- vector(length=1000)
-set.seed(1647)
-for(i in 1:length(bootTai585)){
-  des245 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Des"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Des"))/3*2)
-  des585 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Des"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Des"))/3*2)
-  
-  tai245 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Tai"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Tai"))/3*2)
-  tai585 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Tai"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Tai"))/3*2)
-  
-  bootDes245[i] <- median(des245)
-  bootDes585[i] <- median(des585)
-  bootTai245[i] <- median(tai245)
-  bootTai585[i] <- median(tai585)
-}
-round(quantile(bootDes245-1, c(0.5, 0.025, 0.975))*100, 0)
-round(quantile(bootDes585-1, c(0.5, 0.025, 0.975))*100, 0)
+indNow <- which(etSummary$Scenario=="Present" & etSummary$Risk.Level=="High")
+ind245 <- which(etSummary$Scenario=="SSP2-4.5" & etSummary$Risk.Level=="High")
+ind545 <- which(etSummary$Scenario=="SSP5-8.5" & etSummary$Risk.Level=="High")
+indTeCFnow <- which(etSummary$Scenario=="Present" & etSummary$biomeCode=="TeCF" & etSummary$Risk.Level=="High")
 
-round(quantile(bootTai245-1, c(0.5, 0.025, 0.975))*100, 0)
-round(quantile(bootTai585-1, c(0.5, 0.025, 0.975))*100, 0)
+indTeBFnow <- which(etSummary$Scenario=="Present" & etSummary$biomeCode=="TeBF" & etSummary$Risk.Level=="High")
+indTeBF245 <- which(etSummary$Scenario=="SSP2-4.5" & etSummary$biomeCode=="TeBF" & etSummary$Risk.Level=="High")
+indTeBF585 <- which(etSummary$Scenario=="SSP5-8.5" & etSummary$biomeCode=="TeBF" & etSummary$Risk.Level=="High")
+
+bootDefAllcurrent <- vector(length=1000)
+bootDefAll245 <- vector(length=1000)
+bootDefAll585 <- vector(length=1000)
+bootDefTeCFcurrent <- vector(length=1000)
+bootDefTeBFcurrent <- vector(length=1000)
+bootDefTeBF245 <- vector(length=1000)
+bootDefTeBF585 <- vector(length=1000)
+
+set.seed(1647)
+for(i in 1:length(bootDefAllcurrent)){
+  sampCurrent <- sample(indNow, length(indNow)/3*2)
+  samp245 <- sample(ind245, length(ind245)/3*2)
+  samp458 <- sample(ind585, length(ind585)/3*2)
+  sampTeCFnow <- sample(indTeCFnow, length(indTeCFnow)/3*2)
+  sampTeBFnow <- sample(indTeBFnow, length(indTeBFnow)/3*2)
+  sampTeBF245 <- sample(indTeBF245, length(indTeBF245)/3*2)
+  sampTeBF585 <- sample(indTeBF585, length(indTeBF585)/3*2)
+  
+  bootDefAllcurrent[i] <- median(etSummary$PrecipDiff.MegaLiters[sampCurrent])
+  bootDefTeCFcurrent[i] <- median(etSummary$PrecipDiff.MegaLiters[sampTeCFnow])
+ 
+  bootDefTeBFcurrent[i] <-  mean(etSummary$PrecipDiff.MegaLiters[sampTeBFnow])
+  bootDefTeBF245[i] <-  mean(etSummary$PrecipDiff.MegaLiters[sampTeBF245])
+  bootDefTeBF585[i] <-  mean(etSummary$PrecipDiff.MegaLiters[sampTeBF585])
+  
+}
+round(quantile(bootDefAllcurrent, c(0.5, 0.025, 0.975)), 0)
+round(quantile(bootDefTeCFcurrent, c(0.5, 0.025, 0.975)), 0)
+
+round(quantile(bootDefTeBFcurrent, c(0.5, 0.025, 0.975)), 0)
+round(quantile(bootDefTeBF245, c(0.5, 0.025, 0.975)), 0)
+round(quantile(bootDefTeBF585, c(0.5, 0.025, 0.975)), 0)
 
 #-#-#-#-#-#-#-#-
 
