@@ -337,6 +337,7 @@ dev.off()
 aggTower <- merge(aggTower, StatsCombined[,c("ISOURBID", "biomeName", "biomeCode")], all.x=T, all.y=F)
 summary(aggTower)
 
+mean(aggTower$Error.pixel); sd(aggTower$Error.pixel)
 
 aggTowerStack <- stack(aggTower[,c("RMSE.pixel", "RMSE.modis", "RMSE.gldas")])
 names(aggTowerStack) <- c("RMSE", "dataset")
@@ -484,7 +485,7 @@ plot.modelVgldas2 <- ggplot(data=StatsCombined, aes(x=ETpred.mean, y=ET.GLDAS)) 
     "text",
     x = min(StatsCombined$ETpred.mean),
     y = max(StatsCombined$ET.GLDAS)-0.5,
-    label = paste0("RMSE: ", round(rmse(StatsCombined$ET.GLDAS, predict(lm(ET.GLDAS ~ ETpred.mean, StatsCombined))), 2)),
+    label = paste0("RMSE: ", round(rmse(StatsCombined$ET.GLDAS[!is.na(StatsCombined$ETpred.mean)], predict(lm(ET.GLDAS ~ ETpred.mean, StatsCombined[!is.na(StatsCombined$ETpred.mean),]))), 2)),
     hjust = 0,
     color = "black"
   ) + # Display RMSE

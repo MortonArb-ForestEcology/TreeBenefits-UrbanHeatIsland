@@ -833,6 +833,28 @@ sum(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP5-8.5"])/s
 cbind(TableS8$Biome, as.numeric(gsub("%", "", TableS8$SSP245.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS8$current.WaterRisk)))
 cbind(TableS8$Biome, as.numeric(gsub("%", "", TableS8$SSP585.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS8$current.WaterRisk)))
 
+
+# Quanitfying the deficits
+bootDefAll <- vector(length=1000)
+set.seed(1647)
+for(i in 1:length(bootTai585)){
+  des245 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Des"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Des"))/3*2)
+  des585 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Des"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Des"))/3*2)
+  
+  tai245 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Tai"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP2-4.5" & cmip6AggMean$biomeCode=="Tai"))/3*2)
+  tai585 <- sample(cmip6AggMean$modET.perChange[cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Tai"], length(which(cmip6AggMean$Time==2100 & cmip6AggMean$Scenario=="SSP5-8.5" & cmip6AggMean$biomeCode=="Tai"))/3*2)
+  
+  bootDes245[i] <- median(des245)
+  bootDes585[i] <- median(des585)
+  bootTai245[i] <- median(tai245)
+  bootTai585[i] <- median(tai585)
+}
+round(quantile(bootDes245-1, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootDes585-1, c(0.5, 0.025, 0.975))*100, 0)
+
+round(quantile(bootTai245-1, c(0.5, 0.025, 0.975))*100, 0)
+round(quantile(bootTai585-1, c(0.5, 0.025, 0.975))*100, 0)
+
 #-#-#-#-#-#-#-#-
 
 

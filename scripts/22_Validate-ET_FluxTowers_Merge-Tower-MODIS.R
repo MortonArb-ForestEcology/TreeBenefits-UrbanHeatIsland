@@ -105,7 +105,12 @@ for(i in seq_along(fmove)){
 
 # # We need to get the tower coords in MODIS projection, so we need to make it a spatial file
 # # Opening an example raster to pull what we need --> this is urbana-champaign
-
+summary(st_coordinates(towerMODIS))
+coordsTower <- st_coordinates(towerMODIS)
+towerTrans <- cbind(data.frame(towerMODIS), coordsTower)
+summary(towerTrans)
+datTower <- merge(datTower, towerTrans[,c("SITE_ID", "ISOURBID", "X", "Y")], all=T)
+summary(datTower)
 
 for(CITY in unique(datTower$ISOURBID)){
   print(CITY)
@@ -146,8 +151,8 @@ for(CITY in unique(datTower$ISOURBID)){
     TOWER <- towerCity[i]
     # print(TOWER)
     datNow <- datTower[datTower$SITE_ID==TOWER,]
-    towerX <- unique(datNow$x)
-    towerY <- unique(datNow$y)
+    towerX <- unique(datNow$X)
+    towerY <- unique(datNow$Y)
     
     # If our tower isn't actually in the range of which we have values for, skip it! 
     
@@ -170,7 +175,7 @@ for(CITY in unique(datTower$ISOURBID)){
         coord_equal() +
         geom_tile(data=valsCity[valsCity$year==min(valsCity$year),], aes(x=x, y=y, fill=ET)) +
         # geom_polygon(data=cityPoly, aes(x=X, y=Y), fill=NA, color="blue4", linewidth=1) +
-        geom_point(data=datNow[1,], aes(x=x, y=y), size=5, color="blue") +
+        geom_point(data=datNow[1,], aes(x=X, y=Y), size=5, color="blue") +
         scale_fill_stepsn(name="ET modis", colors=ETColors, n.breaks=13) 
     )
     dev.off()

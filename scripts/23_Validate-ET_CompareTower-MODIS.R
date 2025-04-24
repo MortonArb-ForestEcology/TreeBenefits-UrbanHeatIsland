@@ -9,15 +9,17 @@ path.google <- file.path("~/Google Drive/")
 path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
 path.analysis <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
-path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 4 - Nature Climate Change - Resubmit/")
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 5 - Nature Climate Change")
+GoogleFolderTower <- "~/Google Drive/My Drive/UHI_Analysis_TowerValidation"
 
 
 # path.figsMS <- file.path(path.google, "figures_manuscript")
 
 datTower <- read.csv(file.path(path.tower, "FluxTower_ETcomparison_AllTowers.csv"))
-datTower <- datTower[!is.na(datTower$ET.pixel),]
+# datTower <- datTower[!is.na(datTower$ET.pixel),]
 length(unique(datTower$SITE_ID))
 length(unique(datTower$ISOURBID))
+summary(datTower)
 dim(datTower)
 
 datTower$Error.pixel <- datTower$ET.pixel - datTower$ET
@@ -28,12 +30,39 @@ datTower$Error.modis2 <- datTower$Error.modis^2
 datTower$Error.gldas2 <- datTower$Error.gldas^2
 summary(datTower)
 
+# Load our IGBP stats too
+igbpCodes <- data.frame(value=0:16, name=c("WAT", "ENF", "EBF", "DNF", "DBF", "MF", "CSH", "OSH", "WSA", "SAV", "GRA", "WET", "CRO", "URB", "CVM", "SNO", "BSV"))
+
+igbpPixel <- read.csv(file.path(path.tower, "FluxTowers_IGBP_pixel.csv"))
+
+fIGBP <- dir(GoogleFolderTower)
+igbpAll <- data.frame()
+for(i in 1:length(fIGBP)){
+  fNow <- read.csv(file.path(GoogleFolderTower, fIGBP[i]))
+  names(fNow)[2:18] <- igbpCodes$name
+  fNow$ISOURBID <- strsplit(fIGBP[i], "_")[[1]][1]
+  
+  igbpAll <- rbind(igbpAll, fNow)
+}
+
+
 # Pull in our model data to add some of those stats
 cities.et <- read.csv(file.path(path.cities, "../UHIs-FinalCityDataForAnalysis.csv"))
+cities.et <- cities.et[!is.na(cities.et$ETmodel.R2adj),]
 summary(cities.et)
 
-datTower <- merge(datTower, cities.et[,c("ISOURBID", "biomeName", "biomeCode")], all.x=T)
+datTower <- merge(datTower, cities.et[,c("ISOURBID", "biomeName", "biomeCode", "ETxValid.spatRMSE.mean", "ETxValid.spatRMSE.sd", "ETmodel.RMSE")], all.x=F)
+datTower <- datTower[!is.na(datTower$ET.pixel) & datTower$IGBP!="WET",] # get rid of wetland towers
 summary(datTower)
+
+datTower$inError.xValid <- ifelse(abs(datTower$ET - datTower$ET.pixel)<datTower$ETxValid.spatRMSE.mean, T, F)
+datTower$inError.model <- ifelse(abs(datTower$ET - datTower$ET.pixel)<datTower$ETmodel.RMSE, T, F)
+summary(datTower)
+length(which(datTower$inError.xValid))/length(datTower$inError.xValid)
+length(which(datTower$inError.model))/length(datTower$inError.model)
+
+length(unique(datTower$SITE_ID))
+length(unique(datTower$ISOURBID))
 
 # Aggregating to to Tower level to get some summary stats
 aggTower <- aggregate(cbind(ET, TA, ET.pixel, Error.pixel, Error.pixel2) ~ ISOURBID + ISO3 + NAME + SITE_ID + biomeCode + biomeName + IGBP + TOWER_LAT + TOWER_LONG, data=datTower, FUN=mean, na.rm=T)
@@ -68,14 +97,22 @@ for(i in 1:nrow(aggTower)){
   CITY <- aggTower$ISOURBID[i]
   
   rowDatAll <- which(cities.et$ISOURBID==CITY)
+  if(is.na(cities.et$ETmodel.R2adj[rowDatAll])) next
   aggTower[i, "ETmodel.R2adj"] <- cities.et$ETmodel.R2adj[rowDatAll]
   aggTower[i, "ETmodel.RMSE"] <- cities.et$ETmodel.RMSE[rowDatAll]
+  aggTower[i, "ETmodel.xValidRMSE"] <- cities.et$ETxValid.spatError.mean[rowDatAll]
   
   YRS <- unique(datSite$YEAR)
   aggTower[i,"YEARS"] <- paste(YRS, collapse=" ")
   aggTower[i,"YR.min"] <- min(YRS)
   aggTower[i,"YR.max"] <- max(YRS)
   aggTower[i, "n.YRS"] <- length(YRS)
+  
+  # Getting some LC stats for the tower
+  lcNow <- aggTower$IGBP[i]
+  aggTower[i,"pIGBP.pixel"] <- mean(igbpPixel[igbpPixel$SITE_ID==SITE & igbpPixel$year %in% YRS,lcNow])
+  aggTower[i,"pIGBP.area"]  <- mean(igbpAll[igbpAll$ISOURBID==CITY & igbpAll$year %in% YRS,lcNow])
+  
   
   if(length(YRS)>2){
     lmSitePix <- lm(ET ~ ET.pixel, data=datSite)
@@ -95,16 +132,27 @@ for(i in 1:nrow(aggTower)){
     aggTower[i,"R2.gldas"] <- summary(lmSiteGld)$r.squared
   }
 }
+aggTower <- aggTower[!is.na(aggTower$ETmodel.R2adj),]
 summary(aggTower)
 length(unique(aggTower$SITE_ID))
 length(unique(aggTower$ISOURBID))
 length(unique(aggTower$biomeName))
+
+aggTowerSD <- aggTowerSD[aggTowerSD$SITE_ID %in% aggTower$SITE_ID,]
 
 # Looking at RMSE as a percent of the mean
 aggTower$RMSEper.pixel <- aggTower$RMSE.pixel/aggTower$ET
 aggTower$RMSEper.modis <- aggTower$RMSE.modis/aggTower$ET
 aggTower$RMSEper.gldas <- aggTower$RMSE.gldas/aggTower$ET
 summary(aggTower)
+
+aggTower$ET.in.xValidRMSE <- ifelse(abs(aggTower$ET- aggTower$ET.pixel)<aggTower$ETmodel.xValidRMSE, T, F)
+aggTower$ET.in.modRMSE <- ifelse(abs(aggTower$ET- aggTower$ET.pixel)<aggTower$ETmodel.RMSE, T, F)
+summary(aggTower)
+
+aggTower$IGBP <- as.factor(aggTower$IGBP)
+summary(aggTower[aggTower$ET.in.modRMSE,])
+summary(aggTower[!aggTower$ET.in.modRMSE,])
 
 # Looking at tower error and RMSE compared to that for the whole city
 aggTower$dRMSE <- aggTower$RMSE.pixel - aggTower$ETmodel.RMSE 
@@ -119,7 +167,7 @@ mean(aggTower$RMSE.pixel); sd(aggTower$RMSE.pixel)
 mean(aggTower$RMSE.modis, na.rm=T); sd(aggTower$RMSE.modis, na.rm=T)
 mean(aggTower$RMSE.gldas); sd(aggTower$RMSE.gldas)
 
-mean(aggTower$RMSEper.pixel); sd(aggTower$RMSEper.pixel)
+mean(aggTower$RMSEper.pixel, na.rm=T); sd(aggTower$RMSEper.pixel, na.rm=T)
 mean(aggTower$RMSEper.modis, na.rm=T); sd(aggTower$RMSEper.modis, na.rm=T)
 mean(aggTower$RMSEper.gldas); sd(aggTower$RMSEper.gldas)
 
@@ -168,6 +216,7 @@ aggLCmean
 aggLCTable <- aggLCmean[,c("IGBP", "nCities", "nTowers")]
 aggLCTable$n.YRS <- pasteXSD(x=aggLCmean$n.YRS, stdDev=aggLCsd$n.YRS, SigFig=0)
 aggLCTable$ETmodel.R2adj <- pasteXSD(x=aggLCmean$ETmodel.R2adj, stdDev=aggLCsd$ETmodel.R2adj, SigFig=2)
+
 aggLCTable$ETmodel.RMSE <- pasteXSD(x=aggLCmean$ETmodel.RMSE, stdDev=aggLCsd$ETmodel.RMSE, SigFig=2)
 aggLCTable$ET.tower <- pasteXSD(x=aggLCmean$ET, stdDev=aggLCsd$ET, SigFig=2)
 aggLCTable$ET.model <- pasteXSD(x=aggLCmean$ET.pixel, stdDev=aggLCsd$ET.pixel, SigFig=2)
@@ -241,7 +290,7 @@ ggplot(data=aggTowerStack2) +
 dev.off()
 
 mean(aggTower$RMSE.pixel); sd(aggTower$RMSE.pixel)
-mean(aggTower$RMSE.modis); sd(aggTower$RMSE.modis)
+mean(aggTower$RMSE.modis, na.rm=T); sd(aggTower$RMSE.modis, na.rm=T)
 
 
 # Number of towers where our model does better than MODIS
@@ -298,21 +347,21 @@ summary(lmETpixel)
 lmETpg <- lm(ET.gldas ~ ET.pixel, data=datTower)
 summary(lmETpg)
 
+# 
+# lmETtower <- lm(ET ~ ET.modTower, data=datTower[!is.na(datTower$ET.modis),])
+# summary(lmETtower)
+# 
+# lmETtowerAll <- lm(ET ~ ET.modTower, data=datTower)
+# summary(lmETtowerAll)
 
-lmETtower <- lm(ET ~ ET.modTower, data=datTower[!is.na(datTower$ET.modis),])
-summary(lmETtower)
-
-lmETtowerAll <- lm(ET ~ ET.modTower, data=datTower)
-summary(lmETtowerAll)
 
 
+# lmETavg <- lm(ET ~ ET.modTower, data=aggTower, na.action=na.omit)
+# summary(lmETavg)
 
-lmETavg <- lm(ET ~ ET.modTower, data=aggTower, na.action=na.omit)
-summary(lmETavg)
-
-lmeETavg <- lme(ET ~ ET.modTower, random=list(SITE_ID=~1), data=aggTower, na.action=na.omit)
-summary(lmeETavg)
-MuMIn::r.squaredGLMM(lmeETavg)
+# lmeETavg <- lme(ET ~ ET.modTower, random=list(SITE_ID=~1), data=aggTower, na.action=na.omit)
+# summary(lmeETavg)
+# MuMIn::r.squaredGLMM(lmeETavg)
 
 ggplot(data=aggTower) +
   geom_point(aes(x=ET.pixel, y=ET)) +
@@ -375,3 +424,4 @@ MuMIn::r.squaredGLMM(lmeETpixUrb2)
 lmETpixUrb <- lm(ET ~ ET.pixel, data=datTower[datTower$IGBP=="URB",], na.action=na.omit)
 summary(lmETpixUrb)
 # MuMIn::r.squaredGLMM(lmeETpixUrb)
+

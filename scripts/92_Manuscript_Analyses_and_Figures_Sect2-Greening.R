@@ -117,6 +117,41 @@ StatsCombined$ETgreenCity25.Precip <- StatsCombined$modET.TreeCityBottom25/Stats
 StatsCombined$ETgreenCity50.Precip <- StatsCombined$modET.TreeCityBottom50/StatsCombined$Precip.GLDAS
 summary(StatsCombined)
 
+
+
+StatsCombined$ET.PerInc.BiomeTarget <- (StatsCombined$modET.TreeTargetBottom25/StatsCombined$modET.Base-1)*100
+
+# Calculating the Precip deficit in mm/day and ML per day
+# StatsCombined$modET.Base/StatsCombined$Precip.GLDAS
+StatsCombined$ET.Precip.diff <- StatsCombined$Precip.GLDAS - StatsCombined$modET.Base
+StatsCombined$ET.Precip.diff.Biome25 <- StatsCombined$Precip.GLDAS - (StatsCombined$modET.Base*(1+StatsCombined$ET.PerInc.BiomeTarget*0.01))
+summary(StatsCombined)
+
+# Putting some things in terms of Megaliters (1 million liters) per day----
+# How much additional water the tree scenarios call for
+# Preciptiation deficits
+StatsCombined[,c("Water.MLday.Base", "Water.MLday.Biome25", "Water.MLday.City25")] <- StatsCombined[,c("modET.Base", "modET.TreeTargetBottom25", "modET.TreeCityBottom25")]*StatsCombined$SQKM_FINAL
+StatsCombined[,c("WaterAdd.MLday.Biome25", "WaterAdd.MLday.City25")] <- StatsCombined[,c("Water.MLday.Biome25", "Water.MLday.City25")] - StatsCombined$Water.MLday.Base
+summary(StatsCombined)
+
+# Looking at the precip deficit as a percentage of precip
+StatsCombined$ET.Precip.diffper <- StatsCombined$ET.Precip.diff/StatsCombined$Precip.GLDAS
+StatsCombined$ET.Precip.diffper.Biome25 <- StatsCombined$ET.Precip.diff.Biome25/StatsCombined$Precip.GLDAS
+summary(StatsCombined)
+summary(StatsCombined$ET.Precip.diffper[StatsCombined$ET.Precip.diffper<0])
+# hist(StatsCombined$ET.Precip.diffper[StatsCombined$ET.Precip.diffper<0])
+
+# Checking for whether the deficit is within our margin of error based on the RMSE from the cross-validation
+StatsCombined$DeficitError.RMSEall <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETmodel.RMSE, T, F) # Using the RMSE from my model fitting everying
+StatsCombined$DeficitError.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from the spatial cross-validation since we're not transferring time
+summary(StatsCombined)
+
+StatsCombined$DeficitError.Biome25.RMSEall <- ifelse(abs(StatsCombined$ET.Precip.diff.Biome25)<StatsCombined$ETmodel.RMSE, T, F) # Using the RMSE from my model fitting everying
+StatsCombined$DeficitError.Biome25.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff.Biome25)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from my model fitting everying
+
+
+
+
 length(which(StatsCombined$ETcurrent.Precip<1 & !is.na(StatsCombined$ETcurrent.Precip)))
 length(which(StatsCombined$ETgreenBiomeTarget.Precip<1 & !is.na(StatsCombined$ETgreenBiomeTarget.Precip)))
 length(which(StatsCombined$ETgreenCity25.Precip<1 & !is.na(StatsCombined$ETgreenCity25.Precip)))
@@ -291,7 +326,7 @@ plotPrecip <- ggplot(data=StatsCombined[,]) +
   geom_errorbar(data=precip.means, aes(x=biomeCode, ymin=Precip.GLDAS, ymax=Precip.GLDAS), color="black", linewidth=1, width=1) +
   scale_fill_manual(values=biome.pall.ShortCB) +
   scale_y_continuous(limits=c(0, max(StatsCombined$Precip.GLDAS, na.rm=T)+1), expand=c(0,0)) +
-  labs(y="GLDAS Precip\n(kg/m2/day)", x="Biome") +
+  labs(y="GLDAS Precip\n(mm/day)", x="Biome") +
   guides(fill="none") +
   theme_bw() + theme(plot.margin = unit(c(0.5,0.5,0.5,0.75), "lines")) 
 plotPrecip
@@ -299,6 +334,7 @@ plotPrecip
 effectsET <- stack(StatsCombined[,c("modET.Base", "modET.TreeTargetBottom25")])
 names(effectsET) <- c("ET", "Scenario")
 effectsET$ETratio <- stack(StatsCombined[,c("ETcurrent.Precip", "ETgreenBiomeTarget.Precip")])[,1]
+effectsET$PrecipBalance <- stack(StatsCombined[,c("ET.Precip.diff", "ET.Precip.diff.Biome25")])[,1]
 effectsET$Scenario <- as.character(effectsET$Scenario)
 effectsET$Scenario[grep("Base", effectsET$Scenario)] <- "Current"
 effectsET$Scenario[grep("Target", effectsET$Scenario)] <- "Greening"
@@ -317,7 +353,7 @@ plotET <- ggplot(data=effectsET[,]) +
   # geom_errorbar(stat="summary", fun="mean", data=StatsCombined, aes(x=biomeCode, y=Precip.GLDAS)) +
   scale_fill_manual(values=colorsScenario2) +
   # scale_color_manual(values=biomeCode.pall.ShortCB) +
-  labs(y="ET (kg/m2/day)", x="Biome") +
+  labs(y="ET\n(mm/day)", x="Biome") +
   scale_y_continuous(limits=c(0, max(precip.means$Precip.GLDAS, na.rm=T)+0.5), expand=c(0,0)) +
   guides(color="none") +
   theme_bw() + theme(legend.position="top", plot.background = element_blank(), plot.margin = unit(c(0.5,0.5,0.5,1.85), "lines"))
@@ -328,11 +364,20 @@ plotETratio <- ggplot(data=effectsET[,]) +
   scale_fill_manual(values=colorsScenario2) +
   geom_hline(yintercept=log(1), linetype="dashed") +
   # annotate(geom="text", x=1, y=c(-2.5, 3), label=c("Precip Surplus", "Precip Deficit"), hjust=0) +
-  labs(y="Precip. Deficit", x="Biome") +
+  labs(y="\nPrecip. Deficit", x="Biome") +
   guides(fill="none") +
   theme_bw() + theme(plot.background = element_blank(), plot.margin = unit(c(0.5,0.5,0.5,1.55), "lines"))
-
 plotETratio
+
+plotPrecipBalance <- ggplot(data=effectsET[,]) +
+  geom_violin(aes(x=biomeCode, y=PrecipBalance, fill=Scenario), scale="width") +
+  scale_fill_manual(values=colorsScenario2) +
+  geom_hline(yintercept=0, linetype="dashed") +
+  annotate(geom="text", x=0.5, y=c(-3, 12.5), label=c("Precip Deficit", "Precip Surplus"), hjust=0) +
+  labs(y="Precip. Balance\n(mm/day)", x="Biome") +
+  guides(fill="none") +
+  theme_bw() + theme(plot.background = element_blank(), plot.margin = unit(c(0.5,0.5,0.5,1.55), "lines"))
+plotPrecipBalance
 
 # plotETcomb <- cowplot::plot_grid(plotET,NA, plotETratio, NA, ncol=2, rel_widths=c(0.75, 0.25))
 
@@ -342,6 +387,15 @@ dev.off()
 
 pdf(file.path(path.MS, "Figure4_TreeCover_Targets-ET.pdf"), height=6, width=6)
 cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
+dev.off()
+
+
+png(file.path(path.figsMS, "Figure4-Alt_TreeCover_Targets-ET-Bal.png"), height=6, width=6, units="in", res=320)
+cowplot::plot_grid(plotPrecip, plotET, plotPrecipBalance, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
+dev.off()
+
+pdf(file.path(path.MS, "Figure4-Alt_TreeCover_Targets-ET-PrecipBal.pdf"), height=6, width=6)
+cowplot::plot_grid(plotPrecip, plotET, plotPrecipBalance, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
 dev.off()
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -449,40 +503,17 @@ round(quantile(bootBiomeCoolProp*100, c(0.5, 0.025, 0.975)), 0) # Proportion of 
 # Effects of Greening on ET (All Cities) ----
 # NOTE NOTE: Add the magnitude of deficit where present
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-StatsCombined$ET.PerInc.BiomeTarget <- (StatsCombined$modET.TreeTargetBottom25/StatsCombined$modET.Base-1)*100
-
-# Calculating the Precip deficit in mm/day
-# StatsCombined$modET.Base/StatsCombined$Precip.GLDAS
-StatsCombined$ET.Precip.diff <- StatsCombined$Precip.GLDAS - StatsCombined$modET.Base
-StatsCombined$ET.Precip.diff.Biome25 <- StatsCombined$Precip.GLDAS - (StatsCombined$modET.Base*(1+StatsCombined$ET.PerInc.BiomeTarget*0.01))
-summary(StatsCombined)
-
-# Looking at the precip deficit as a percentage of precip
-StatsCombined$ET.Precip.diffper <- StatsCombined$ET.Precip.diff/StatsCombined$Precip.GLDAS
-StatsCombined$ET.Precip.diffper.Biome25 <- StatsCombined$ET.Precip.diff.Biome25/StatsCombined$Precip.GLDAS
-summary(StatsCombined)
-summary(StatsCombined$ET.Precip.diffper[StatsCombined$ET.Precip.diffper<0])
-# hist(StatsCombined$ET.Precip.diffper[StatsCombined$ET.Precip.diffper<0])
-
-# Checking for whether the deficit is within our margin of error based on the RMSE from the cross-validation
-StatsCombined$DeficitError.RMSEall <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETmodel.RMSE, T, F) # Using the RMSE from my model fitting everying
-StatsCombined$DeficitError.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from the spatial cross-validation since we're not transferring time
-summary(StatsCombined)
-
-StatsCombined$DeficitError.Biome25.RMSEall <- ifelse(abs(StatsCombined$ET.Precip.diff.Biome25)<StatsCombined$ETmodel.RMSE, T, F) # Using the RMSE from my model fitting everying
-StatsCombined$DeficitError.Biome25.RMSExValid <- ifelse(abs(StatsCombined$ET.Precip.diff.Biome25)<StatsCombined$ETxValid.spatRMSE.mean, T, F) # Using the RMSE from my model fitting everying
-
 
 #
 
 # StatsCombined[StatsCombined$ETcurrent.Precip>1 & StatsCombined$ET.Precip.diff>0,]
 
 
-greenStatsBiomeMeans <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget) ~ biomeName + biomeCode, data=StatsCombined, FUN=mean)
+greenStatsBiomeMeans <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget, WaterAdd.MLday.Biome25) ~ biomeName + biomeCode, data=StatsCombined, FUN=mean)
 greenStatsBiomeMeans[,names(greenStatsBiomeMeans)[!names(greenStatsBiomeMeans) %in% c("biomeName", "biomeCode")]] <- round(greenStatsBiomeMeans[,names(greenStatsBiomeMeans)[!names(greenStatsBiomeMeans) %in% c("biomeName", "biomeCode")]], 1)
 greenStatsBiomeMeans
 
-greenStatsBiomeSDs <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget) ~ biomeName + biomeCode, data=StatsCombined, FUN=sd)
+greenStatsBiomeSDs <- aggregate(cbind(Precip.GLDAS, modET.Base, greening.treeAddBiomeTarget, ET.PerInc.BiomeTarget, WaterAdd.MLday.Biome25) ~ biomeName + biomeCode, data=StatsCombined, FUN=sd)
 greenStatsBiomeSDs[,names(greenStatsBiomeSDs)[!names(greenStatsBiomeSDs) %in% c("biomeName", "biomeCode")]] <- round(greenStatsBiomeSDs[,names(greenStatsBiomeSDs)[!names(greenStatsBiomeSDs) %in% c("biomeName", "biomeCode")]], 1)
 greenStatsBiomeSDs
 
@@ -560,6 +591,19 @@ TableS6
 
 write.csv(TableS6, file.path(path.figsMS, "TableS6_Biome_GreenET.csv"), row.names=F)
 
+# Figuring out how much water greening adds
+bootETincper <- vector(length=1000)
+bootWaterAdd <- vector(length=1000)
+set.seed(1018)
+for(i in 1:length(bootWaterAdd)){
+  samp <- sample(1:nrow(StatsCombined), nrow(StatsCombined)/3*2)
+  bootETincper[i] <- median(StatsCombined$ET.PerInc.BiomeTarget[samp])
+  bootWaterAdd[i] <- median(StatsCombined$WaterAdd.MLday.Biome25[samp])
+}
+round(quantile(bootWaterAdd, c(0.5, 0.025, 0.975)), 0) # Water in ML/day added by greening
+round(quantile(bootETincper, c(0.5, 0.025, 0.975)), 0) # Water in ML/day added by greening
+
+
 
 # Number of total current cities at water risk
 # Looking at ratios with current ET ----
@@ -596,4 +640,68 @@ length(which(StatsCombined$ETgreenBiomeTarget.Precip>1)) - length(which(StatsCom
 length(which(StatsCombined$ETgreenBiomeTarget.Precip>1))/nrow(StatsCombined)
 
 summary(StatsCombined[StatsCombined$ETgreenBiomeTarget.Precip>1 & StatsCombined$ETcurrent.Precip<=1,"biomeName"])
+
+# Quantifying Current and Scenario precip deficits in mm/day and ML/day
+StatsCombined$WaterDef.MLday <- StatsCombined$Precip.GLDAS*StatsCombined$SQKM_FINAL - StatsCombined$Water.MLday.Base
+StatsCombined$WaterDef.MLday.Biome25 <- StatsCombined$Precip.GLDAS*StatsCombined$SQKM_FINAL - StatsCombined$Water.MLday.Biome25
+
+bootMedDef.mmDay.current <- vector(length=1000)
+bootMedDef.per.current <- vector(length=1000)
+bootMedDef.MLday.current <- vector(length=1000)
+bootTeBFDef.mmDay.current <- vector(length=1000)
+bootTeBFDef.per.current <- vector(length=1000)
+bootTeBFDef.MLday.current <- vector(length=1000)
+
+bootMedDef.mmDay.green <- vector(length=1000)
+bootMedDef.per.green <- vector(length=1000)
+bootMedDef.MLday.green <- vector(length=1000)
+bootTeBFDef.mmDay.green <- vector(length=1000)
+bootTeBFDef.per.green <- vector(length=1000)
+bootTeBFDef.MLday.green <- vector(length=1000)
+
+
+medCurrent <- which(StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid) & StatsCombined$biomeCode=="Med")
+tebfCurrent <- which(StatsCombined$ETcurrent.Precip>1 & !(StatsCombined$DeficitError.RMSExValid) & StatsCombined$biomeCode=="TeBF")
+medGreen <- which(StatsCombined$ETgreenBiomeTarget.Precip>1 & !(StatsCombined$DeficitError.RMSExValid) & StatsCombined$biomeCode=="Med")
+tebfGreen <- which(StatsCombined$ETgreenBiomeTarget.Precip>1 & !(StatsCombined$DeficitError.RMSExValid) & StatsCombined$biomeCode=="TeBF")
+
+set.seed(1039)
+for(i in 1:length(bootMedDef.mmDay.current)){
+  sampMedCur <- sample(medCurrent, length(medCurrent)/3*2)
+  sampTeBFCur <- sample(tebfCurrent, length(tebfCurrent)/3*2)
+  sampMedGreen <- sample(medGreen, length(medGreen)/3*2)
+  sampTeBFGreen <- sample(tebfGreen, length(tebfGreen)/3*2)
+  
+  
+  bootMedDef.mmDay.current[i] <- median(StatsCombined$ET.Precip.diff[sampMedCur])
+  bootMedDef.per.current[i] <- median(StatsCombined$ET.Precip.diffper[sampMedCur])
+  bootMedDef.MLday.current[i] <- median(StatsCombined$WaterDef.MLday[sampMedCur])
+  bootTeBFDef.mmDay.current[i] <- median(StatsCombined$ET.Precip.diff[sampTeBFCur])
+  bootTeBFDef.per.current[i] <- median(StatsCombined$ET.Precip.diffper[sampTeBFCur])
+  bootTeBFDef.MLday.current[i] <- median(StatsCombined$WaterDef.MLday[sampTeBFCur])
+  
+  bootMedDef.mmDay.green[i] <- median(StatsCombined$ET.Precip.diff.Biome25[sampMedGreen])
+  bootMedDef.per.green[i] <- median(StatsCombined$ET.Precip.diffper.Biome25[sampMedGreen])
+  bootMedDef.MLday.green[i] <- median(StatsCombined$WaterDef.MLday.Biome25[sampMedGreen])
+  bootTeBFDef.mmDay.green[i] <- median(StatsCombined$ET.Precip.diff.Biome25[sampTeBFGreen])
+  bootTeBFDef.per.green[i] <- median(StatsCombined$ET.Precip.diffper.Biome25[sampTeBFGreen])
+  bootTeBFDef.MLday.green[i] <- median(StatsCombined$WaterDef.MLday.Biome25[sampTeBFGreen])
+  
+}
+# Current Med/TeBF comparison
+round(quantile(bootMedDef.mmDay.current, c(0.5, 0.025, 0.975)), 2) # Water in mm/day added by greening
+round(quantile(bootMedDef.per.current, c(0.5, 0.025, 0.975)), 1) # deficit to current rel to annual (1 = *deficit* equal to precip; need 2x current)
+round(quantile(bootMedDef.MLday.current, c(0.5, 0.025, 0.975)), 0) # Water in ML/day added by greening
+round(quantile(bootTeBFDef.mmDay.current, c(0.5, 0.025, 0.975)), 2) # Water in ML/day added by greening
+round(quantile(bootTeBFDef.per.current*100, c(0.5, 0.025, 0.975)), 0) # Water in ML/day added by greening
+round(quantile(bootTeBFDef.MLday.current, c(0.5, 0.025, 0.975)), 0) # Water in ML/day added by greening
+
+round(quantile(bootMedDef.mmDay.green, c(0.5, 0.025, 0.975)), 2) # Water in mm/day added by greening
+round(quantile(bootMedDef.per.green, c(0.5, 0.025, 0.975)), 1) # deficit to current rel to annual (1 = *deficit* equal to precip; need 2x current)
+round(quantile(bootMedDef.MLday.green, c(0.5, 0.025, 0.975)), 0) # Water in ML/day added by greening
+round(quantile(bootTeBFDef.mmDay.green, c(0.5, 0.025, 0.975)), 2) # Water in ML/day added by greening
+round(quantile(bootTeBFDef.per.green*100, c(0.5, 0.025, 0.975)), 0) # Water in ML/day added by greening
+round(quantile(bootTeBFDef.MLday.green, c(0.5, 0.025, 0.975)), 0) # Water in ML/day added by greening
+
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-

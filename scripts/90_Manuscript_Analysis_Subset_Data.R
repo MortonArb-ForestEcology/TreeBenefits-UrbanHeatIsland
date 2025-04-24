@@ -175,8 +175,9 @@ summary(cityAll.stats)
 citiesUse <- cityAll.stats$n.pixels>=1000 & 
   cityAll.stats$biome.prop>=0.75 &
   # cityAll.stats$tree.max>10 & cityAll.stats$veg.max>10 &
-  cityAll.stats$LST.sd >=1 & cityAll.stats$tree.sd >= 1 & cityAll.stats$veg.sd >= 1 & cityAll.stats$elev.sd >= 1 &
-  !cityAll.stats$ISOURBID %in% c(cityDiffHOT, cityDiffCOLD, cityCoreHOT, cityCoreCOLD, citySDLo, citySDHi) & cityAll.stats$ISOURBID %in% unique(cityAnalyET$ISOURBID[!is.na(cityAnalyET$ETmodel.R2adj)])
+  cityAll.stats$LST.sd >=1 & cityAll.stats$tree.sd >= 1 & 
+  cityAll.stats$veg.sd >= 1 & cityAll.stats$elev.sd >= 1 &
+  !cityAll.stats$ISOURBID %in% c(cityDiffHOT, cityDiffCOLD, cityCoreHOT, cityCoreCOLD, citySDLo, citySDHi, cityNoET)
 
 
 length(which(!cityAll.stats$ISOURBID %in% citiesUHI)) # NOT CRITERIA, but good to know
@@ -194,6 +195,8 @@ length(cityDiffHOT)
 length(cityDiffCOLD)
 length(citySDHi)
 length(citySDLo)
+length(cityNoET)
+
 # length(cityCoreHOT)
 # length(cityCoreCOLD)
 
@@ -203,8 +206,8 @@ length(which(citiesUse)) # Final number
 # cityStatsAnaly <- cityAll.stats[which(citiesUse & cityAll.stats$ISOURBID %in% citiesUHI),]
 # cityBuffAnaly <- CityBuffStats[CityBuffStats$ISOURBID %in% cityStatsAnaly$ISOURBID,]
 
-cityStatsAnaly <- cityAll.stats[which(citiesUse),]
-cityStatsET <- cityAnalyET[which(citiesUse),]
+cityStatsAnaly <- cityAll.stats[citiesUse,]
+cityStatsET <- cityAnalyET[cityAnalyET$ISOURBID %in% cityStatsAnaly$ISOURBID,]
 cityBuffAnaly <- CityBuffStats[CityBuffStats$ISOURBID %in% cityStatsAnaly$ISOURBID,]
 cityGLDASAnaly <- cityAll.gldas[cityAll.gldas$ISOURBID %in% cityStatsAnaly$ISOURBID,c("ISOURBID", "NAME","Tmean.GLDAS", "Precip.GLDAS", "ET.GLDAS")]
 summary(cityStatsAnaly)
