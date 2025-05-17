@@ -455,11 +455,11 @@ greenStatsBiomeUHISDs[,grep("coolPerAdd", names(greenStatsBiomeUHISDs))] <- roun
 greenStatsBiomeUHIMeans
 
 greenStatsBiomeUHI$TreeCoverTargetUHI <- round(greenStatsBiomeUHIMeans$TreeCoverTargetUHI, 1)
-greenStatsBiomeUHI$TargetUHI.Ratio <- paste0(greenStatsBiomeUHIMeans$TreeTarget.CurrentRatio, " (", greenStatsBiomeUHISDs$TreeTarget.CurrentRatio, ")")
+# greenStatsBiomeUHI$TargetUHI.Ratio <- paste0(greenStatsBiomeUHIMeans$TreeTarget.CurrentRatio, " (", greenStatsBiomeUHISDs$TreeTarget.CurrentRatio, ")")
 greenStatsBiomeUHI[,gsub("greening.", "", names(greenStatsBiomeUHIMeans)[!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI)])] <- matrix(paste0(as.matrix(greenStatsBiomeUHIMeans[,!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI)]), " (", as.matrix(greenStatsBiomeUHISDs[,!names(greenStatsBiomeUHISDs) %in% names(greenStatsBiomeUHI)]), ")"), length(which(!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI))))
 greenStatsBiomeUHI
 
-write.csv(greenStatsBiomeUHI, file.path(path.figsMS, "tableS5_Biome_GreenLST_UHIonly.csv"), row.names=F)
+write.csv(greenStatsBiomeUHI, file.path(path.figsMS, "TableS5_Biome_GreenLST_UHIonly.csv"), row.names=F)
 
 
 summary(StatsCombined[,c("value.tree.core", "TreeCoverUHINeed", "greening.treeAddBiomeTarget")]) 
