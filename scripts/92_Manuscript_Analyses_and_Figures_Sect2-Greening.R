@@ -380,21 +380,21 @@ plotPrecipBalance <- ggplot(data=effectsET[,]) +
 plotPrecipBalance
 
 # plotETcomb <- cowplot::plot_grid(plotET,NA, plotETratio, NA, ncol=2, rel_widths=c(0.75, 0.25))
+# 
+# png(file.path(path.figsMS, "Figure4_TreeCover_Targets-ET.png"), height=6, width=6, units="in", res=320)
+# cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
+# dev.off()
+# 
+# pdf(file.path(path.MS, "Figure4_TreeCover_Targets-ET.pdf"), height=6, width=6)
+# cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
+# dev.off()
 
-png(file.path(path.figsMS, "Figure4_TreeCover_Targets-ET.png"), height=6, width=6, units="in", res=320)
-cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
-dev.off()
 
-pdf(file.path(path.MS, "Figure4_TreeCover_Targets-ET.pdf"), height=6, width=6)
-cowplot::plot_grid(plotPrecip, plotET,plotETratio, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
-dev.off()
-
-
-png(file.path(path.figsMS, "Figure4-Alt_TreeCover_Targets-ET-Bal.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.figsMS, "Figure4-TreeCover_Targets-ET-Bal.png"), height=6, width=6, units="in", res=320)
 cowplot::plot_grid(plotPrecip, plotET, plotPrecipBalance, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
 dev.off()
 
-pdf(file.path(path.MS, "Figure4-Alt_TreeCover_Targets-ET-PrecipBal.pdf"), height=6, width=6)
+pdf(file.path(path.MS, "Figure4-TreeCover_Targets-ET-PrecipBal.pdf"), height=6, width=6)
 cowplot::plot_grid(plotPrecip, plotET, plotPrecipBalance, ncol=1, rel_heights=c(0.3, 0.4, 0.3), labels=c("A", "B", "C"))
 dev.off()
 
@@ -459,7 +459,7 @@ greenStatsBiomeUHI$TreeCoverTargetUHI <- round(greenStatsBiomeUHIMeans$TreeCover
 greenStatsBiomeUHI[,gsub("greening.", "", names(greenStatsBiomeUHIMeans)[!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI)])] <- matrix(paste0(as.matrix(greenStatsBiomeUHIMeans[,!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI)]), " (", as.matrix(greenStatsBiomeUHISDs[,!names(greenStatsBiomeUHISDs) %in% names(greenStatsBiomeUHI)]), ")"), length(which(!names(greenStatsBiomeUHIMeans) %in% names(greenStatsBiomeUHI))))
 greenStatsBiomeUHI
 
-write.csv(greenStatsBiomeUHI, file.path(path.figsMS, "TableS5_Biome_GreenLST_UHIonly.csv"), row.names=F)
+write.csv(greenStatsBiomeUHI, file.path(path.figsMS, "TableED2_Biome_GreenLST_UHIonly.csv"), row.names=F)
 
 
 summary(StatsCombined[,c("value.tree.core", "TreeCoverUHINeed", "greening.treeAddBiomeTarget")]) 
@@ -573,7 +573,7 @@ greenStatsBiomeN <- merge(greenStatsBiomeN, WaterStats.Current, all.x=T)
 greenStatsBiomeN <- merge(greenStatsBiomeN, WaterStats.Greening, all.x=T)
 greenStatsBiomeN[is.na(greenStatsBiomeN)] <- 0
 
-TableS6 <- data.frame(Biome=pasteMeanSD(greenStatsBiomeN$biomeName, greenStatsBiomeN$biomeCode),
+TableED3 <- data.frame(Biome=pasteMeanSD(greenStatsBiomeN$biomeName, greenStatsBiomeN$biomeCode),
                       N.Cities = greenStatsBiomeN$N.Total,
                       Precip = pasteMeanSD(greenStatsBiomeMeans$Precip.GLDAS, greenStatsBiomeSDs$Precip.GLDAS),
                       current.WaterRisk = paste0(greenStatsBiomeN$N.Deficit.current, " (", round(greenStatsBiomeN$N.Deficit.current/greenStatsBiomeN$N.Total*100,0),"%)"),
@@ -587,9 +587,9 @@ TableS6 <- data.frame(Biome=pasteMeanSD(greenStatsBiomeN$biomeName, greenStatsBi
                       greening.Uncertain = paste0(greenStatsBiomeN$N.Uncertain.Greening, " (", round(greenStatsBiomeN$N.Uncertain.Greening/greenStatsBiomeN$N.Total*100,0),"%)")
                       
                       )
-TableS6
+TableED3
 
-write.csv(TableS6, file.path(path.figsMS, "TableS6_Biome_GreenET.csv"), row.names=F)
+write.csv(TableED3, file.path(path.figsMS, "TableED3_Biome_GreenET.csv"), row.names=F)
 
 # Figuring out how much water greening adds
 bootETincper <- vector(length=1000)

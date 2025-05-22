@@ -523,47 +523,47 @@ dev.off()
 
 # Supplemental Table 2 ----
 # Biome, Number Cities Analyzed, Mean/SD Temp; Mean/SD Tree Cover; mean/sd LST diff; mean/sd TreeDiff
-tableS3N <- aggregate(value.LST.core~biomeName + biomeCode, data=StatsCombined, FUN=length)
-names(tableS3N)[3] <- "N Cities"
+tableS1N <- aggregate(value.LST.core~biomeName + biomeCode, data=StatsCombined, FUN=length)
+names(tableS1N)[3] <- "N Cities"
 
-tableS3Means <- aggregate(cbind(value.LST.core, value.tree.core, value.LST.diff, value.tree.diff)~biomeName + biomeCode, data=StatsCombined, FUN=mean)
-tableS3Means[,c("value.LST.core", "value.tree.core", "value.LST.diff", "value.tree.diff")] <- round(tableS3Means[,c("value.LST.core", "value.tree.core", "value.LST.diff", "value.tree.diff")],2)
+tableS1Means <- aggregate(cbind(value.LST.core, value.tree.core, value.LST.diff, value.tree.diff)~biomeName + biomeCode, data=StatsCombined, FUN=mean)
+tableS1Means[,c("value.LST.core", "value.tree.core", "value.LST.diff", "value.tree.diff")] <- round(tableS1Means[,c("value.LST.core", "value.tree.core", "value.LST.diff", "value.tree.diff")],2)
 
-tableS3SDs <- aggregate(cbind(value.LST.core, value.tree.core, value.LST.diff, value.tree.diff)~biomeName + biomeCode, data=StatsCombined, FUN=sd)
-tableS3SDs[,c("value.LST.core", "value.tree.core", "value.LST.diff", "value.tree.diff")] <- round(tableS3SDs[,c("value.LST.core", "value.tree.core", "value.LST.diff", "value.tree.diff")],2)
+tableS1SDs <- aggregate(cbind(value.LST.core, value.tree.core, value.LST.diff, value.tree.diff)~biomeName + biomeCode, data=StatsCombined, FUN=sd)
+tableS1SDs[,c("value.LST.core", "value.tree.core", "value.LST.diff", "value.tree.diff")] <- round(tableS1SDs[,c("value.LST.core", "value.tree.core", "value.LST.diff", "value.tree.diff")],2)
 
-TableS3 <- data.frame(Biome=paste0(tableS3N$biomeName, " (", tableS3N$biomeCode, ")"),
-                      N.Cities = tableS3N$`N Cities`,
-                      LST = paste0(tableS3Means$value.LST.core, " (", tableS3SDs$value.LST.core, ")"),
-                      TreeCover = paste0(tableS3Means$value.tree.core, " (", tableS3SDs$value.tree.core, ")"),
-                      LST.Diff = paste0(tableS3Means$value.LST.diff, " (", tableS3SDs$value.LST.diff, ")"),
-                      Tree.Diff = paste0(tableS3Means$value.tree.diff, " (", tableS3SDs$value.tree.diff, ")"))
-TableS3
-write.csv(TableS3, file.path(path.figsMS, "TableS3_Biome_LST-Tree_Stats.csv"), row.names=F)
+TableS1 <- data.frame(Biome=paste0(tableS1N$biomeName, " (", tableS1N$biomeCode, ")"),
+                      N.Cities = tableS1N$`N Cities`,
+                      LST = paste0(tableS1Means$value.LST.core, " (", tableS1SDs$value.LST.core, ")"),
+                      TreeCover = paste0(tableS1Means$value.tree.core, " (", tableS1SDs$value.tree.core, ")"),
+                      LST.Diff = paste0(tableS1Means$value.LST.diff, " (", tableS1SDs$value.LST.diff, ")"),
+                      Tree.Diff = paste0(tableS1Means$value.tree.diff, " (", tableS1SDs$value.tree.diff, ")"))
+TableS1
+write.csv(TableS1, file.path(path.figsMS, "TableS1_Biome_LST-Tree_Stats.csv"), row.names=F)
 
-# Supplemental Table3 ----
+# Supplemental Table ----
 # LSTmdoel R2, ET modelR2; Tree Cooling; Mean/SD Current ET (); 
 names(StatsCombined)
 
 StatsCombined$TreeCool <- StatsCombined$LSTslope.tree*StatsCombined$value.tree.core
 
-tableS4Means <- aggregate(cbind(LSTmodelFinal.R2adj, LSTmodelFinal.RMSE, ETmodel.R2adj, ETmodel.RMSE, LSTslope.tree, LSTslope.veg, TreeCool, ETpred.mean)~biomeName + biomeCode, data=StatsCombined, FUN=mean)
-tableS4Means[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "ETmodel.R2adj", "ETmodel.RMSE", "LSTslope.tree", "LSTslope.veg", "TreeCool", "ETpred.mean")] <- round(tableS4Means[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "ETmodel.R2adj", "ETmodel.RMSE", "LSTslope.tree", "LSTslope.veg", "TreeCool", "ETpred.mean")],2)
+tableED1Means <- aggregate(cbind(LSTmodelFinal.R2adj, LSTmodelFinal.RMSE, ETmodel.R2adj, ETmodel.RMSE, LSTslope.tree, LSTslope.veg, TreeCool, ETpred.mean)~biomeName + biomeCode, data=StatsCombined, FUN=mean)
+tableED1Means[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "ETmodel.R2adj", "ETmodel.RMSE", "LSTslope.tree", "LSTslope.veg", "TreeCool", "ETpred.mean")] <- round(tableED1Means[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "ETmodel.R2adj", "ETmodel.RMSE", "LSTslope.tree", "LSTslope.veg", "TreeCool", "ETpred.mean")],2)
 
-tableS4SDs <- aggregate(cbind(LSTmodelFinal.R2adj, LSTmodelFinal.RMSE, ETmodel.R2adj, ETmodel.RMSE, LSTslope.tree, LSTslope.veg, TreeCool, ETpred.mean)~biomeName + biomeCode, data=StatsCombined, FUN=sd)
-tableS4SDs[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "ETmodel.R2adj", "ETmodel.RMSE", "LSTslope.tree", "LSTslope.veg", "TreeCool", "ETpred.mean")] <- round(tableS4SDs[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "ETmodel.R2adj", "ETmodel.RMSE", "LSTslope.tree", "LSTslope.veg", "TreeCool", "ETpred.mean")],2)
+tableED1SDs <- aggregate(cbind(LSTmodelFinal.R2adj, LSTmodelFinal.RMSE, ETmodel.R2adj, ETmodel.RMSE, LSTslope.tree, LSTslope.veg, TreeCool, ETpred.mean)~biomeName + biomeCode, data=StatsCombined, FUN=sd)
+tableED1SDs[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "ETmodel.R2adj", "ETmodel.RMSE", "LSTslope.tree", "LSTslope.veg", "TreeCool", "ETpred.mean")] <- round(tableED1SDs[,c("LSTmodelFinal.R2adj", "LSTmodelFinal.RMSE", "ETmodel.R2adj", "ETmodel.RMSE", "LSTslope.tree", "LSTslope.veg", "TreeCool", "ETpred.mean")],2)
 
-TableS4 <- data.frame(Biome=paste0(tableS4Means$biomeName, " (", tableS4Means$biomeCode, ")"),
-                      LSTmodel.R2 = paste0(tableS4Means$LSTmodelFinal.R2adj, " (", tableS4SDs$LSTmodelFinal.R2adj, ")"),
-                      LSTmodel.RMSE = paste0(tableS4Means$LSTmodelFinal.RMSE, " (", tableS4SDs$LSTmodelFinal.RMSE, ")"),
-                      ETmodel.R2 = paste0(tableS4Means$ETmodel.R2adj, " (", tableS4SDs$ETmodel.R2adj, ")"),
-                      ETmodel.RMSE = paste0(tableS4Means$ETmodel.RMSE, " (", tableS4SDs$ETmodel.RMSE, ")"),
-                      LSTmodel.TreeSlope  = paste0(tableS4Means$LSTslope.tree, " (", tableS4SDs$LSTslope.tree, ")"),
-                      LSTmodel.VegSlope  = paste0(tableS4Means$LSTslope.veg, " (", tableS4SDs$LSTslope.veg, ")"),
-                      TreeCool.degC = paste0(tableS4Means$TreeCool, " (", tableS4SDs$TreeCool, ")"),
-                      ET.mmDay = paste0(tableS4Means$ETpred.mean, " (", tableS4SDs$ETpred.mean, ")"))
-TableS4
-write.csv(TableS4, file.path(path.figsMS, "TableS4_Biome_LST-ET_ModelStats.csv"), row.names=F)
+TableED1 <- data.frame(Biome=paste0(tableED1Means$biomeName, " (", tableED1Means$biomeCode, ")"),
+                      LSTmodel.R2 = paste0(tableED1Means$LSTmodelFinal.R2adj, " (", tableED1SDs$LSTmodelFinal.R2adj, ")"),
+                      LSTmodel.RMSE = paste0(tableED1Means$LSTmodelFinal.RMSE, " (", tableED1SDs$LSTmodelFinal.RMSE, ")"),
+                      ETmodel.R2 = paste0(tableED1Means$ETmodel.R2adj, " (", tableED1SDs$ETmodel.R2adj, ")"),
+                      ETmodel.RMSE = paste0(tableED1Means$ETmodel.RMSE, " (", tableED1SDs$ETmodel.RMSE, ")"),
+                      LSTmodel.TreeSlope  = paste0(tableED1Means$LSTslope.tree, " (", tableED1SDs$LSTslope.tree, ")"),
+                      LSTmodel.VegSlope  = paste0(tableED1Means$LSTslope.veg, " (", tableED1SDs$LSTslope.veg, ")"),
+                      TreeCool.degC = paste0(tableED1Means$TreeCool, " (", tableED1SDs$TreeCool, ")"),
+                      ET.mmDay = paste0(tableED1Means$ETpred.mean, " (", tableED1SDs$ETpred.mean, ")"))
+TableED1
+write.csv(TableED1, file.path(path.figsMS, "TableED1_Biome_LST-ET_ModelStats.csv"), row.names=F)
 
 
 #-#-#-#-#-#-#-

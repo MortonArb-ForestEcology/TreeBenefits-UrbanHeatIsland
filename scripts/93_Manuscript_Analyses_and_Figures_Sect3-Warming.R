@@ -231,7 +231,7 @@ cmip6BiomeSD585 <- aggregate(cbind(tas.diff, pr.per) ~ biomeName + biomeCode, da
 cmip6BiomeSD585$tas.diff <- round(cmip6BiomeSD585$tas.diff, 1)
 cmip6BiomeSD585$pr.per <- round((cmip6BiomeSD585$pr.per)*100, 0)
 
-TableS7 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMean$biomeCode),
+TableS2 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMean$biomeCode),
                       Tmean.GLDAS = pasteMeanSD(climCurrentMean$Tmean.GLDAS, climCurrentSD$Tmean.GLDAS),
                       Precip.GLDAS = pasteMeanSD(climCurrentMean$Precip.GLDAS, climCurrentSD$Precip.GLDAS),
                       Tmean.diff.245 = pasteMeanSD(cmip6BiomeMean245$tas.diff, cmip6BiomeSD245$tas.diff),
@@ -239,8 +239,8 @@ TableS7 <- data.frame(Biome=pasteMeanSD(climCurrentMean$biomeName, climCurrentMe
                       Tmean.diff.585 = pasteMeanSD(cmip6BiomeMean585$tas.diff, cmip6BiomeSD585$tas.diff),
                       Pr.diff.585 = pasteMeanSD(cmip6BiomeMean585$pr.per, cmip6BiomeSD585$pr.per))
                       
-TableS7                      
-write.csv(TableS7, file.path(path.figsMS, "TableS7_ClimateStats_CMIP6.csv"), row.names=F)
+TableS2                      
+write.csv(TableS2, file.path(path.figsMS, "TableS2_ClimateStats_CMIP6.csv"), row.names=F)
 
 # "#E64B35FF" "#4DBBD5FF" "#00A087FF" "#3C5488FF" "#F39B7FFF" "#8491B4FF"
 # "#91D1C2FF" "#DC0000FF" "#7E6148FF" "#B09C85FF"
@@ -319,14 +319,14 @@ plotRatioLog <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
   theme_bw()
 plotRatioLog
 
-png(file.path(path.figsMS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
-cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
-dev.off()
-
-pdf(file.path(path.MS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.pdf"), height=8, width=14)
-cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
-dev.off()
-
+# png(file.path(path.figsMS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.png"), height=8, width=14, units="in", res=320)
+# cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
+# dev.off()
+# 
+# pdf(file.path(path.MS, "Figure5_ET_vs_Precip_Now-CMIP6_Log_Combined.pdf"), height=8, width=14)
+# cowplot::plot_grid(map.ETratio.All, plotRatioLog, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
+# dev.off()
+# 
 
 
 
@@ -339,7 +339,7 @@ map.Risk <- ggplot(data=etSummary[!is.na(etSummary$Risk.Level),]) +
   coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=Risk.Level), size=0.1, alpha=0.8) +
-  scale_color_manual(name="Deficit Risk", values=c("High"="#F03B20", "Medium"="#FEB24C", "Low"="#FFEDA0")) +
+  scale_color_manual(name="Deficit Risk", values=c("High"="#bd0026", "Medium"="#fd8d3c", "Low"="#ffffb2")) +
   guides(color=guide_legend(override.aes=list(size=5))) +
   theme(legend.position="left",
         legend.title=element_text(color="black", face="bold"),
@@ -364,7 +364,7 @@ map.Uncert <- ggplot(data=etSummary[!is.na(etSummary$Uncert.Level),]) +
   coord_map("moll") +
   expand_limits(x = world$long, y = world$lat) +
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=Uncert.Level), size=0.1, alpha=0.8) +
-  scale_color_manual(name="Uncertain\nDeficit", values=c("High"="#C41B8A", "Medium"="#FA9FB5", "Low"="#FDE0DD")) +
+  scale_color_manual(name="Uncertain\nDeficit", values=c("High"="#810f7c", "Medium"="#8c96c6", "Low"="#edf8fb")) +
   guides(color=guide_legend(override.aes=list(size=5))) +
   theme(legend.position="right",
         legend.title=element_text(color="black", face="bold"),
@@ -381,11 +381,11 @@ map.Uncert <- ggplot(data=etSummary[!is.na(etSummary$Uncert.Level),]) +
         plot.margin=margin(0.5,0.5, 2, 0.5, "lines"))
 # map.Uncert
 
-png(file.path(path.figsMS, "ExtDat_FigureX_RiskUncertainty_Map.png"), height=8, width=14, units="in", res=320)
+png(file.path(path.figsMS, "FigureED2_RiskUncertainty_Map.png"), height=8, width=14, units="in", res=320)
 cowplot::plot_grid(map.Risk, map.Uncert, ncol=2, labels=c("A", "B"))
 dev.off()
 
-pdf(file.path(path.MS, "ExtDat_FigureX_RiskUncertainty_Map.pdf"), height=8, width=14)
+pdf(file.path(path.MS, "FigureED2_RiskUncertainty_Map.pdf"), height=8, width=14)
 cowplot::plot_grid(map.Risk, map.Uncert, ncol=2, labels=c("A", "B"))
 dev.off()
 
@@ -404,11 +404,11 @@ plotDeficit <- ggplot(data=etSummary[!is.na(etSummary$biomeName),]) +
   theme_bw()
 plotDeficit
 
-png(file.path(path.figsMS, "Figure5-Alt_Risk-Deficit_Combined.png"), height=8, width=14, units="in", res=320)
+png(file.path(path.figsMS, "Figure5_Risk-Deficit_Combined.png"), height=8, width=14, units="in", res=320)
 cowplot::plot_grid(map.Risk, plotDeficit, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
 
-pdf(file.path(path.MS, "Figure5-Alt_Risk-Deficit_Combined.pdf"), height=8, width=14)
+pdf(file.path(path.MS, "Figure5_Risk-Deficit_Combined.pdf"), height=8, width=14)
 cowplot::plot_grid(map.Risk, plotDeficit, ncol=2, rel_widths = c(0.55, 0.45), labels=c("A", "B"))
 dev.off()
 
@@ -593,11 +593,11 @@ mapETfuture <- ggplot(data=cmip6AggMean[cmip6AggMean$Time==2100,]) +
         plot.margin=margin(0.5,0.5, 0.5, 0.5, "lines"))
 mapETfuture
 
-png(file.path(path.figsMS, "FigureS6_ET-ETchange_current-CMIP6.png"), height=6, width=9, units="in", res=320)
+png(file.path(path.figsMS, "FigureED1_ET-ETchange_current-CMIP6.png"), height=6, width=9, units="in", res=320)
 cowplot::plot_grid(mapETcurrent, mapETfuture, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
-pdf(file.path(path.MS, "FigureS6_ET-ETchange_current-CMIP6.pdf"), height=6, width=9)
+pdf(file.path(path.MS, "FigureED1_ET-ETchange_current-CMIP6.pdf"), height=6, width=9)
 cowplot::plot_grid(mapETcurrent, mapETfuture, ncol=1, rel_heights = c(0.45, 0.55), labels=c("A", "B"))
 dev.off()
 
@@ -654,11 +654,11 @@ violinETper
 
 summary(cmip6AggMean)
 
-png(file.path(path.figsMS, "FigureS7_Climate-ET-Change_Biomes.png"), height=8, width=8, units="in", res=320)
+png(file.path(path.figsMS, "FigureS6_Climate-ET-Change_Biomes.png"), height=8, width=8, units="in", res=320)
 cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
 dev.off()
 
-pdf(file.path(path.MS, "FigureS7_Climate-ET-Change_Biomes.pdf"), height=8, width=8)
+pdf(file.path(path.MS, "FigureS6_Climate-ET-Change_Biomes.pdf"), height=8, width=8)
 cowplot::plot_grid(violinTas, violinPr, violinETper, labels=c("A", "B", "C"), ncol=1)
 dev.off()
 
@@ -722,7 +722,7 @@ changeBiomeAggMean <- changeBiomeAggMean[order(changeBiomeAggMean$biomeName),]
 changeBiomeAggSD <- changeBiomeAggSD[order(changeBiomeAggSD$biomeName),]
 riskAgg <- riskAgg[order(riskAgg$biomeName),]
 
-TableS8 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean$biomeCode),
+TableED4 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean$biomeCode),
                       N.Cities = etBiomeAggMean$N.Cities,
                       ET.current = pasteMeanSD(etBiomeAggMean$modET, etBiomeAggMean$ET.sd),
                       ET.RMSEtime = pasteMeanSD(etBiomeAggMean$timeRMSE, etBiomeAggMean$timeRMSE.sd),
@@ -749,9 +749,9 @@ TableS8 <- data.frame(Biome=pasteMeanSD(etBiomeAggMean$biomeName, etBiomeAggMean
                                                        riskAgg$deficitSD.ML[riskAgg$Scenario=="SSP5-8.5"]),
                       SSP585.HighUncert = paste0(riskAgg$Per.HighUncert[riskAgg$Scenario=="SSP5-8.5"],"%")
                       )
-TableS8
+TableED4
 
-write.csv(TableS8, file.path(path.figsMS, "TableS8_ET-Risk_CMIP6.csv"), row.names=F)
+write.csv(TableED4, file.path(path.figsMS, "TableED4_ET-Risk_CMIP6.csv"), row.names=F)
 
 # Getting stats on percent changes in ET
 changeBiomeAggMedian
@@ -832,8 +832,8 @@ sum(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP2-4.5"])/s
 sum(changeBiomeAggMean$N.Cities.Risk[changeBiomeAggMean$Scenario=="SSP5-8.5"])/sum(etBiomeAggMean$N.Cities)
 
 # Looking at change in % cities with risk
-cbind(TableS8$Biome, as.numeric(gsub("%", "", TableS8$SSP245.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS8$current.WaterRisk)))
-cbind(TableS8$Biome, as.numeric(gsub("%", "", TableS8$SSP585.CitiesRisk.per)) - as.numeric(gsub("%", "", TableS8$current.WaterRisk)))
+cbind(TableED4$Biome, as.numeric(gsub("%", "", TableED4$SSP245.CitiesRisk.per)) - as.numeric(gsub("%", "", TableED4$current.WaterRisk)))
+cbind(TableED4$Biome, as.numeric(gsub("%", "", TableED4$SSP585.CitiesRisk.per)) - as.numeric(gsub("%", "", TableED4$current.WaterRisk)))
 
 
 # Quanitfying the deficits
@@ -890,22 +890,22 @@ ens245 <- ggplot(data=cmip6[!is.na(cmip6$biomeName) & cmip6$Time=="2100" & cmip6
   facet_wrap(biomeName~.) +
   # coord_flip() +
   # coord_cartesian(ylim=c(0,2.5), expand=0) +
-  geom_violin(aes(x=GCM, y=log(modET.Precip), fill=biomeName), scale="width") +
+  geom_violin(aes(x=GCM, y=ET.Precip.diff, fill=biomeName), scale="width") +
   geom_hline(yintercept=0, linetype="dashed") +
   # annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
   # annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
   scale_fill_manual(values=biome.pall.ShortCB) +
-  labs(y="Precipitation Deficit", x="Ensemble Member") +
+  labs(y="Precipitation Deficit (mm/day)", x="Ensemble Member") +
   guides(fill="none") +
   theme_bw() +
   theme(axis.text.x = element_text(angle=-90, hjust=0))
 
-png(file.path(path.figsMS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.png"), height=8, width=16, units="in", res=320)
+png(file.path(path.figsMS, "FigureS7_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.png"), height=8, width=16, units="in", res=320)
 print(ens245)
 dev.off()
 
-pdf(file.path(path.MS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.pdf"), height=8, width=16)
+pdf(file.path(path.MS, "FigureS7 _ET_vs_Precip_CMIP6_Ensemble_SSP2-4.5.pdf"), height=8, width=16)
 print(ens245)
 dev.off()
 
@@ -913,22 +913,22 @@ ens585 <- ggplot(data=cmip6[!is.na(cmip6$biomeName) & cmip6$Time=="2100" & cmip6
   facet_wrap(biomeName~.) +
   # coord_flip() +
   # coord_cartesian(ylim=c(0,2.5), expand=0) +
-  geom_violin(aes(x=GCM, y=log(modET.Precip), fill=biomeName), scale="width") +
+  geom_violin(aes(x=GCM, y=ET.Precip.diff, fill=biomeName), scale="width") +
   geom_hline(yintercept=0, linetype="dashed") +
   # annotate(geom="text", y=10, x=-3, label=c("Precip Surplus"), hjust=0, size=3) +
   # annotate(geom="text", y=10, x=3, label=c("Precip Deficit"), hjust=0, size=3) +
   # annotate(geom="text", x=14, y=5, l abel=c("Precip Deficit"), hjust=1) +
   scale_fill_manual(values=biome.pall.ShortCB) +
-  labs(y="Precipitation Deficit", x="Ensemble Member") +
+  labs(y="Precipitation Deficit (mm/day)", x="Ensemble Member") +
   guides(fill="none") +
   theme_bw() +
   theme(axis.text.x = element_text(angle=-90, hjust=0))
 
-png(file.path(path.figsMS, "FigureS9_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.png"), height=8, width=16, units="in", res=320)
+png(file.path(path.figsMS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.png"), height=8, width=16, units="in", res=320)
 print(ens585)
 dev.off()
 
-pdf(file.path(path.MS, "FigureS9_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.pdf"), height=8, width=16)
+pdf(file.path(path.MS, "FigureS8_ET_vs_Precip_CMIP6_Ensemble_SSP5-8.5.pdf"), height=8, width=16)
 print(ens585)
 dev.off()
 #-#-#-#-#-#-#-#-
