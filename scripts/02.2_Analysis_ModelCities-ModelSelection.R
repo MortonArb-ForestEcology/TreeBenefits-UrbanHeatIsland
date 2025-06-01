@@ -74,9 +74,12 @@ cityStatsRegion$dRMSEper.SCoverTree <- cityStatsRegion$dRMSE.SCoverTree/cityStat
 cityStatsRegion$dRMSEper.S3D <- cityStatsRegion$dRMSE.S3D/cityStatsRegion$LSTmodel.RMSE
 
 
+mean(cityStatsRegion$LSTmodel.R2adj, na.rm=T); sd(cityStatsRegion$LSTmodel.R2adj, na.rm=T)
 mean(cityStatsRegion$dR2adj.SCover, na.rm=T); sd(cityStatsRegion$dR2adj.SCover, na.rm=T)
 mean(cityStatsRegion$dR2adj.S3D, na.rm=T); sd(cityStatsRegion$dR2adj.S3D, na.rm=T)
 
+
+mean(cityStatsRegion$LSTmodel.RMSE, na.rm=T); sd(cityStatsRegion$LSTmodel.RMSE, na.rm=T)
 mean(cityStatsRegion$dRMSE.SCover, na.rm=T); sd(cityStatsRegion$dRMSE.SCover, na.rm=T)
 mean(cityStatsRegion$dRMSE.S3D, na.rm=T); sd(cityStatsRegion$dRMSE.S3D, na.rm=T)
 
