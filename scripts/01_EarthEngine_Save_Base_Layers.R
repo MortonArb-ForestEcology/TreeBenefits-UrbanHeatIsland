@@ -4,9 +4,9 @@ library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T, project="urbanecodrought")
 path.google <- "/Volumes/GoogleDrive/My Drive"
-GoogleFolderSave <- "UHI_Analysis_Output_v4"
+GoogleFolderSave <- "UHI_Analysis_Output_v5"
 assetHome <- ee_get_assethome()
-
+assetRoot <- "projects/urbanecodrought/assets"
 
 ##################### 
 # 0. Set up helper functions
@@ -385,6 +385,96 @@ for(i in 1:sizeETJF-1){
   # Map$addLayer(img$select("ET"), vizET, "Jul/Aug ET")
   saveETSH <- ee_image_to_asset(img$select("ET"), description=paste0("Save_ET_JanFeb_", imgID), assetId=file.path(assetHome, "ET_JanFeb", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveETSH$start()
+}
+# -----------
+
+
+# -----------
+# Emissivity ---- 
+
+# -----------
+# NOTE: This product will only run through 2016
+emisConvert <- function(img){
+  emiss <- img$select('Emis_31')$multiply(0.002)$add(0.49)
+  EM <- ee$Image(emiss);
+  img <- img$addBands(srcImg=EM, overwrite=TRUE);
+  return(img)
+}
+
+emisMask <- function(img){
+  qcDay <- img$select('QC_Day')
+  qaMask <- bitwiseExtract(qcDay, 0, 1)$lte(1);
+  dataQualityMask <- bitwiseExtract(qcDay, 2, 3)$eq(0)
+  emisErrorMask <- bitwiseExtract(qcDay, 4, 5)$lte(1) # lowest error didn't work for us
+  # datVal <- img$select('LST_Day_1km')$gt(0)
+  maskEmis <- qaMask$And(dataQualityMask)$And(emisErrorMask)
+  emisDayMasked <- img$updateMask(maskEmis)
+  return(emisDayMasked)
+}
+
+emissColors2 <- c('#0602ff', '#235cb1', '#307ef3', '#269db1', '#30c8e2', '#32d3ef', '#3ae237','#b5e22e', '#d6e21f', '#fff705', '#ffd611', '#ffb613', '#ff8b13', '#ff6e08','#ff500d', '#ff0000', '#de0101', '#c21301')
+emissColors <- c('0602ff', '235cb1', '307ef3', '269db1', '30c8e2', '32d3ef', '3ae237','b5e22e', 'd6e21f', 'fff705', 'ffd611', 'ffb613', 'ff8b13', 'ff6e08','ff500d', 'ff0000', 'de0101', 'c21301')
+vizEmiss <- list(min=0.90, max=1, palette=emissColors)
+
+# ee$ImageCollection('MODIS/061/MOD11A2')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)
+emisJulAug <- ee$ImageCollection('MODIS/061/MOD11A2')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+emisJulAug <- emisJulAug$map(emisConvert)
+emisJulAug <- emisJulAug$map(setYear)
+# 
+emisJanFeb <- ee$ImageCollection('MODIS/061/MOD11A2')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+emisJanFeb <- emisJanFeb$map(emisConvert)
+emisJanFeb <- emisJanFeb$map(setYear)
+# # 
+# ee_print(emisJulAug)
+# emisJulAug$first()$propertyNames()$getInfo()
+# ee_print(emisJulAug$first())
+Map$addLayer(emisJulAug$first()$select('Emis_31'), vizEmiss, "Jul/Aug Emissivity")
+Map$addLayer(emisJanFeb$first()$select('Emis_31'), vizEmiss, "Jan/Feb Emissivity")
+# 
+# 
+emisGoodNH <- emisJulAug$map(emisMask)
+# Map$addLayer(emisGoodNH$first()$select('Emis_31'), vizEmiss, "Jul/Aug Emissivity")
+emisNHmask <- emisGoodNH$select("Emis_31")$map(function(IMG){IMG$updateMask(vegMask)})
+# Map$addLayer(emisNHmask$first()$select('Emis_31'), vizEmiss, "Jul/Aug Emissivity")
+
+emisGoodSH <- emisJanFeb$map(emisMask)
+# Map$addLayer(emisGoodSH$first()$select('Emis_31'), vizEmiss, "Jan/Feb Emissivity")
+emisSHmask <- emisGoodSH$select("Emis_31")$map(function(IMG){IMG$updateMask(vegMask)})
+
+# lstSHmask <- lstDayGoodSH$select("LST_Day_1km")$map(function(IMG){IMG$updateMask(vegMask)})
+
+
+# Trying to export each collection as a Collection 
+# Source: https://gis.stackexchange.com/questions/407146/export-imagecollection-to-asset
+emisSizeNH <- emisNHmask$size()$getInfo()
+emisNHList <- emisNHmask$toList(emisSizeNH)
+
+# Doing a loop for the Northern Hemisphere first
+# Create the Image Collection folder manually
+# ee_manage_create(file.path(assetHome, "Emis_JulAug_Clean"), asset_type="ImageCollection")
+for(i in 1:sizeNH-1){
+  img <- ee$Image(emisNHList$get(i))
+  imgID <- img$id()$getInfo()
+  # ee_print(img)
+  # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
+  saveemisNH <- ee_image_to_asset(img, description=paste0("Save_Emis_JulAug_", imgID), assetId=file.path(assetRoot, "Emis_JulAug_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveemisNH$start()
+}
+
+
+sizeSH <- emisSHmask$size()$getInfo()
+emisSHList <- emisSHmask$toList(sizeSH)
+
+# Create this manually!
+# ee_manage_create(file.path(assetRoot, "Emis_JanFeb_Clean"), asset_type="ImageCollection")
+
+for(i in 1:sizeSH-1){
+  img <- ee$Image(emisSHList$get(i))$clip(bBoxS)
+  imgID <- img$id()$getInfo()
+  # ee_print(img)
+  # Map$addLayer(img, vizTempK, "JanFeb Temperature")
+  saveemisSH <- ee_image_to_asset(img, description=paste0("Save_Emis_JanFeb_", imgID), assetId=file.path(assetRoot, "Emis_JanFeb_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  saveemisSH$start()
 }
 # -----------
 
