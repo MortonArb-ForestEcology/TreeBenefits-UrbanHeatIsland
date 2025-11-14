@@ -432,15 +432,91 @@ Map$addLayer(emisJanFeb$first()$select('Emis_31'), vizEmiss, "Jan/Feb Emissivity
 # 
 # 
 emisGoodNH <- emisJulAug$map(emisMask)
-# Map$addLayer(emisGoodNH$first()$select('Emis_31'), vizEmiss, "Jul/Aug Emissivity")
-emisNHmask <- emisGoodNH$select("Emis_31")$map(function(IMG){IMG$updateMask(vegMask)})
-# Map$addLayer(emisNHmask$first()$select('Emis_31'), vizEmiss, "Jul/Aug Emissivity")
-
 emisGoodSH <- emisJanFeb$map(emisMask)
-# Map$addLayer(emisGoodSH$first()$select('Emis_31'), vizEmiss, "Jan/Feb Emissivity")
-emisSHmask <- emisGoodSH$select("Emis_31")$map(function(IMG){IMG$updateMask(vegMask)})
+# Map$addLayer(emisGoodNH$first()$select('Emis_31'), vizEmiss, "Jul/Aug Emissivity")
 
-# lstSHmask <- lstDayGoodSH$select("LST_Day_1km")$map(function(IMG){IMG$updateMask(vegMask)})
+
+emisGoodNH = emisGoodNH$map(function(img){
+  return(img$reproject(projLST))
+})
+
+emisGoodSH = emisGoodSH$map(function(img){
+  return(img$reproject(projLST))
+})
+ee_print(emisGoodSH)
+
+emisNHmask <- emisGoodNH$select("Emis_31")$map(function(IMG){IMG$updateMask(vegMask)})
+emisSHmask <- emisGoodSH$select("Emis_31")$map(function(IMG){IMG$updateMask(vegMask)})
+# Map$addLayer(emisNHmask$first()$select('Emis_31'), vizEmiss, "Jul/Aug Emissivity")
+# Map$addLayer(emisGoodSH$first()$select('Emis_31'), vizEmiss, "Jan/Feb Emissivity")
+
+
+# # Try to just go ahead and aggregate to year now
+yrList <- ee$List(emisNHmask$aggregate_array("year"))$distinct()
+yrString <- yrList$map(ee_utils_pyfunc(function(j){
+  return(ee$String("YR")$cat(ee$String(ee$Number(j)$format())))
+}))
+# yrString$getInfo()
+
+emissNHYrMean <- yrList$map(ee_utils_pyfunc(function(j){
+  YR <- ee$Number(j);
+  START <- ee$Date$fromYMD(YR,1,1);
+  END <- ee$Date$fromYMD(YR,12,31);
+  emissYR <- emisNHmask$filter(ee$Filter$date(START, END))
+  # // var lstDev =  // make each layer an anomaly map
+  emissMean <- emissYR$select('Emis_31')$reduce(ee$Reducer$median())
+  # tempDev <- lstYR$select('LST_Day_Dev')$reduce(ee$Reducer$mean())
+  emissAgg <- ee$Image(emissMean)
+
+  ## ADD YEAR AS A PROPERTY!!
+  emissAgg <- emissAgg$set(ee$Dictionary(list(year=YR)))
+  emissAgg <- emissAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
+  # ee_print(tempAgg)
+  # Map$addLayer(tempAgg$select('LST_Day_1km_mean'), vizTempK, 'Mean Surface Temperature (K)');
+  # Map$addLayer(tempAgg$select('LST_Day_Dev_mean'), vizTempAnom, 'Mean Surface Temperature - Anomaly');
+
+  return (emissAgg); # update to standardized once read
+}))
+emissNHYrMean <- ee$ImageCollection$fromImages(emissNHYrMean) # go ahead and overwrite it since we're just changing form
+emissNHYrMean <- ee$ImageCollection$toBands(emissNHYrMean)$rename(yrString)
+emissNHYrMean <- emissNHYrMean$setDefaultProjection(projLST)
+# ee_print(emissNHYrMean)
+# Map$addLayer(emissNHYrMean$select('YR2020'), vizemiss, 'Median emiss');
+
+saveEmissNH <- ee_image_to_asset(emissNHYrMean, description="Save_Emissivity_NH", assetId=file.path(assetHome, "Emissivity_MODIS_1km_JulAug"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveEmissNH$start()
+
+# 
+emissSHYrMean <- yrList$map(ee_utils_pyfunc(function(j){
+  YR <- ee$Number(j);
+  START <- ee$Date$fromYMD(YR,1,1);
+  END <- ee$Date$fromYMD(YR,12,31);
+  emissYR <- emisSHmask$filter(ee$Filter$date(START, END))
+  # // var lstDev =  // make each layer an anomaly map
+  emissMean <- emissYR$select('Emis_31')$reduce(ee$Reducer$median())
+  # tempDev <- lstYR$select('LST_Day_Dev')$reduce(ee$Reducer$mean())
+  emissAgg <- ee$Image(emissMean)
+  
+  ## ADD YEAR AS A PROPERTY!!
+  emissAgg <- emissAgg$set(ee$Dictionary(list(year=YR)))
+  emissAgg <- emissAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
+  # ee_print(tempAgg)
+  # Map$addLayer(tempAgg$select('LST_Day_1km_mean'), vizTempK, 'Mean Surface Temperature (K)');
+  # Map$addLayer(tempAgg$select('LST_Day_Dev_mean'), vizTempAnom, 'Mean Surface Temperature - Anomaly');
+  
+  return (emissAgg); # update to standardized once read
+}))
+emissSHYrMean <- ee$ImageCollection$fromImages(emissSHYrMean) # go ahead and overwrite it since we're just changing form
+emissSHYrMean <- ee$ImageCollection$toBands(emissSHYrMean)$rename(yrString)
+emissSHYrMean <- emissSHYrMean$setDefaultProjection(projLST)
+# ee_print(emissSHYrMean)
+# Map$addLayer(emissSHYrMean$select('YR2020'), vizemiss, 'Median emiss');
+
+saveEmissSH <- ee_image_to_asset(emissSHYrMean, description="Save_Emissivity_SH", assetId=file.path(assetHome, "Emissivity_MODIS_1km_JanFeb"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveEmissSH$start()
+
+
+
 
 
 # Trying to export each collection as a Collection 
