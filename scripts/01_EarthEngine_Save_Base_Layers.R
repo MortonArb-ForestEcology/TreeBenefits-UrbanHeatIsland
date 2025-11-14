@@ -391,9 +391,8 @@ for(i in 1:sizeETJF-1){
 
 # -----------
 # Emissivity ---- 
-
+# Pulling from our LST product: https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A2
 # -----------
-# NOTE: This product will only run through 2016
 emisConvert <- function(img){
   emiss <- img$select('Emis_31')$multiply(0.002)$add(0.49)
   EM <- ee$Image(emiss);
@@ -475,6 +474,112 @@ for(i in 1:sizeSH-1){
   # Map$addLayer(img, vizTempK, "JanFeb Temperature")
   saveemisSH <- ee_image_to_asset(img, description=paste0("Save_Emis_JanFeb_", imgID), assetId=file.path(assetRoot, "Emis_JanFeb_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
   saveemisSH$start()
+}
+# -----------
+
+
+# -----------
+# Albedo ---- 
+# Pulling from MODIS: https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MCD43A3
+# -----------
+albedoConvert <- function(img){
+  alb <- img$select('Albedo_WSA_shortwave')$multiply(0.001)
+  ALB <- ee$Image(alb);
+  img <- img$addBands(srcImg=ALB, overwrite=TRUE);
+  return(img)
+}
+
+albedoMask <- function(img){
+  qcDay <- img$select('BRDF_Albedo_Band_Mandatory_Quality_shortwave')
+  qaMask <- qcDay$eq(0);
+  # dataQualityMask <- bitwiseExtract(qcDay, 2, 3)$eq(0)
+  # albedoErrorMask <- bitwiseExtract(qcDay, 4, 5)$lte(1) # lowest error didn't work for us
+  # # datVal <- img$select('LST_Day_1km')$gt(0)
+  # maskalbedo <- qaMask$And(dataQualityMask)$And(albedoErrorMask)
+  albedoDayMasked <- img$updateMask(qaMask)
+  return(albedoDayMasked)
+}
+
+albedoColors2 <- c('#0602ff', '#235cb1', '#307ef3', '#269db1', '#30c8e2', '#32d3ef', '#3ae237','#b5e22e', '#d6e21f', '#fff705', '#ffd611', '#ffb613', '#ff8b13', '#ff6e08','#ff500d', '#ff0000', '#de0101', '#c21301')
+albedoColors <- c('0602ff', '235cb1', '307ef3', '269db1', '30c8e2', '32d3ef', '3ae237','b5e22e', 'd6e21f', 'fff705', 'ffd611', 'ffb613', 'ff8b13', 'ff6e08','ff500d', 'ff0000', 'de0101', 'c21301')
+vizAlbedo <- list(min=0.05, max=0.40, palette=albedoColors)
+
+# ee$ImageCollection('MODIS/061/MOD11A2')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime)
+albedoJulAug <- ee$ImageCollection('MODIS/061/MCD43A3')$filter(ee$Filter$dayOfYear(181, 240))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+albedoJulAug <- albedoJulAug$map(albedoConvert)
+albedoJulAug <- albedoJulAug$map(setYear)
+# 
+albedoJanFeb <- ee$ImageCollection('MODIS/061/MCD43A3')$filter(ee$Filter$dayOfYear(1, 60))$filter(ee$Filter$date("2001-01-01", "2020-12-31"))$map(addTime);
+albedoJanFeb <- albedoJanFeb$map(albedoConvert)
+albedoJanFeb <- albedoJanFeb$map(setYear)
+# # 
+# ee_print(albedoJulAug)
+# albedoJulAug$first()$propertyNames()$getInfo()
+# ee_print(albedoJulAug$first())
+Map$addLayer(albedoJulAug$first()$select('Albedo_WSA_shortwave'), vizAlbedo, "Jul/Aug albedo")
+Map$addLayer(albedoJanFeb$first()$select('Albedo_WSA_shortwave'), vizAlbedo, "Jan/Feb albedo")
+# 
+# 
+# albedoGoodNH <- albedoJulAug$map(albedoMask)
+# Map$addLayer(albedoGoodNH$first()$select('Albedo_WSA_shortwave'), vizAlbedo, "Jul/Aug Alebdo")
+
+# albedoGoodSH <- albedoJanFeb$map(albedoMask)
+# Map$addLayer(albedoGoodSH$first()$select('Albedo_WSA_shortwave'), vizAlbedo, "Jan/Feb Alebdo")
+
+
+# Making sure to do the reprojection
+albedoNHReproj = albedoJulAug$select("Albedo_WSA_shortwave")$map(function(img){
+  return(img$reduceResolution(reducer=ee$Reducer$mean())$reproject(projLST))
+})$map(addTime); # add year here!
+# Map$addLayer(albedoNHReproj$first()$select('Albedo_WSA_shortwave'), vizAlbedo, "Jul/Aug Alebdo")
+# ee_print(albedoNHReproj)
+
+albedoNHReproj <- albedoNHReproj$map(function(IMG){IMG$updateMask(vegMask)})
+# ee_print(albedoNHReproj)
+
+# lstSHmask <- lstDayGoodSH$select("LST_Day_1km")$map(function(IMG){IMG$updateMask(vegMask)})
+
+albedoSHReproj = albedoJanFeb$select("Albedo_WSA_shortwave")$map(function(img){
+  return(img$reduceResolution(reducer=ee$Reducer$mean())$reproject(projLST))
+})$map(addTime); # add year here!
+# Map$addLayer(albedoNHReproj$first()$select('Albedo_WSA_shortwave'), vizAlbedo, "Jul/Aug Alebdo")
+# ee_print(albedoNHReproj)
+
+albedoSHReproj <- albedoSHReproj$map(function(IMG){IMG$updateMask(vegMask)})
+
+
+
+# Trying to export each collection as a Collection 
+# Source: https://gis.stackexchange.com/questions/407146/export-imagecollection-to-asset
+albedoSizeNH <- albedoNHReproj$size()$getInfo()
+albedoNHList <- albedoNHReproj$toList(albedoSizeNH)
+
+# Doing a loop for the Northern Halbedophere first
+# Create the Image Collection folder manually
+# ee_manage_create(file.path(assetRoot, "Albedo_JulAug_Clean"), asset_type="ImageCollection")
+for(i in 1:sizeNH-1){
+  img <- ee$Image(albedoNHList$get(i))
+  imgID <- img$id()$getInfo()
+  # ee_print(img)
+  # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
+  savealbedoNH <- ee_image_to_asset(img, description=paste0("Save_albedo_JulAug_", imgID), assetId=file.path(assetRoot, "Albedo_JulAug_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  savealbedoNH$start()
+}
+
+
+sizeSH <- albedoSHmask$size()$getInfo()
+albedoSHList <- albedoSHmask$toList(sizeSH)
+
+# Create this manually!
+# ee_manage_create(file.path(assetRoot, "Albedo_JanFeb_Clean"), asset_type="ImageCollection")
+
+for(i in 1:sizeSH-1){
+  img <- ee$Image(albedoSHList$get(i))$clip(bBoxS)
+  imgID <- img$id()$getInfo()
+  # ee_print(img)
+  # Map$addLayer(img, vizTempK, "JanFeb Temperature")
+  savealbedoSH <- ee_image_to_asset(img, description=paste0("Save_albedo_JanFeb_", imgID), assetId=file.path(assetRoot, "Albedo_JanFeb_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+  savealbedoSH$start()
 }
 # -----------
 
