@@ -548,39 +548,69 @@ albedoSHReproj = albedoJanFeb$select("Albedo_WSA_shortwave")$map(function(img){
 albedoSHReproj <- albedoSHReproj$map(function(IMG){IMG$updateMask(vegMask)})
 
 
+# Try to just go ahead and aggregate to year now
+yrList <- ee$List(albedoNHReproj$aggregate_array("year"))$distinct()
+yrString <- yrList$map(ee_utils_pyfunc(function(j){
+  return(ee$String("YR")$cat(ee$String(ee$Number(j)$format())))
+}))
 
-# Trying to export each collection as a Collection 
-# Source: https://gis.stackexchange.com/questions/407146/export-imagecollection-to-asset
-albedoSizeNH <- albedoNHReproj$size()$getInfo()
-albedoNHList <- albedoNHReproj$toList(albedoSizeNH)
+albedoNHYrMean <- yrList$map(ee_utils_pyfunc(function(j){
+  YR <- ee$Number(j);
+  START <- ee$Date$fromYMD(YR,1,1);
+  END <- ee$Date$fromYMD(YR,12,31);
+  albedoYR <- albedoNHReproj$filter(ee$Filter$date(START, END))
+  # // var lstDev =  // make each layer an anomaly map
+  albedoMean <- albedoYR$select('Albedo_WSA_shortwave')$reduce(ee$Reducer$median())
+  # tempDev <- lstYR$select('LST_Day_Dev')$reduce(ee$Reducer$mean())
+  albedoAgg <- ee$Image(albedoMean)
+  
+  ## ADD YEAR AS A PROPERTY!!
+  albedoAgg <- albedoAgg$set(ee$Dictionary(list(year=YR)))
+  albedoAgg <- albedoAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
+  # ee_print(tempAgg)
+  # Map$addLayer(tempAgg$select('LST_Day_1km_mean'), vizTempK, 'Mean Surface Temperature (K)');
+  # Map$addLayer(tempAgg$select('LST_Day_Dev_mean'), vizTempAnom, 'Mean Surface Temperature - Anomaly');
+  
+  return (albedoAgg); # update to standardized once read
+}))
+albedoNHYrMean <- ee$ImageCollection$fromImages(albedoNHYrMean) # go ahead and overwrite it since we're just changing form
+albedoNHYrMean <- ee$ImageCollection$toBands(albedoNHYrMean)$rename(yrString)
+# albedoNHYrMean <- albedoNHYrMean$setDefaultProjection(projLST)
+# ee_print(albedoNHYrMean)
+# Map$addLayer(albedoNHYrMean$select('YR2020'), vizAlbedo, 'Median Albedo');
 
-# Doing a loop for the Northern Halbedophere first
-# Create the Image Collection folder manually
-# ee_manage_create(file.path(assetRoot, "Albedo_JulAug_Clean"), asset_type="ImageCollection")
-for(i in 1:sizeNH-1){
-  img <- ee$Image(albedoNHList$get(i))
-  imgID <- img$id()$getInfo()
-  # ee_print(img)
-  # Map$addLayer(img, vizTempK, "Jul/Aug Temperature")
-  savealbedoNH <- ee_image_to_asset(img, description=paste0("Save_albedo_JulAug_", imgID), assetId=file.path(assetRoot, "Albedo_JulAug_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxN, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-  savealbedoNH$start()
-}
+saveAlbedoNH <- ee_image_to_asset(albedoNHYrMean, description="Save_Albedo_NH", assetId=file.path(assetHome, "Albedo_MCD43A3_1km_NorthHemisphere"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveAlbedoNH$start()
 
 
-sizeSH <- albedoSHmask$size()$getInfo()
-albedoSHList <- albedoSHmask$toList(sizeSH)
+albedoSHYrMean <- yrList$map(ee_utils_pyfunc(function(j){
+  YR <- ee$Number(j);
+  START <- ee$Date$fromYMD(YR,1,1);
+  END <- ee$Date$fromYMD(YR,12,31);
+  albedoYR <- albedoSHReproj$filter(ee$Filter$date(START, END))
+  # // var lstDev =  // make each layer an anomaly map
+  albedoMean <- albedoYR$select('Albedo_WSA_shortwave')$reduce(ee$Reducer$median())
+  # tempDev <- lstYR$select('LST_Day_Dev')$reduce(ee$Reducer$mean())
+  albedoAgg <- ee$Image(albedoMean)
+  
+  ## ADD YEAR AS A PROPERTY!!
+  albedoAgg <- albedoAgg$set(ee$Dictionary(list(year=YR)))
+  albedoAgg <- albedoAgg$set(ee$Dictionary(list(`system:index`=YR$format("%03d"))))
+  # ee_print(tempAgg)
+  # Map$addLayer(tempAgg$select('LST_Day_1km_mean'), vizTempK, 'Mean Surface Temperature (K)');
+  # Map$addLayer(tempAgg$select('LST_Day_Dev_mean'), vizTempAnom, 'Mean Surface Temperature - Anomaly');
+  
+  return (albedoAgg); # update to standardized once read
+}))
+albedoSHYrMean <- ee$ImageCollection$fromImages(albedoSHYrMean) # go ahead and overwrite it since we're just changing form
+albedoSHYrMean <- ee$ImageCollection$toBands(albedoSHYrMean)$rename(yrString)
+albedoSHYrMean <- albedoSHYrMean$setDefaultProjection(projLST)
+# ee_print(albedoSHYrMean)
+# Map$addLayer(albedoSHYrMean$select('YR2020'), vizAlbedo, 'Median Albedo');
 
-# Create this manually!
-# ee_manage_create(file.path(assetRoot, "Albedo_JanFeb_Clean"), asset_type="ImageCollection")
+saveAlbedoSH <- ee_image_to_asset(albedoSHYrMean, description="Save_Albedo_SH", assetId=file.path(assetHome, "Albedo_MCD43A3_1km_SouthHemisphere"), maxPixels = 10e9, scale=926.6, region = maskBBox, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
+saveAlbedoSH$start()
 
-for(i in 1:sizeSH-1){
-  img <- ee$Image(albedoSHList$get(i))$clip(bBoxS)
-  imgID <- img$id()$getInfo()
-  # ee_print(img)
-  # Map$addLayer(img, vizTempK, "JanFeb Temperature")
-  savealbedoSH <- ee_image_to_asset(img, description=paste0("Save_albedo_JanFeb_", imgID), assetId=file.path(assetRoot, "Albedo_JanFeb_Clean", imgID), maxPixels = 10e9, scale=926.6, region = bBoxS, crs="SR-ORG:6974", crsTransform=c(926.625433056, 0, -20015109.354, 0, -926.625433055, 10007554.677), overwrite=T)
-  savealbedoSH$start()
-}
 # -----------
 
 
