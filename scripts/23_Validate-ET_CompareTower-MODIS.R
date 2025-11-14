@@ -6,10 +6,10 @@ library(nlme)
 
 # file paths for where to put the processed data
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5/data_processed_final")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
-path.analysis <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
-path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 5 - Nature Climate Change")
+path.analysis <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5")
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 6")
 GoogleFolderTower <- "~/Google Drive/My Drive/UHI_Analysis_TowerValidation"
 
 

@@ -14,14 +14,14 @@
 library(ggplot2); library(cowplot)
 library(ggpmisc)
 
-path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5")
 path.cities <- file.path(path.google, "data_processed_final")
 path.tower <- file.path(path.google, "../ET Validation")
 
 path.figsMS <- file.path(path.google, "figures_manuscript")
 path.figsExplore <- file.path(path.google, "figures_exploratory")
 dir.create(path.figsMS, recursive=T, showWarnings=F)
-path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 5 - Nature Climate Change")
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 6")
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-

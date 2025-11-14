@@ -12,10 +12,10 @@ library(mgcv)
 # Establish file paths etc ----
 ###########################################
 # user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
+path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5")
 path.cities <- file.path(path.google, "data_processed_final")
 path.et <- file.path(path.google, "ET_models")
-path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v4/")
+path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v5/")
 
 
 path.figs <- file.path(path.google, "figures_exploratory")

@@ -3,7 +3,7 @@
 library(ggplot2)
 
 path.google <- file.path("~/Google Drive/")
-path.dat <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/")
+path.dat <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5/")
 
 # Read in the base model stats
 

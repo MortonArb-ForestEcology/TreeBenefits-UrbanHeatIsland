@@ -24,7 +24,7 @@ biome.pall.all = c("Taiga"= "#2c5c74",
 # path.cities <- "../data_processed/data_cities_all"
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5/data_processed_final")
 
 file.cityStatsRegion <- file.path(path.cities, "../city_stats_model-selection.csv")
 

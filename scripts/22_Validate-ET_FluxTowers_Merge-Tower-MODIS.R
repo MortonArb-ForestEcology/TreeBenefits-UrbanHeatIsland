@@ -23,9 +23,9 @@ ETColors <- c('#ffffff', '#fcd163', '#99b718', '#66a000', '#3e8601', '#207401', 
 
 # file paths for where to put the processed data
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/ET_models")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5/ET_models")
 path.tower <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/ET Validation")
-path.EEoutSpat <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
+path.EEoutSpat <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v5")
 
 # Getting our SDEI data layer
 sdei.urb <- read_sf("../data_raw/sdei-global-uhi-2013-shp/shp/sdei-global-uhi-2013.shp")

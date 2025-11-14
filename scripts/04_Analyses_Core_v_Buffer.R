@@ -7,10 +7,10 @@ library(raster); library(sp); library(terra); library(sf)
 # Establish file paths etc ----
 ###########################################
 # user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
+path.google <- file.path("~/Google Drive/Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5")
 path.cities <- file.path(path.google, "data_processed_final")
 # Path to where Earth Engine is saving the spatial extractions
-path.EEout <- file.path("~/Google Drive/My Drive", "UHI_Analysis_Output_Final_v4")
+path.EEout <- file.path("~/Google Drive/My Drive", "UHI_Analysis_Output_Final_v5")
 
 path.figs <- file.path(path.google, "figures_exploratory")
 dir.create(path.figs, recursive=T, showWarnings=F)

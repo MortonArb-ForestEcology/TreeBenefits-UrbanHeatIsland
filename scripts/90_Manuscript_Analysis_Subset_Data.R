@@ -5,10 +5,10 @@
 # 02. Cities need more trees to offset UHIs; more trees means more water; ----
 # 03. Warming will increase water demand; precipitation will not keep pace in many regions ----
 
-path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5")
 path.cities <- file.path(path.google, "data_processed_final")
-path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v4/")
-path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 5 - Nature Climate Change/")
+path.raw <- file.path("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v5/")
+path.MS <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Submission 6/")
 
 path.figs <- file.path(path.google, "figures_manuscript")
 dir.create(path.figs, recursive=T, showWarnings=F)

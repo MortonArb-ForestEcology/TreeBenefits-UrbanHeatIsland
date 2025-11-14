@@ -7,7 +7,7 @@
 library(mgcv); library(doParallel); library(foreach)
 
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/ET_models")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5/ET_models")
 fsave <- file.path(path.cities, "../CrossValidation-ET.csv")
 
 overwrite=F # whether to overwrite our file or not

@@ -7,7 +7,7 @@ library(ggplot2); library(RColorBrewer); library(cowplot)
 # Establish file paths etc ----
 ###########################################
 # user.google <- dir("~/Library/CloudStorage/")
-path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1")
+path.google <- file.path("~/Google Drive/Shared drives/Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5")
 path.cities <- file.path(path.google)
 
 file.cityAll.stats <- file.path(path.cities, "city_stats_model.csv")

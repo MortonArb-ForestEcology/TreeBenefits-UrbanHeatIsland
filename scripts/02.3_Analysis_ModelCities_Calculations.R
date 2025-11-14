@@ -7,7 +7,7 @@ overwrite=T
 # path.cities <- "../data_processed/data_cities_all"
 # user.google <- dir("~/Library/CloudStorage/")
 path.google <- file.path("~/Google Drive/")
-path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v4.1/data_processed_final")
+path.cities <- file.path(path.google, "Shared drives", "Urban Ecological Drought/Trees-UHI Manuscript/Analysis_v5/data_processed_final")
 
 if(!dir.exists(path.cities)) dir.create(path.cities, recursive=T, showWarnings = F)
 file.cityStatsRegion <- file.path(path.cities, "../city_stats_model.csv")
@@ -17,7 +17,7 @@ modelUse <- "S3D"
 nInterval = 50 # Number of divisions for plotting partial effects
 
 # Path to where Earth Engine is saving the spatial extractions
-path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v4")
+path.EEout <- file.path(path.google, "My Drive", "UHI_Analysis_Output_Final_v5")
 
 # Some color palettes for later
 grad.temp <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
