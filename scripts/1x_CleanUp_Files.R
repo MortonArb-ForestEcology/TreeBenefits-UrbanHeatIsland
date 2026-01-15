@@ -20,4 +20,4 @@ for(i in 2:length(foldersSaveDupes)){
   
 }
 # length(dir(file.path(path.google, GoogleFolderSave)))
-length(dir(file.path(path.google, GoogleFolderSave), "Emissivity"))
+length(dir(file.path(path.google, GoogleFolderSave), "ERA5"))

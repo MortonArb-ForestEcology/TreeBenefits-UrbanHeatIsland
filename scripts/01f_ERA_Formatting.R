@@ -224,26 +224,26 @@ if(!overwrite){
 length(cityIdS); length(cityIdNW); length(cityIdNE1); length(cityIdNE2)
 
 
-# Running a test case
-CITY = "SWE3477"
-extractERA5(CitySP=citiesUse, CityNames = CITY, ERA5=era5JulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
-testERA <- read.csv(file.path(path.google, GoogleFolderSave, paste0(CITY, "_ERA5_daily.csv")))
-# plot(testTree[[1]])
+# # Running a test case
+# CITY = "SWE3477"
+# extractERA5(CitySP=citiesUse, CityNames = CITY, ERA5=era5JulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+# testERA <- read.csv(file.path(path.google, GoogleFolderSave, paste0(CITY, "_ERA5_daily.csv")))
+# # plot(testTree[[1]])
 
 
 if(length(cityIdS)>0){
-  extractGLDAS(CitySP=citiesUse, CityNames = cityIdS, GLDAS=GLDASJanFeb, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractERA5(CitySP=citiesUse, CityNames = cityIdS, ERA5=era5JanFeb, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 
 if(length(cityIdNW)>0){
-  extractGLDAS(CitySP=citiesUse, CityNames = cityIdNW, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractERA5(CitySP=citiesUse, CityNames = cityIdNW, ERA5=era5JulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE1)>0){
-  extractGLDAS(CitySP=citiesUse, CityNames = cityIdNE1, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractERA5(CitySP=citiesUse, CityNames = cityIdNE1, ERA5=era5JulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
 
 if(length(cityIdNE2)>0){
-  extractGLDAS(CitySP=citiesUse, CityNames = cityIdNE2, GLDAS=GLDASJulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
+  extractERA5(CitySP=citiesUse, CityNames = cityIdNE2, ERA5=era5JulAug, GoogleFolderSave = GoogleFolderSave, overwrite=overwrite)
 }
