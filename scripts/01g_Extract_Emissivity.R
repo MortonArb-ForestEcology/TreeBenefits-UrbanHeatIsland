@@ -2,6 +2,8 @@
 
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
+
+# ee_Authenticate()
 rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T, project="urbanecodrought")
 path.google <- file.path("~/Google Drive/My Drive")
 GoogleFolderSave <- "UHI_Analysis_Output_Final_v5"
@@ -28,7 +30,7 @@ sdei.df <- sdei.df[sdei.df$ES00POP>=100e3 & sdei.df$SQKM_FINAL>=1e2,]
 cityIDsAll <- sdei.df$ISOURBID
 
 sdei <- ee$FeatureCollection('users/crollinson/sdei-global-uhi-2013');
-# print(sdei.first())
+# ee_print(sdei)
 
 # Right now, just set all cities with >100k people in the metro area and at least 100 sq km in size
 citiesUse <- sdei$filter(ee$Filter$gte('ES00POP', 100e3))$filter(ee$Filter$gte('SQKM_FINAL', 1e2)) 
