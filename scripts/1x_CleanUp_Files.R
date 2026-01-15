@@ -19,4 +19,5 @@ for(i in 2:length(foldersSaveDupes)){
   file.remove(file.path(path.google, foldersSaveDupes[i]), showWarnings=F)
   
 }
-length(dir(file.path(path.google, GoogleFolderSave)))
+# length(dir(file.path(path.google, GoogleFolderSave)))
+length(dir(file.path(path.google, GoogleFolderSave), "Emissivity"))
