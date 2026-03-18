@@ -1,7 +1,7 @@
 # Script to clean up file saving issues from Earth Engine being annoyign
 path.google <- file.path("~/Google Drive/My Drive")
 GoogleFolderSave <- "UHI_Analysis_Output_Final_v5"
-
+dir.exists("~/Google Drive/My Drive/UHI_Analysis_Output_Final_v5/")
 
 foldersSaveDupes <- dir(path.google, GoogleFolderSave)
 length(foldersSaveDupes)-1
@@ -20,4 +20,6 @@ for(i in 2:length(foldersSaveDupes)){
   
 }
 # length(dir(file.path(path.google, GoogleFolderSave)))
-length(dir(file.path(path.google, GoogleFolderSave), "ERA5"))
+length(dir(file.path(path.google, GoogleFolderSave), "ERA5_daily"))
+length(dir(file.path(path.google, GoogleFolderSave)))
+length(dir("~/Google Drive/My Drive/"))
