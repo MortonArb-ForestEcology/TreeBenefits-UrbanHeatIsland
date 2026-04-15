@@ -6,3 +6,5 @@ scripts/.Rapp.history
 scripts/.RData
 .DS_Store
 /data_shapefiles
+.gitignore
+Claude Context/*
