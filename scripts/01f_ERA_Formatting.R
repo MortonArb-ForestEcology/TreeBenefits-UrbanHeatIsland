@@ -2,16 +2,20 @@
 # this might get used in one of a couple ways
 # 1. Use to parameterize a semi-mechanistic model of ET rather than rely on MODIS; doing a ET0 x Kc equation (FAO-style)+ evaluate precip
 
-
+# Check the workign directory -- if we're using vs code and not in the scripts folder, lets reset it there
+if(!grepl("scripts", getwd())){
+  setwd("scripts")
+}
 
 library(rgee); library(raster); library(terra)
 ee_check() # For some reason, it's important to run this before initializing right now
-rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T, project="urbanecodrought")
+rgee::ee_Initialize(user = 'crollinson@mortonarb.org', project="urbanecodrought")
 path.google <- file.path("~/Google Drive/My Drive")
 GoogleFolderSave <- "UHI_Analysis_Output_Final_v5"
 if(!file.exists(file.path(path.google, GoogleFolderSave))) dir.create(file.path(path.google, GoogleFolderSave), recursive = T)
 
 assetHome <- ee_get_assethome()
+
 overwrite=F
 
 
@@ -78,7 +82,7 @@ vizPrecip <- list(
 # Step 1: Get ERA formatted like our existing MODIS data
 # https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR 
 # Variables we care about -- CITY SCALE
-varsERA <- c("temperature_2m",  "total_precipitation_sum", "surface_thermal_radiation_downwards_sum", "surface_solar_radiation_downwards_sum", "u_component_of_wind_10m", "v_component_of_wind_10m", "dewpoint_temperature_2m", "surface_pressure", "temperature_2m_min", "temperature_2m_max", "evaporation_from_bare_soil_sum", "total_evaporation") # Note bare soil = transpiration b/c of weird ECMWF hickup; total_evaporation (param 182) is sum of all components and unaffected by the component swap
+varsERA <- c("temperature_2m",  "total_precipitation_sum", "surface_thermal_radiation_downwards_sum", "surface_solar_radiation_downwards_sum", "u_component_of_wind_10m", "v_component_of_wind_10m", "dewpoint_temperature_2m", "surface_pressure", "temperature_2m_min", "temperature_2m_max", "evaporation_from_bare_soil_sum", "total_evaporation_sum") # Note bare soil = transpiration b/c of weird ECMWF hickup; total_evaporation_sum (param 182) is sum of all components and unaffected by the component swap
 unitsERA <- c("K", "m/day", "J/m2", "J/m2", "m/s", "m/s", "K", "Pa", "K", "K", "m/day", "m/day")
 
 # Note: one less var here because we'll convert u&v wind to wind
@@ -104,7 +108,7 @@ convert_era5 <- function(img) {
   tmin_C <- img$select("temperature_2m_min")$subtract(273.15)$rename("tmin_C") 
   tmax_C <- img$select("temperature_2m_max")$subtract(273.15)$rename("tmax_C") 
   et_mm <- img$select("evaporation_from_bare_soil_sum")$multiply(-1000)$rename("et_mm") # Converting so not negative
-  et_total_mm <- img$select("total_evaporation")$multiply(-1000)$rename("et_total_mm") # Sum of all components; negative in ERA5 convention → positive mm
+  et_total_mm <- img$select("total_evaporation_sum")$multiply(-1000)$rename("et_total_mm") # Sum of all components; negative in ERA5 convention → positive mm
 
   # Calculate wind speed: sqrt(u^2 + v^2)
   # .hypot() is the most computationally efficient way to do this

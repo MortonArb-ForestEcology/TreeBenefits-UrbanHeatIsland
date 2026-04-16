@@ -48,7 +48,7 @@ varsERA <- c("temperature_2m", "total_precipitation_sum",
              "u_component_of_wind_10m", "v_component_of_wind_10m",
              "dewpoint_temperature_2m", "surface_pressure",
              "temperature_2m_min", "temperature_2m_max",
-             "evaporation_from_bare_soil_sum", "total_evaporation")
+             "evaporation_from_bare_soil_sum", "total_evaporation_sum")
 
 convert_era5 <- function(img) {
   tmean_c    <- img$select("temperature_2m")$subtract(273.15)$rename("tmean_C")
@@ -60,7 +60,7 @@ convert_era5 <- function(img) {
   tmin_C     <- img$select("temperature_2m_min")$subtract(273.15)$rename("tmin_C")
   tmax_C     <- img$select("temperature_2m_max")$subtract(273.15)$rename("tmax_C")
   et_mm      <- img$select("evaporation_from_bare_soil_sum")$multiply(-1000)$rename("et_mm")
-  et_total_mm <- img$select("total_evaporation")$multiply(-1000)$rename("et_total_mm")
+  et_total_mm <- img$select("total_evaporation_sum")$multiply(-1000)$rename("et_total_mm")
 
   u_wind <- img$select("u_component_of_wind_10m")
   v_wind <- img$select("v_component_of_wind_10m")
