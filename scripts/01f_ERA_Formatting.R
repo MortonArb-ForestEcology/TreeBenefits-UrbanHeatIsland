@@ -78,12 +78,12 @@ vizPrecip <- list(
 # Step 1: Get ERA formatted like our existing MODIS data
 # https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR 
 # Variables we care about -- CITY SCALE
-varsERA <- c("temperature_2m",  "total_precipitation_sum", "surface_thermal_radiation_downwards_sum", "surface_solar_radiation_downwards_sum", "u_component_of_wind_10m", "v_component_of_wind_10m", "dewpoint_temperature_2m", "surface_pressure", "temperature_2m_min", "temperature_2m_max", "evaporation_from_bare_soil_sum") # Note bare sooil = transpriation b/c of weird ECMWF hicckup
-unitsERA <- c("K", "m/day", "J/m2", "J/m2", "m/s", "m/s", "K", "Pa", "K", "K", "m/day")
+varsERA <- c("temperature_2m",  "total_precipitation_sum", "surface_thermal_radiation_downwards_sum", "surface_solar_radiation_downwards_sum", "u_component_of_wind_10m", "v_component_of_wind_10m", "dewpoint_temperature_2m", "surface_pressure", "temperature_2m_min", "temperature_2m_max", "evaporation_from_bare_soil_sum", "total_evaporation") # Note bare soil = transpiration b/c of weird ECMWF hickup; total_evaporation (param 182) is sum of all components and unaffected by the component swap
+unitsERA <- c("K", "m/day", "J/m2", "J/m2", "m/s", "m/s", "K", "Pa", "K", "K", "m/day", "m/day")
 
 # Note: one less var here because we'll convert u&v wind to wind
-varNames <- c("tmean_C", "precip_mm", "rlong_MJm2", "rshort_MJm2", "wind_ms", "tdew_C", "press_kPA", "tmin_C", "tmax_C", "et_mm")
-unitsUse <- c("C", "mm/day", "MJ/m2/day", "MJ/m2/Day", "m/s", "C", "kPA", "C", "C", "mm/day")
+varNames <- c("tmean_C", "precip_mm", "rlong_MJm2", "rshort_MJm2", "wind_ms", "tdew_C", "press_kPA", "tmin_C", "tmax_C", "et_mm", "et_total_mm")
+unitsUse <- c("C", "mm/day", "MJ/m2/day", "MJ/m2/Day", "m/s", "C", "kPA", "C", "C", "mm/day", "mm/day")
 
 # Conversion list
 # Kelvin to Celsius: C=K-273.15
@@ -98,21 +98,22 @@ convert_era5 <- function(img) {
   tmean_c <- img$select("temperature_2m")$subtract(273.15)$rename("tmean_C")
   precip_mm <- img$select("total_precipitation_sum")$multiply(1000)$rename("precip_mm")
   rlong_MJm2 <- img$select("surface_thermal_radiation_downwards_sum")$divide(1000000)$rename("rlong_MJm2")
-  rshort_MJm2 <- img$select("surface_thermal_radiation_downwards_sum")$divide(1000000)$rename("rshort_MJm2")
+  rshort_MJm2 <- img$select("surface_solar_radiation_downwards_sum")$divide(1000000)$rename("rshort_MJm2")
   tdew_C <- img$select("dewpoint_temperature_2m")$subtract(273.15)$rename("tdew_C")
   press_kPA <- img$select("surface_pressure")$divide(1000)$rename("press_kPA")
   tmin_C <- img$select("temperature_2m_min")$subtract(273.15)$rename("tmin_C") 
   tmax_C <- img$select("temperature_2m_max")$subtract(273.15)$rename("tmax_C") 
   et_mm <- img$select("evaporation_from_bare_soil_sum")$multiply(-1000)$rename("et_mm") # Converting so not negative
-  
+  et_total_mm <- img$select("total_evaporation")$multiply(-1000)$rename("et_total_mm") # Sum of all components; negative in ERA5 convention → positive mm
+
   # Calculate wind speed: sqrt(u^2 + v^2)
   # .hypot() is the most computationally efficient way to do this
   u_wind <- img$select("u_component_of_wind_10m")
   v_wind <- img$select("v_component_of_wind_10m")
   wind_ms <- u_wind$hypot(v_wind)$rename("wind_ms")
-    
+
   # Return the image with the new bands (and keep original metadata)
-  return(img$addBands(tmean_c)$addBands(precip_mm)$addBands(rlong_MJm2)$addBands(rshort_MJm2)$addBands(tdew_C)$addBands(press_kPA)$addBands(tmin_C)$addBands(tmax_C)$addBands(et_mm)$addBands(wind_ms))
+  return(img$addBands(tmean_c)$addBands(precip_mm)$addBands(rlong_MJm2)$addBands(rshort_MJm2)$addBands(tdew_C)$addBands(press_kPA)$addBands(tmin_C)$addBands(tmax_C)$addBands(et_mm)$addBands(et_total_mm)$addBands(wind_ms))
 }
 
 
