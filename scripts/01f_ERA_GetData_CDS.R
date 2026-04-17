@@ -65,12 +65,47 @@ jobs_list <- if (file.exists(jobs_rds)) {
   list()
 }
 
-# Clear previously failed jobs so they re-enter the submission queue.
-# Failed jobs are often CDS rejections (queue limit) rather than bad requests.
-failed_keys <- names(jobs_list)[sapply(jobs_list, function(x) x$status == "failed")]
-if (length(failed_keys) > 0) {
-  message("Clearing ", length(failed_keys), " previously failed jobs for resubmission...")
-  jobs_list[failed_keys] <- NULL
+# Status constants — defined early for startup reconciliation
+SUCCESS_STATUS  <- c("successful", "completed")
+TERMINAL_STATUS <- c("failed", "dismissed", "deleted", "expired")
+
+# Disk is ground truth: promote any file already on disk to "downloaded"
+for (k in names(jobs_list)) {
+  if (file.exists(jobs_list[[k]]$target) && jobs_list[[k]]$status != "downloaded")
+    jobs_list[[k]]$status <- "downloaded"
+}
+
+# For still-pending entries, poll CDS to distinguish live jobs from dead ones.
+# Only clear jobs CDS confirms as terminal; keep live handles so we can download them.
+pending_keys <- names(jobs_list)[sapply(jobs_list, function(x) x$status == "pending")]
+if (length(pending_keys) > 0) {
+  message("Reconciling ", length(pending_keys),
+          " pending handles with CDS (1 sec/job — may take a few minutes)...")
+  for (k in pending_keys) {
+    entry <- jobs_list[[k]]
+    st <- tryCatch({
+      entry$job$update_status()
+      entry$job$get_status()
+    }, error = function(e) "unknown")
+
+    if (st %in% SUCCESS_STATUS) {
+      ok <- tryCatch({ entry$job$download(); TRUE }, error = function(e) FALSE)
+      jobs_list[[k]]$status <- if (ok && file.exists(entry$target)) "downloaded" else "failed"
+      if (jobs_list[[k]]$status == "downloaded") message("  Recovered on reconcile: ", k)
+    } else if (st %in% TERMINAL_STATUS) {
+      jobs_list[[k]]$status <- "failed"  # mark for clearing below
+    }
+    # "accepted" / "running" / "unknown" → leave as "pending" (keep the handle)
+    Sys.sleep(1)  # stay under CDS rate limit
+  }
+  saveRDS(jobs_list, jobs_rds)
+}
+
+# Clear only confirmed-dead entries; live pending jobs stay in jobs_list
+dead <- names(jobs_list)[sapply(jobs_list, function(x) x$status == "failed")]
+if (length(dead) > 0) {
+  message("Clearing ", length(dead), " dead handles (dismissed/failed) for resubmission...")
+  jobs_list[dead] <- NULL
   saveRDS(jobs_list, jobs_rds)
 }
 
@@ -153,8 +188,7 @@ if (n_queued_now > 0 && n_active == 0) {
 # ---- Poll + download + refill loop ----
 # job$get_status() returns: "accepted" | "running" | "successful" | "failed" | "dismissed"
 # job$is_failed() only catches "failed", NOT "dismissed" — check get_status() directly.
-SUCCESS_STATUS  <- c("successful", "completed")
-TERMINAL_STATUS <- c("failed", "dismissed", "deleted", "expired")
+# SUCCESS_STATUS and TERMINAL_STATUS defined above for reuse here.
 
 t_start <- proc.time()["elapsed"]
 
