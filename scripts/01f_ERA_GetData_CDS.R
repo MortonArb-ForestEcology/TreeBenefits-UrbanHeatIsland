@@ -77,15 +77,19 @@ if (length(failed_keys) > 0) {
 n_on_disk <- sum(file.exists(job_grid$target))
 n_active  <- sum(sapply(jobs_list, function(x) x$status == "pending"))
 
-# Jobs not yet submitted and not yet downloaded, in order
+# Jobs not yet submitted and not yet downloaded, ET variables front-loaded
 submit_queue <- job_grid[
   !job_grid$key %in% names(jobs_list) & !file.exists(job_grid$target), ,
   drop = FALSE
 ]
+et_first     <- submit_queue$short %in% c("e", "evbs")
+submit_queue <- rbind(submit_queue[et_first, ], submit_queue[!et_first, ])
+rownames(submit_queue) <- NULL
 submit_ptr <- 1L   # index of next row in submit_queue to submit
 
 message(n_on_disk, " files on disk | ", n_active, " currently queued on CDS | ",
-        nrow(submit_queue), " waiting to submit.")
+        nrow(submit_queue), " waiting to submit (",
+        sum(et_first), " ET jobs front-loaded).")
 
 # ---- Helper: submit the next job from submit_queue ----
 # Uses <<- to update jobs_list and submit_ptr in the script environment.
@@ -147,9 +151,10 @@ if (n_queued_now > 0 && n_active == 0) {
 }
 
 # ---- Poll + download + refill loop ----
-# wf_status() returns "accepted" | "running" | "successful" | "failed"
-# (ecmwfr may normalize to "completed" depending on version; accept both)
-SUCCESS_STATUS <- c("successful", "completed")
+# job$get_status() returns: "accepted" | "running" | "successful" | "failed" | "dismissed"
+# job$is_failed() only catches "failed", NOT "dismissed" — check get_status() directly.
+SUCCESS_STATUS  <- c("successful", "completed")
+TERMINAL_STATUS <- c("failed", "dismissed", "deleted", "expired")
 
 t_start <- proc.time()["elapsed"]
 
@@ -163,26 +168,30 @@ repeat {
 
     if (file.exists(entry$target)) {
       jobs_list[[k]]$status <- "downloaded"
+      saveRDS(jobs_list, jobs_rds)
       next
     }
 
-    st <- tryCatch(
-      wf_status(entry$job),
-      error = function(e) {
-        warning("wf_status() error for ", k, ": ", conditionMessage(e))
-        "unknown"
-      }
+    # Poll CDS for current status — update_status() mutates the R6 object in place;
+    # get_status() reads it back. jobs_list[[k]]$status is our own tracking field
+    # and must be explicitly updated below.
+    tryCatch(
+      entry$job$update_status(),
+      error = function(e) warning("update_status() error for ", k, ": ", conditionMessage(e))
     )
+    st <- tryCatch(entry$job$get_status(), error = function(e) "unknown")
 
     slot_freed <- FALSE
 
     if (st %in% SUCCESS_STATUS) {
       message("Downloading: ", k, " ...")
+      # job$download() pulls the file to the path set at wf_request() time (dir.temp).
+      # This is the actual download trigger — transfer=FALSE only deferred it.
       ok <- tryCatch({
-        wf_transfer(entry$job, path = dir.temp, verbose = FALSE)
+        entry$job$download()
         TRUE
       }, error = function(e) {
-        warning("wf_transfer() failed for ", k, ": ", conditionMessage(e))
+        warning("download() failed for ", k, ": ", conditionMessage(e))
         FALSE
       })
 
@@ -191,18 +200,19 @@ repeat {
         message("  -> saved: ", basename(entry$target))
       } else {
         jobs_list[[k]]$status <- "failed"
-        warning("  -> file missing after transfer: ", entry$target)
+        warning("  -> file missing after download(): ", entry$target)
       }
       saveRDS(jobs_list, jobs_rds)
       slot_freed <- TRUE
 
-    } else if (st == "failed") {
-      warning("CDS job failed: ", k)
+    } else if (st %in% TERMINAL_STATUS) {
+      warning("CDS job '", st, "': ", k)
       jobs_list[[k]]$status <- "failed"
       saveRDS(jobs_list, jobs_rds)
       slot_freed <- TRUE
 
     } else {
+      # still "accepted" or "running" or "unknown"
       n_still_pending <- n_still_pending + 1
     }
 
