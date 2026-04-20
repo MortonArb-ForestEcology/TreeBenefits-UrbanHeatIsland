@@ -11,7 +11,7 @@
 
 library(rgee); library(raster); library(terra)
 ee_check()
-rgee::ee_Initialize(user = 'crollinson@mortonarb.org', drive=T, project="urbanecodrought")
+rgee::ee_Initialize(user = 'crollinson@mortonarb.org', project="urbanecodrought")
 path.google <- file.path("~/Google Drive/My Drive")
 GoogleFolderSave <- "UHI_Analysis_Output_Final_v5"
 if(!file.exists(file.path(path.google, GoogleFolderSave))) dir.create(file.path(path.google, GoogleFolderSave), recursive = T)
@@ -163,3 +163,6 @@ if(length(cityIdS)   > 0) extractERA5_etRaster(citiesUse, cityIdS,   era5JanFeb,
 if(length(cityIdNW)  > 0) extractERA5_etRaster(citiesUse, cityIdNW,  era5JulAug, GoogleFolderSave, overwrite)
 if(length(cityIdNE1) > 0) extractERA5_etRaster(citiesUse, cityIdNE1, era5JulAug, GoogleFolderSave, overwrite)
 if(length(cityIdNE2) > 0) extractERA5_etRaster(citiesUse, cityIdNE2, era5JulAug, GoogleFolderSave, overwrite)
+
+
+
