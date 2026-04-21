@@ -19,7 +19,8 @@ library(ecmwfr)
 MAX_QUEUED <- 140   # stay safely under CDS's 150-request limit
 
 # ---- Paths ----
-dir.temp <- file.path(dirname(getwd()), "data_raw", "era5_cds_temp")
+dir.temp    <- file.path(dirname(getwd()), "data_raw", "era5_cds_temp")
+dir.archive <- file.path(dirname(getwd()), "data_raw", "era5_cds_archived")
 dir.create(dir.temp, showWarnings = FALSE, recursive = TRUE)
 jobs_rds <- file.path(dir.temp, "cds_jobs.rds")
 
@@ -75,6 +76,26 @@ for (k in names(jobs_list)) {
     jobs_list[[k]]$status <- "downloaded"
 }
 
+# Archive is also ground truth: if a variable's tar.gz exists in era5_cds_archived/,
+# treat all 80 of its jobs as done so they are excluded from the submit queue.
+# This lets you run extraction + archival first, then resume downloads for remaining vars.
+if (dir.exists(dir.archive)) {
+  tarballs      <- dir(dir.archive, pattern = "^era5_.+_ERA5-Land_CDS\\.tar\\.gz$")
+  archived_vars <- sub("^era5_(.+)_ERA5-Land_CDS\\.tar\\.gz$", "\\1", tarballs)
+  if (length(archived_vars) > 0) {
+    message("Archived variables (", paste(archived_vars, collapse = ", "),
+            ") — marking all their jobs as done.")
+    archived_keys <- job_grid$key[job_grid$short %in% archived_vars]
+    new_keys      <- archived_keys[!archived_keys %in% names(jobs_list)]
+    for (k in new_keys) {
+      jobs_list[[k]] <- list(job    = NULL,
+                             target = job_grid$target[job_grid$key == k],
+                             status = "downloaded")
+    }
+    if (length(new_keys) > 0) saveRDS(jobs_list, jobs_rds)
+  }
+}
+
 # For still-pending entries, poll CDS to distinguish live jobs from dead ones.
 # Only clear jobs CDS confirms as terminal; keep live handles so we can download them.
 pending_keys <- names(jobs_list)[sapply(jobs_list, function(x) x$status == "pending")]
@@ -110,7 +131,8 @@ if (length(dead) > 0) {
 }
 
 n_on_disk <- sum(file.exists(job_grid$target))
-n_active  <- sum(sapply(jobs_list, function(x) x$status == "pending"))
+n_active <- ifelse(length(jobs_list)>0, sum(sapply(jobs_list, function(x) x$status == "pending")), 0)
+# n_active  <- sum(sapply(jobs_list, function(x) x$status == "pending"))
 
 # Jobs not yet submitted and not yet downloaded, ET variables front-loaded
 submit_queue <- job_grid[
