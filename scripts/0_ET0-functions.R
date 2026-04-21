@@ -33,13 +33,19 @@ calc_solar_geom <- function(lat, doy, elev) {
 #' @param Tmax,Tmin,Tdew Temperature and Dewpoint in Celsius
 #' @param Rs Incoming solar radiation (MJ/m2/day)
 #' @param wind_10m Wind speed at 10m height (m/s)
-#' @param elev Elevation in meters
+#' @param elev Elevation in meters (used for Rso; required even when press_actual is supplied)
 #' @param lat Latitude in decimal degrees
 #' @param doy Day of year (1-365)
-calc_daily_et0 <- function(Tmax, Tmin, Tdew, Rs, wind_10m, elev, lat, doy) {
-  
+#' @param press_actual Optional: measured atmospheric pressure (kPa). When supplied, used
+#'   directly for the psychrometric constant instead of the FAO-56 standard-atmosphere
+#'   altitude formula (Allen et al. 1998, Eq. 7). ERA5-Land surface pressure is preferred
+#'   because it captures real daily pressure variability. Elevation is still required for
+#'   clear-sky radiation (Rso; Eq. 37) regardless of this argument.
+calc_daily_et0 <- function(Tmax, Tmin, Tdew, Rs, wind_10m, elev, lat, doy, press_actual = NULL) {
+
   # 1. Psychrometric & Pressure
-  pres <- 101.3 * ((293 - 0.0065 * elev) / 293)^5.26
+  # Use measured pressure if provided; otherwise estimate from elevation (FAO-56 Eq. 7)
+  pres  <- if (!is.null(press_actual)) press_actual else 101.3 * ((293 - 0.0065 * elev) / 293)^5.26
   gamma <- 0.000665 * pres
   
   # 2. Vapor Pressure (ea and es)
