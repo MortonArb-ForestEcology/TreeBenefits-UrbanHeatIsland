@@ -49,6 +49,7 @@ overwrite <- FALSE
 # Saved to city_elev_lookup.csv so the rasters only need to be read once.
 if (!file.exists(file.elev.lookup) | overwrite) {
   message("Building city elevation lookup from v4 rasters...")
+  tictoc::tic()
   elev.files <- dir(path.v4, pattern = "_elevation\\.tif$", full.names = FALSE)
   elev.ids   <- sub("_elevation\\.tif$", "", elev.files)
 
@@ -62,10 +63,12 @@ if (!file.exists(file.elev.lookup) | overwrite) {
                             stringsAsFactors = FALSE)
   write.csv(elev.lookup, file.elev.lookup, row.names = FALSE)
   message("  Saved: ", file.elev.lookup, " (", nrow(elev.lookup), " cities)")
+  tictoc::toc()
 } else {
   message("Loading cached elevation lookup: ", file.elev.lookup)
 }
 elev.lookup <- read.csv(file.elev.lookup, stringsAsFactors = FALSE)
+
 
 # ---- Step 1: Setup --------------------------------------------------------
 sdei.df <- data.frame(terra::vect(path.shp))
