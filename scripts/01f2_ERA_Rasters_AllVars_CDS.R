@@ -33,13 +33,14 @@
 if (!grepl("scripts", getwd())) setwd("scripts")
 
 library(terra)
+library(ncdf4)
 
 # ---- Paths ----
 path.google      <- file.path("~/Google Drive/My Drive")
 GoogleFolderSave <- "UHI_Analysis_Output_Final_v5"
 dir.out     <- file.path(path.google, GoogleFolderSave)
-dir.temp    <- file.path(dirname(getwd()), "data_raw", "era5_cds_temp")
-dir.archive <- file.path(dirname(getwd()), "data_raw", "era5_cds_archived")
+dir.temp    <- file.path("../data_raw", "era5_cds_temp")
+dir.archive <- file.path("../data_raw", "era5_cds_archived")
 dir.create(dir.out,     showWarnings = FALSE, recursive = TRUE)
 dir.create(dir.archive, showWarnings = FALSE, recursive = TRUE)
 
@@ -76,7 +77,18 @@ sdei.df   <- sdei.df[sdei.df$ES00POP >= 100e3 & sdei.df$SQKM_FINAL >= 1e2, ]
 
 sdei.vect <- terra::vect(shp.path)
 sdei.vect <- sdei.vect[sdei.vect$ES00POP >= 100e3 & sdei.vect$SQKM_FINAL >= 1e2, ]
-sdei.buf  <- terra::buffer(sdei.vect, width = 10000)  # 10 km buffer, matches GEE
+
+# 10 km buffer — slow to compute (~minutes), so cache to disk after the first run.
+buf_cache <- file.path("..", "data_raw", "sdei_buf_10km.gpkg")
+if (file.exists(buf_cache)) {
+  message("Loading cached 10 km city buffers: ", buf_cache)
+  sdei.buf <- terra::vect(buf_cache)
+} else {
+  message("Computing 10 km city buffers (slow — cached after this run)...")
+  sdei.buf <- terra::buffer(sdei.vect, width = 10000)
+  terra::writeVector(sdei.buf, buf_cache, overwrite = TRUE)
+  message("  Cached to: ", buf_cache)
+}
 
 idx_NH <- which(sdei.df$LATITUDE >= 0)
 idx_SH <- which(sdei.df$LATITUDE <  0)
@@ -96,28 +108,96 @@ expected_nc_files <- function(var) {
 }
 
 
+# ---- Helper: temporal mean of one nc file via ncdf4 + rowSums ----
+# Returns a single-layer SpatRaster of the time-mean values.
+#
+# WHY ncdf4 instead of terra::mean():
+#   ERA5 nc files are stored time-first (one compressed spatial chunk per time step).
+#   terra::mean() reads in spatial blocks, requiring 700+ scattered decompression
+#   seeks per block — extremely slow. ncdf4 reads sequentially in the file's natural
+#   time-step order, and rowSums() computes the accumulation with a single C-level
+#   vectorized call instead of an R-level apply() loop.
+#
+# chunk_hours: number of time steps read per iteration. 168 = one week.
+#   NH domain (3600x950 pixels): ~2.3 GB per chunk. Reduce if RAM is limited.
+nc_temporal_mean <- function(nc_path, var_short, chunk_hours = 168L) {
+  
+  trast <- terra::rast(nc_path)
+  trast
+  plot(trast[[1]])
+
+
+  nc <- ncdf4::nc_open(nc_path)
+  on.exit(ncdf4::nc_close(nc))
+
+  lon    <- ncdf4::ncvar_get(nc, "longitude")
+  lat    <- ncdf4::ncvar_get(nc, "latitude")
+  nlon   <- length(lon)
+  nlat   <- length(lat)
+  ntimes <- nc$dim$valid_time$len
+
+  r_sum <- numeric(nlon * nlat)   # flat accumulator, longitude-major order
+
+  tInd <- 1L
+  while (tInd <= ntimes) {
+    cnt   <- min(chunk_hours, ntimes - tInd + 1L)
+    chunk <- ncdf4::ncvar_get(nc, var_short,
+                              start = c(1L, 1L, tInd),
+                              count = c(nlon, nlat, cnt))
+    # chunk is [nlon, nlat, cnt]; reshape to [pixels, time] and sum across time
+    
+    r_sum <- r_sum + rowSums(matrix(chunk, nrow = nlon * nlat, ncol = cnt),
+                             na.rm = TRUE)
+    tInd <- tInd + cnt
+  }
+
+  r_mean_vec <- r_sum / ntimes
+
+  # Build SpatRaster with correct WGS84 extent.
+  # ERA5 lat is typically descending (e.g. 90 → -5); min()/max() gives correct bounds.
+  res <- abs(lon[2] - lon[1])
+  r_out <- terra::rast(
+    nrows = nlat, ncols = nlon,
+    xmin  = min(lon) - res / 2, xmax = max(lon) + res / 2,
+    ymin  = min(lat) - res / 2, ymax = max(lat) + res / 2,
+    crs   = "EPSG:4326"
+  )
+  # terra::values() is row-major from ymax downward.
+  # r_mean_vec is [nlon*nlat] in (lon, lat) order with lat[1] = northernmost.
+  # Reshape to [nlat, nlon], read as vector → north-first.
+  terra::values(r_out) <- as.vector(matrix(r_mean_vec, nrow = nlon, ncol = nlat))
+  r_out
+}
+
+
 # ---- Helper: build 20-band annual-mean stack for one hemisphere ----
-# Loops year-by-year (loads 2 monthly nc files at a time) to keep memory bounded.
-build_annual_stack <- function(var, hemi, months) {
-  conv_fn <- unit_fns[[var]]
+# Returns a SpatRaster backed by a single GeoTIFF in dir.temp for fast city cropping.
+# Caller is responsible for unlinking the file when done (see main loop).
+build_annual_stack <- function(var, hemi, MO) {
+  conv_fn    <- unit_fns[[var]]
+  stack_path <- file.path(dir.temp, paste0("_stack_", var, "_", hemi, ".tif"))
   annual_layers <- vector("list", length(years_all))
 
   for (yi in seq_along(years_all)) {
-    yr <- years_all[yi]
+    yr       <- years_all[yi]
     nc_paths <- file.path(dir.temp,
                           paste0("era5_", hemi, "_", yr, "_",
-                                 sprintf("%02d", months), "_", var, ".nc"))
-    r_list <- lapply(nc_paths, terra::rast)
-    r_season <- terra::rast(r_list)           # all hourly layers for both months
-    r_mean   <- terra::mean(r_season, na.rm = TRUE)  # mean hourly value
-    r_conv   <- conv_fn(r_mean)               # apply unit conversion
+                                 sprintf("%02d", MO), "_", var, ".nc"))
+
+    r_months <- lapply(nc_paths, nc_temporal_mean, var_short = var)
+    r_mean   <- Reduce("+", r_months) / length(r_months)
+    r_conv   <- conv_fn(r_mean)
     names(r_conv) <- paste0(var, "_", yr)
+    r_conv[r_conv < -200] <- NA
     annual_layers[[yi]] <- r_conv
-    rm(r_list, r_season, r_mean, r_conv)
-    terra::tmpFiles(remove = TRUE)            # flush terra temp files each year
+    message("    ", hemi, " ", yr, " done.")
   }
 
-  terra::rast(annual_layers)  # 20-band stack
+  # Write the 20-band stack to one GeoTIFF so city crops read from a single
+  # contiguous file rather than from 40 scattered nc files.
+  terra::writeRaster(terra::rast(annual_layers), stack_path,
+                     overwrite = TRUE, datatype = "FLT4S")
+  terra::rast(stack_path)
 }
 
 
@@ -250,19 +330,23 @@ for (var in vars_map$short) {
 
     if (!nh_done || overwrite) {
       message("  Building NH annual stack (Jul+Aug) for ", var, "...")
-      r_nh <- build_annual_stack(var, hemi = "NH", months = c(7, 8))
+      r_nh <- build_annual_stack(var, hemi = "NH", MO = c(7, 8))
       message("  Extracting ", length(idx_NH), " NH cities...")
       nh_success <- extract_city_rasters(r_nh, idx_NH, var)
-      rm(r_nh); terra::tmpFiles(remove = TRUE)
+      rm(r_nh)
+      unlink(file.path(dir.temp, paste0("_stack_", var, "_NH.tif")))
+      gc()
       message("  NH: ", sum(nh_success), " / ", length(idx_NH), " cities written.")
     }
 
     if (!sh_done || overwrite) {
       message("  Building SH annual stack (Jan+Feb) for ", var, "...")
-      r_sh <- build_annual_stack(var, hemi = "SH", months = c(1, 2))
+      r_sh <- build_annual_stack(var, hemi = "SH", MO = c(1, 2))
       message("  Extracting ", length(idx_SH), " SH cities...")
       sh_success <- extract_city_rasters(r_sh, idx_SH, var)
-      rm(r_sh); terra::tmpFiles(remove = TRUE)
+      rm(r_sh)
+      unlink(file.path(dir.temp, paste0("_stack_", var, "_SH.tif")))
+      gc()
       message("  SH: ", sum(sh_success), " / ", length(idx_SH), " cities written.")
     }
   }
