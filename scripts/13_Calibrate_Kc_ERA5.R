@@ -55,7 +55,7 @@ path.shp    <- file.path("..", "data_raw", "sdei-global-uhi-2013-shp", "shp",
 file.et0    <- file.path(path.proc, "city_ET0_summary.csv")
 file.kc.out <- file.path(path.proc, "city_Kc_params.csv")
 
-overwrite <- FALSE
+overwrite <- T
 
 
 # ---- Settings ---------------------------------------------------------------
@@ -261,14 +261,12 @@ fit_city_kc <- function(CITY) {
     flag.converged <- TRUE
   }
 
-  data.frame(
+  fit.df <- data.frame(
     # City metadata
     ISOURBID             = CITY,
     NAME                 = sdei.df$NAME[sdei.df$ISOURBID == CITY],
     LATITUDE             = sdei.df$LATITUDE[sdei.df$ISOURBID == CITY],
     LONGITUDE            = sdei.df$LONGITUDE[sdei.df$ISOURBID == CITY],
-    WWF_BIOME            = sdei.df$WWF_BIOME[sdei.df$ISOURBID == CITY],
-    WWF_ECO              = sdei.df$WWF_ECO[sdei.df$ISOURBID == CITY],
     model_type           = model.type,
     # Sample size
     n_pixels             = n.pixels,
@@ -317,6 +315,8 @@ fit_city_kc <- function(CITY) {
     flag_kc_veg_neg      = Kc.veg  < 0,
     stringsAsFactors     = FALSE
   )
+
+  return(fit.df)
 }
 
 
@@ -324,7 +324,7 @@ fit_city_kc <- function(CITY) {
 summary.list <- vector("list", length(cities.use))
 pb <- txtProgressBar(min = 0, max = length(cities.use), style = 3)
 
-for (i in seq_along(cities.use)) {
+for (i in seq_along(cities.use[1:5])) {
   setTxtProgressBar(pb, i)
   summary.list[[i]] <- tryCatch(
     fit_city_kc(cities.use[i]),
@@ -349,6 +349,9 @@ if (!overwrite && file.exists(file.kc.out)) {
 } else {
   out.df <- new.df
 }
+
+
+summary(new.df)
 
 out.df <- out.df[order(out.df$ISOURBID), ]
 write.csv(out.df, file.kc.out, row.names = FALSE)
